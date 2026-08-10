@@ -1,7 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { ThemeConfig } from '../types';
+import type { ThemeConfig, FeatureVisibilityConfig } from '../types';
 import { supabase } from '../lib/supabase';
 import { useToast } from './ToastContext';
+
+export const DEFAULT_FEATURE_VISIBILITY: FeatureVisibilityConfig = {
+  showHeroBanner: true,
+  showCategoryFilters: true,
+  showLocationFilter: true,
+  showSmartRecommender: true,
+  showQuickButtons: true,
+  showLiveChatWidget: true,
+  showPromoBar: true,
+};
 
 export const DEFAULT_THEME: ThemeConfig = {
   siteName: 'TQ Store',
@@ -17,6 +27,7 @@ export const DEFAULT_THEME: ThemeConfig = {
   promoBarText: 'ƯU ĐÃI VÍ CÁ NHÂN TQ PAY: GIẢM THÊM 2% CHO MỌI ĐƠN HÀNG',
   walletDiscountRate: 2,
   coinCashbackRate: 3,
+  featureVisibility: DEFAULT_FEATURE_VISIBILITY
 };
 
 export const PRESET_THEMES = [
@@ -57,6 +68,7 @@ interface ThemeContextType {
   updateTheme: (newConfig: Partial<ThemeConfig>) => Promise<void>;
   applyPreset: (preset: typeof PRESET_THEMES[0]) => Promise<void>;
   resetToDefault: () => Promise<void>;
+  toggleFeatureVisibility: (key: keyof FeatureVisibilityConfig) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -65,7 +77,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { addToast } = useToast();
   const [theme, setTheme] = useState<ThemeConfig>(() => {
     const saved = localStorage.getItem('tq_site_theme');
-    return saved ? JSON.parse(saved) : DEFAULT_THEME;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_THEME,
+          ...parsed,
+          featureVisibility: {
+            ...DEFAULT_FEATURE_VISIBILITY,
+            ...(parsed.featureVisibility || {})
+          }
+        };
+      } catch (e) {
+        return DEFAULT_THEME;
+      }
+    }
+    return DEFAULT_THEME;
   });
 
   // Apply theme to document root CSS variables
@@ -91,7 +118,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         const { data, error } = await supabase.from('site_settings').select('*').single();
         if (!error && data && data.config) {
-          setTheme(prev => ({ ...prev, ...data.config }));
+          setTheme(prev => ({
+            ...prev,
+            ...data.config,
+            featureVisibility: {
+              ...DEFAULT_FEATURE_VISIBILITY,
+              ...(prev.featureVisibility || {}),
+              ...(data.config.featureVisibility || {})
+            }
+          }));
         }
       } catch (err) {
         console.warn('Local theme config fallback active');
@@ -99,15 +134,21 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     fetchRemoteTheme();
 
-    // 📡 Supabase Realtime WebSocket Listener for Instant System-Wide Theme Sync
+    // 📡 Supabase Realtime WebSocket Listener for Instant System-Wide Theme & Visibility Sync
     const themeChannel = supabase
       .channel('public:theme_settings')
       .on('broadcast', { event: 'theme_updated' }, (payload) => {
         if (payload?.payload) {
           const newTheme: ThemeConfig = payload.payload;
-          setTheme(newTheme);
+          setTheme(prev => ({
+            ...prev,
+            ...newTheme,
+            featureVisibility: {
+              ...DEFAULT_FEATURE_VISIBILITY,
+              ...(newTheme.featureVisibility || {})
+            }
+          }));
           localStorage.setItem('tq_site_theme', JSON.stringify(newTheme));
-          addToast(`🎨 Giao diện hệ thống vừa được Admin cập nhật mới: "${newTheme.siteName}"`, 'info');
         }
       })
       .subscribe();
@@ -118,7 +159,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const updateTheme = async (newConfig: Partial<ThemeConfig>) => {
-    const updated = { ...theme, ...newConfig };
+    const updated: ThemeConfig = {
+      ...theme,
+      ...newConfig,
+      featureVisibility: {
+        ...DEFAULT_FEATURE_VISIBILITY,
+        ...(theme.featureVisibility || {}),
+        ...(newConfig.featureVisibility || {})
+      }
+    };
     setTheme(updated);
     localStorage.setItem('tq_site_theme', JSON.stringify(updated));
 
@@ -142,7 +191,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.warn('Realtime theme broadcast active');
     }
 
-    addToast('🎨 Đã lưu & phát sóng Giao diện mới Realtime 100% tới toàn bộ hệ thống!', 'success');
+    addToast('🎨 Đã lưu & phát sóng Cấu hình Giao diện / Ẩn hiện chức năng Realtime tới toàn bộ hệ thống!', 'success');
+  };
+
+  const toggleFeatureVisibility = async (key: keyof FeatureVisibilityConfig) => {
+    const currentVis = theme.featureVisibility || DEFAULT_FEATURE_VISIBILITY;
+    const newVis = {
+      ...currentVis,
+      [key]: !currentVis[key]
+    };
+    await updateTheme({ featureVisibility: newVis });
   };
 
   const applyPreset = async (preset: typeof PRESET_THEMES[0]) => {
@@ -159,7 +217,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, updateTheme, applyPreset, resetToDefault }}>
+    <ThemeContext.Provider value={{ theme, updateTheme, applyPreset, resetToDefault, toggleFeatureVisibility }}>
       {children}
     </ThemeContext.Provider>
   );

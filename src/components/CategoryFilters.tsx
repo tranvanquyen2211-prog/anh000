@@ -1,15 +1,22 @@
 import React from 'react';
 import type { ShopType } from '../types';
+import { useTheme } from '../context/ThemeContext';
+import { Zap } from 'lucide-react';
 
 interface CategoryFiltersProps {
   selectedCategory: ShopType | 'ALL';
   onSelectCategory: (cat: ShopType | 'ALL') => void;
+  onQuickSearch?: (query: string) => void;
 }
 
 export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
   selectedCategory,
-  onSelectCategory
+  onSelectCategory,
+  onQuickSearch
 }) => {
+  const { theme } = useTheme();
+  const vis = theme.featureVisibility;
+
   const categories = [
     { type: 'ALL' as const, title: 'Tất cả danh mục', icon: '✨' },
     { type: 'RENTAL' as const, title: '👗 Cho Thuê Đồ', img: 'https://images.unsplash.com/photo-1594552072238-b8a33785b261?auto=format&fit=crop&w=200&q=80' },
@@ -18,8 +25,34 @@ export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
     { type: 'BEAUTY' as const, title: '💄 Làm Đẹp & Spa', img: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=200&q=80' }
   ];
 
+  const quickShortcuts = [
+    { label: '⚡ Flash Sale 50%', query: 'sale' },
+    { label: '👗 Váy Cưới Luxury', query: 'váy cưới' },
+    { label: '🧋 Trà Sữa Ô Long', query: 'trà sữa' },
+    { label: '💄 Spa Thảo Dược 60P', query: 'spa' },
+    { label: '🛍️ Sơ Mi Oxford Silk', query: 'sơ mi' }
+  ];
+
   return (
     <section className="space-y-3">
+      {/* Quick Action Shortcuts Bar */}
+      {vis?.showQuickButtons !== false && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <span className="text-[10px] font-black text-amber-600 bg-amber-100 border border-amber-300 px-2 py-1 rounded-lg uppercase tracking-wider shrink-0 flex items-center gap-1">
+            <Zap className="w-3 h-3 text-amber-600" /> NÚT CHUYỂN NHANH:
+          </span>
+          {quickShortcuts.map((sc, idx) => (
+            <button
+              key={idx}
+              onClick={() => onQuickSearch && onQuickSearch(sc.query)}
+              className="bg-white hover:bg-navy hover:text-amber-300 text-gray-700 text-xs font-bold px-3 py-1 rounded-full border border-gray-200 shadow-2xs transition-all shrink-0 cursor-pointer"
+            >
+              {sc.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <h3 className="text-xs font-extrabold text-navy uppercase tracking-wider">
           Danh mục sản phẩm & Gian hàng nổi bật

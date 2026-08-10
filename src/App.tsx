@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ToastContainer } from './components/Toast';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
@@ -34,6 +34,9 @@ import type { Product, ShopType } from './types';
 import { supabase } from './lib/supabase';
 
 function MainApp() {
+  const { theme } = useTheme();
+  const vis = theme.featureVisibility;
+
   const [products, setProducts] = useState<Product[]>(() => {
     const savedCustoms = JSON.parse(localStorage.getItem('tq_custom_products') || '[]');
     const overrides = JSON.parse(localStorage.getItem('tq_sales_count_overrides') || '{}');
@@ -353,30 +356,39 @@ function MainApp() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
-        <HeroBanner onSelectCategory={(cat) => { setSelectedCategory(cat); setActiveTab('shop'); }} />
+        {(vis?.showHeroBanner !== false) && (
+          <HeroBanner onSelectCategory={(cat) => { setSelectedCategory(cat); setActiveTab('shop'); }} />
+        )}
 
-        <CategoryFilters
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
-        />
+        {(vis?.showCategoryFilters !== false) && (
+          <CategoryFilters
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            onQuickSearch={(q) => setSearchQuery(q)}
+          />
+        )}
 
         {/* Vietnam Province & District Location Filter Bar */}
-        <LocationFilter
-          selectedProvince={selectedProvince}
-          onSelectProvince={setSelectedProvince}
-          selectedDistrict={selectedDistrict}
-          onSelectDistrict={setSelectedDistrict}
-        />
+        {(vis?.showLocationFilter !== false) && (
+          <LocationFilter
+            selectedProvince={selectedProvince}
+            onSelectProvince={setSelectedProvince}
+            selectedDistrict={selectedDistrict}
+            onSelectDistrict={setSelectedDistrict}
+          />
+        )}
 
         {/* 🤖 Smart Recommendation Section (New / Grand Opening Shops & Products & Keyword Match) */}
-        <SmartRecommenderSection
-          products={products}
-          searchQuery={searchQuery}
-          onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
-          onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
-          onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
-          onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
-        />
+        {(vis?.showSmartRecommender !== false) && (
+          <SmartRecommenderSection
+            products={products}
+            searchQuery={searchQuery}
+            onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
+            onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
+            onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+            onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
+          />
+        )}
 
         <section className="space-y-4 pt-2">
           <div className="flex items-center justify-between border-b border-gray-200 pb-3">
@@ -421,11 +433,13 @@ function MainApp() {
         </section>
       </main>
 
-      <LiveChatWidget
-        selectedProductContext={chatProductContext}
-        onClearProductContext={() => setChatProductContext(null)}
-        onOpenAuthModal={() => setIsAuthOpen(true)}
-      />
+      {(vis?.showLiveChatWidget !== false) && (
+        <LiveChatWidget
+          selectedProductContext={chatProductContext}
+          onClearProductContext={() => setChatProductContext(null)}
+          onOpenAuthModal={() => setIsAuthOpen(true)}
+        />
+      )}
 
       <Footer />
 

@@ -84,6 +84,16 @@ export interface ToastMessage {
   message: string;
 }
 
+export interface FeatureVisibilityConfig {
+  showHeroBanner: boolean;
+  showCategoryFilters: boolean;
+  showLocationFilter: boolean;
+  showSmartRecommender: boolean;
+  showQuickButtons: boolean;
+  showLiveChatWidget: boolean;
+  showPromoBar: boolean;
+}
+
 export interface ThemeConfig {
   siteName: string;
   tagline: string;
@@ -98,4 +108,5 @@ export interface ThemeConfig {
   promoBarText: string;
   walletDiscountRate: number;
   coinCashbackRate: number;
+  featureVisibility?: FeatureVisibilityConfig;
 }

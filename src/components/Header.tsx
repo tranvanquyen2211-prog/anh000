@@ -62,6 +62,14 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100">
       
+      {/* Top Announcement Promo Bar */}
+      {(theme.featureVisibility?.showPromoBar !== false) && (
+        <div className="bg-gradient-to-r from-navy via-navy-light to-indigo-950 text-white text-[11px] font-bold py-1.5 px-4 text-center border-b border-navy-light flex items-center justify-center gap-2">
+          <span>⚡ {theme.promoBarText || 'ƯU ĐÃI VÍ CÁ NHÂN TQ PAY: GIẢM THÊM 2% CHO MỌI ĐƠN HÀNG'}</span>
+          <span className="bg-amber-400 text-slate-950 px-2 py-0.2 rounded-full text-[9px] font-black uppercase">HOT</span>
+        </div>
+      )}
+
       {/* Impersonation Banner */}
       {isImpersonating && (
         <div className="bg-gradient-to-r from-rose-600 via-amber-600 to-red-700 text-white px-4 py-2 flex items-center justify-between text-xs font-black shadow-md border-b border-rose-400">

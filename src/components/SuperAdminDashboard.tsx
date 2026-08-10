@@ -34,7 +34,9 @@ import {
   Globe,
   PartyPopper,
   Flame,
-  Search
+  Search,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -75,7 +77,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   onToggleGrandOpeningProduct
 }) => {
   const { user, impersonateShop } = useAuth();
-  const { theme, updateTheme } = useTheme();
+  const { theme, updateTheme, toggleFeatureVisibility } = useTheme();
   const { addToast } = useToast();
 
   const [adminTab, setAdminTab] = useState<
@@ -93,6 +95,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'buttons-categories'
     | 'broadcast-announcement'
     | 'smart-recommender'
+    | 'feature-visibility'
   >('users');
 
   // Users list state
@@ -573,7 +576,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           {/* 14 Module Sidebar Navigation */}
           <aside className="w-64 bg-slate-950 border-r border-slate-800 p-3 space-y-1 overflow-y-auto custom-scrollbar shrink-0 text-xs font-bold">
             <div className="text-[9px] font-black text-amber-400 uppercase mb-2 px-3 tracking-wider">
-              Phân Hệ Quyền Lực Overlord (14 Modules)
+              Phân Hệ Quyền Lực Overlord (15 Modules)
             </div>
 
             <button
@@ -703,7 +706,16 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 adminTab === 'smart-recommender' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
               }`}
             >
-              <PartyPopper className="w-4 h-4 text-amber-400 animate-bounce" /> 14. 🤖 Đề Xuất Shop & SP Khai Trương
+              <PartyPopper className="w-4 h-4 text-amber-400" /> 14. 🤖 Đề Xuất Shop & SP Khai Trương
+            </button>
+
+            <button
+              onClick={() => setAdminTab('feature-visibility')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'feature-visibility' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Eye className="w-4 h-4 text-emerald-400 animate-pulse" /> 15. 👁️ Ẩn/Hiện Chức Năng Trang Chính
             </button>
           </aside>
 
@@ -1536,6 +1548,228 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   </div>
                 </div>
 
+              </div>
+            )}
+
+            {/* MODULE 15: MAIN PAGE FEATURE VISIBILITY & SHORTCUT CONTROLS */}
+            {adminTab === 'feature-visibility' && (
+              <div className="space-y-6">
+                <div className="bg-slate-950 p-5 rounded-2xl border border-emerald-500/40 shadow-xl space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-3 gap-3">
+                    <div>
+                      <h3 className="text-sm font-black text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                        <Eye className="w-5 h-5 text-emerald-400" /> 15. BẢNG QUẢN LÝ ẨN / HIỆN CÁC CHỨC NĂNG & DỰ ÁN TRÊN TRANG CHÍNH
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Bật/Tắt tức thì các khối giao diện, bộ lọc danh mục, thanh định vị Google Maps & nút bấm chuyển nhanh. Đồng bộ Supabase Realtime 100%.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={async () => {
+                          const allTrue = {
+                            showHeroBanner: true,
+                            showCategoryFilters: true,
+                            showLocationFilter: true,
+                            showSmartRecommender: true,
+                            showQuickButtons: true,
+                            showLiveChatWidget: true,
+                            showPromoBar: true
+                          };
+                          await updateTheme({ featureVisibility: allTrue });
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition cursor-pointer shadow"
+                      >
+                        ✓ Bật Tất Cả
+                      </button>
+
+                      <button
+                        onClick={async () => {
+                          const allFalse = {
+                            showHeroBanner: false,
+                            showCategoryFilters: false,
+                            showLocationFilter: false,
+                            showSmartRecommender: false,
+                            showQuickButtons: false,
+                            showLiveChatWidget: false,
+                            showPromoBar: false
+                          };
+                          await updateTheme({ featureVisibility: allFalse });
+                        }}
+                        className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer border border-rose-500/40"
+                      >
+                        ✕ Tắt Tất Cả
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 7 Visibility Feature Toggle Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    {/* 1. Hero Banner */}
+                    <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-amber-400" />
+                          <h4 className="font-black text-slate-100 text-xs uppercase">1. Banner Quảng Cáo Main Hero</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400">Khối banner lớn + Khuyến mãi ví TQ Pay ở đầu trang chủ</p>
+                      </div>
+
+                      <button
+                        onClick={() => toggleFeatureVisibility('showHeroBanner')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                          (theme.featureVisibility?.showHeroBanner !== false)
+                            ? 'bg-emerald-500 text-slate-950 shadow-md'
+                            : 'bg-slate-800 text-slate-500 border border-slate-700'
+                        }`}
+                      >
+                        {(theme.featureVisibility?.showHeroBanner !== false) ? <ToggleRight className="w-5 h-5 text-slate-950" /> : <ToggleLeft className="w-5 h-5 text-slate-500" />}
+                        {(theme.featureVisibility?.showHeroBanner !== false) ? 'HIỆN (ON)' : 'ẨN (OFF)'}
+                      </button>
+                    </div>
+
+                    {/* 2. Category Filters */}
+                    <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Layers className="w-4 h-4 text-teal-400" />
+                          <h4 className="font-black text-slate-100 text-xs uppercase">2. Thanh Bộ Lọc Danh Mục Shop</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400">Các tab lọc Thuê Đồ, Bán Đồ, F&B Đồ Ăn, Spa Làm Đẹp</p>
+                      </div>
+
+                      <button
+                        onClick={() => toggleFeatureVisibility('showCategoryFilters')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                          (theme.featureVisibility?.showCategoryFilters !== false)
+                            ? 'bg-emerald-500 text-slate-950 shadow-md'
+                            : 'bg-slate-800 text-slate-500 border border-slate-700'
+                        }`}
+                      >
+                        {(theme.featureVisibility?.showCategoryFilters !== false) ? <ToggleRight className="w-5 h-5 text-slate-950" /> : <ToggleLeft className="w-5 h-5 text-slate-500" />}
+                        {(theme.featureVisibility?.showCategoryFilters !== false) ? 'HIỆN (ON)' : 'ẨN (OFF)'}
+                      </button>
+                    </div>
+
+                    {/* 3. Location Filter */}
+                    <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-blue-400" />
+                          <h4 className="font-black text-slate-100 text-xs uppercase">3. Bộ Lọc Tỉnh/Thành & Google Maps</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400">Bộ lọc vị trí địa lý Tỉnh thành / Quận huyện Việt Nam</p>
+                      </div>
+
+                      <button
+                        onClick={() => toggleFeatureVisibility('showLocationFilter')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                          (theme.featureVisibility?.showLocationFilter !== false)
+                            ? 'bg-emerald-500 text-slate-950 shadow-md'
+                            : 'bg-slate-800 text-slate-500 border border-slate-700'
+                        }`}
+                      >
+                        {(theme.featureVisibility?.showLocationFilter !== false) ? <ToggleRight className="w-5 h-5 text-slate-950" /> : <ToggleLeft className="w-5 h-5 text-slate-500" />}
+                        {(theme.featureVisibility?.showLocationFilter !== false) ? 'HIỆN (ON)' : 'ẨN (OFF)'}
+                      </button>
+                    </div>
+
+                    {/* 4. Smart Recommender */}
+                    <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <PartyPopper className="w-4 h-4 text-purple-400" />
+                          <h4 className="font-black text-slate-100 text-xs uppercase">4. Đề Xuất Shop & SP Khai Trương (AI)</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400">Khối đề xuất gian hàng khai trương & gợi ý từ khóa</p>
+                      </div>
+
+                      <button
+                        onClick={() => toggleFeatureVisibility('showSmartRecommender')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                          (theme.featureVisibility?.showSmartRecommender !== false)
+                            ? 'bg-emerald-500 text-slate-950 shadow-md'
+                            : 'bg-slate-800 text-slate-500 border border-slate-700'
+                        }`}
+                      >
+                        {(theme.featureVisibility?.showSmartRecommender !== false) ? <ToggleRight className="w-5 h-5 text-slate-950" /> : <ToggleLeft className="w-5 h-5 text-slate-500" />}
+                        {(theme.featureVisibility?.showSmartRecommender !== false) ? 'HIỆN (ON)' : 'ẨN (OFF)'}
+                      </button>
+                    </div>
+
+                    {/* 5. Quick Buttons */}
+                    <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-amber-400" />
+                          <h4 className="font-black text-slate-100 text-xs uppercase">5. Nút Bấm Chuyển Nhanh (Shortcuts)</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400">Các nút lối tắt chuyển nhanh trên thanh danh mục sản phẩm</p>
+                      </div>
+
+                      <button
+                        onClick={() => toggleFeatureVisibility('showQuickButtons')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                          (theme.featureVisibility?.showQuickButtons !== false)
+                            ? 'bg-emerald-500 text-slate-950 shadow-md'
+                            : 'bg-slate-800 text-slate-500 border border-slate-700'
+                        }`}
+                      >
+                        {(theme.featureVisibility?.showQuickButtons !== false) ? <ToggleRight className="w-5 h-5 text-slate-950" /> : <ToggleLeft className="w-5 h-5 text-slate-500" />}
+                        {(theme.featureVisibility?.showQuickButtons !== false) ? 'HIỆN (ON)' : 'ẨN (OFF)'}
+                      </button>
+                    </div>
+
+                    {/* 6. Live Chat Widget */}
+                    <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Send className="w-4 h-4 text-emerald-400" />
+                          <h4 className="font-black text-slate-100 text-xs uppercase">6. Khung Chat Hỗ Trợ Live Floating</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400">Bong bóng Chat tư vấn thời gian thực ở góc dưới màn hình</p>
+                      </div>
+
+                      <button
+                        onClick={() => toggleFeatureVisibility('showLiveChatWidget')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                          (theme.featureVisibility?.showLiveChatWidget !== false)
+                            ? 'bg-emerald-500 text-slate-950 shadow-md'
+                            : 'bg-slate-800 text-slate-500 border border-slate-700'
+                        }`}
+                      >
+                        {(theme.featureVisibility?.showLiveChatWidget !== false) ? <ToggleRight className="w-5 h-5 text-slate-950" /> : <ToggleLeft className="w-5 h-5 text-slate-500" />}
+                        {(theme.featureVisibility?.showLiveChatWidget !== false) ? 'HIỆN (ON)' : 'ẨN (OFF)'}
+                      </button>
+                    </div>
+
+                    {/* 7. Top Header Promo Bar */}
+                    <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between md:col-span-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Megaphone className="w-4 h-4 text-rose-400" />
+                          <h4 className="font-black text-slate-100 text-xs uppercase">7. Thanh Thông Báo Khuyến Mãi Đầu Trang (Header Promo Bar)</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400">Thanh chạy thông báo ưu đãi ở vị trí trên cùng của trang web</p>
+                      </div>
+
+                      <button
+                        onClick={() => toggleFeatureVisibility('showPromoBar')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                          (theme.featureVisibility?.showPromoBar !== false)
+                            ? 'bg-emerald-500 text-slate-950 shadow-md'
+                            : 'bg-slate-800 text-slate-500 border border-slate-700'
+                        }`}
+                      >
+                        {(theme.featureVisibility?.showPromoBar !== false) ? <ToggleRight className="w-5 h-5 text-slate-950" /> : <ToggleLeft className="w-5 h-5 text-slate-500" />}
+                        {(theme.featureVisibility?.showPromoBar !== false) ? 'HIỆN (ON)' : 'ẨN (OFF)'}
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
               </div>
             )}
 
