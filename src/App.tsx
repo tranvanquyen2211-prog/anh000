@@ -12,6 +12,7 @@ import { ProductDetailModal } from './components/ProductDetailModal';
 import { ShopStorefrontModal } from './components/ShopStorefrontModal';
 import { EditProductSalesModal } from './components/EditProductSalesModal';
 import { AdminFakeReviewModal } from './components/AdminFakeReviewModal';
+import { type SystemNotification } from './components/NotificationCenter';
 import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -44,6 +45,30 @@ function MainApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'shop' | 'orders' | 'chat'>('shop');
 
+  // Notifications State
+  const [notifications, setNotifications] = useState<SystemNotification[]>(() => {
+    const saved = localStorage.getItem('tq_notifications');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'notif_1',
+        type: 'order',
+        title: '🎉 Chào mừng tới TQ Store Marketplace!',
+        message: 'Hệ thống đồng bộ Realtime Supabase hoạt động 100%.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isRead: false
+      },
+      {
+        id: 'notif_2',
+        type: 'coin',
+        title: '🪙 Nhận Xu Tích Lũy Đơn Hàng',
+        message: 'Tài khoản của bạn tự động nhận TQ Xu khi mua sắm & đánh giá sản phẩm.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isRead: false
+      }
+    ];
+  });
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
   // Modals state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -62,6 +87,41 @@ function MainApp() {
   const [selectedShopNameForStorefront, setSelectedShopNameForStorefront] = useState<string | null>(null);
   const [selectedProductForEditSales, setSelectedProductForEditSales] = useState<Product | null>(null);
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
+
+  const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
+
+  const pushNewNotification = (notifItem: Omit<SystemNotification, 'id' | 'timestamp' | 'isRead'>) => {
+    const newNotif: SystemNotification = {
+      id: `notif_${Date.now()}`,
+      ...notifItem,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isRead: false
+    };
+    setNotifications(prev => {
+      const updated = [newNotif, ...prev];
+      localStorage.setItem('tq_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleToggleNotifications = () => {
+    setIsNotificationsOpen(prev => {
+      const next = !prev;
+      if (next) {
+        // Clicking on the bell marks all notifications as read!
+        handleMarkAllNotificationsAsRead();
+      }
+      return next;
+    });
+  };
+
+  const handleMarkAllNotificationsAsRead = () => {
+    setNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      localStorage.setItem('tq_notifications', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   useEffect(() => {
     const fetchCloudProducts = async () => {
@@ -98,7 +158,7 @@ function MainApp() {
 
     fetchCloudProducts();
 
-    // Supabase Realtime Subscription for Live Product Sync & Admin Sales Updates
+    // Supabase Realtime Subscriptions for Realtime Notifications & Products
     const productChannel = supabase
       .channel('public:products')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'products' }, (payload) => {
@@ -119,6 +179,12 @@ function MainApp() {
             salesCount: p.sales_count || 12
           };
           setProducts(prev => [formatted, ...prev.filter(item => item.id !== formatted.id)]);
+          
+          pushNewNotification({
+            type: 'product',
+            title: '🛍️ Sản phẩm mới được đăng',
+            message: `Shop [${formatted.shopName}] vừa đăng sản phẩm mới: "${formatted.title}".`
+          });
         }
       })
       .on('broadcast', { event: 'product_updated' }, (payload) => {
@@ -131,17 +197,43 @@ function MainApp() {
         if (payload?.payload) {
           const formatted: Product = payload.payload;
           setProducts(prev => [formatted, ...prev.filter(item => item.id !== formatted.id)]);
+          pushNewNotification({
+            type: 'product',
+            title: '🛍️ Sản phẩm mới được đăng',
+            message: `Shop [${formatted.shopName}] vừa đăng sản phẩm mới: "${formatted.title}".`
+          });
+        }
+      })
+      .subscribe();
+
+    // Listen to orders channel for live notifications
+    const orderChannel = supabase
+      .channel('public:orders')
+      .on('broadcast', { event: 'new_order_placed' }, (payload) => {
+        if (payload?.payload) {
+          const order = payload.payload;
+          pushNewNotification({
+            type: 'order',
+            title: '🎉 Đơn hàng mới thành công',
+            message: `Mã đơn #${order.id} - Tổng tiền: ${(order.total_price || 0).toLocaleString('vi-VN')} VNĐ.`
+          });
         }
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(productChannel);
+      supabase.removeChannel(orderChannel);
     };
   }, []);
 
   const handleProductAdded = (newProd: Product) => {
     setProducts(prev => [newProd, ...prev.filter(item => item.id !== newProd.id)]);
+    pushNewNotification({
+      type: 'product',
+      title: '🛍️ Đăng sản phẩm thành công',
+      message: `Sản phẩm "${newProd.title}" của shop [${newProd.shopName}] đã tải lên toàn hệ thống.`
+    });
   };
 
   const handleSalesCountUpdated = (prodId: string | number, newSalesCount: number) => {
@@ -192,6 +284,11 @@ function MainApp() {
         onSearchChange={setSearchQuery}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        unreadNotificationsCount={unreadNotificationsCount}
+        onToggleNotifications={handleToggleNotifications}
+        isNotificationsOpen={isNotificationsOpen}
+        notifications={notifications}
+        onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">

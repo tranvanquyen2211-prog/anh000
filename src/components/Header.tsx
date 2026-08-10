@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera } from 'lucide-react';
+import { NotificationCenter, type SystemNotification } from './NotificationCenter';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -21,6 +22,13 @@ interface HeaderProps {
   onSearchChange: (q: string) => void;
   activeTab: 'shop' | 'orders' | 'chat';
   setActiveTab: (tab: 'shop' | 'orders' | 'chat') => void;
+
+  // Notification Props
+  unreadNotificationsCount: number;
+  onToggleNotifications: () => void;
+  isNotificationsOpen: boolean;
+  notifications: SystemNotification[];
+  onMarkAllNotificationsAsRead: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -38,7 +46,12 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   onSearchChange,
   activeTab,
-  setActiveTab
+  setActiveTab,
+  unreadNotificationsCount,
+  onToggleNotifications,
+  isNotificationsOpen,
+  notifications,
+  onMarkAllNotificationsAsRead
 }) => {
   const { user, logout, isImpersonating, exitImpersonation } = useAuth();
   const { totalItemsCount } = useCart();
@@ -66,7 +79,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 relative">
         {/* Brand Logo */}
         <div
           onClick={() => setActiveTab('shop')}
@@ -236,6 +249,32 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
           )}
+
+          {/* System Notification Bell Icon Button */}
+          <div className="relative">
+            <button
+              onClick={onToggleNotifications}
+              className="relative flex items-center justify-center p-2.5 text-navy hover:text-amber-600 transition-colors rounded-xl hover:bg-gray-100 cursor-pointer"
+              title="Thông báo hoạt động hệ thống"
+            >
+              <Bell className={`w-5 h-5 ${unreadNotificationsCount > 0 ? 'text-amber-500 animate-bounce' : 'text-navy'}`} />
+              
+              {/* Unread Counter Badge */}
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full shadow-md animate-pulse border border-white">
+                  {unreadNotificationsCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Popover Drawer */}
+            <NotificationCenter
+              isOpen={isNotificationsOpen}
+              onClose={onToggleNotifications}
+              notifications={notifications}
+              onMarkAllAsRead={onMarkAllNotificationsAsRead}
+            />
+          </div>
 
           {/* Cart Button */}
           <button
