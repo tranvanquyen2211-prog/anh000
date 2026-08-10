@@ -8,6 +8,7 @@ import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 import { CategoryFilters } from './components/CategoryFilters';
 import { LocationFilter } from './components/LocationFilter';
+import { SmartRecommenderSection } from './components/SmartRecommenderSection';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { ShopStorefrontModal } from './components/ShopStorefrontModal';
@@ -114,7 +115,6 @@ function MainApp() {
     setIsNotificationsOpen(prev => {
       const next = !prev;
       if (next) {
-        // Clicking on the bell marks all notifications as read!
         handleMarkAllNotificationsAsRead();
       }
       return next;
@@ -172,7 +172,8 @@ function MainApp() {
             badge: p.badge,
             details: p.details,
             stock: p.stock || 50,
-            salesCount: overrides[p.id] !== undefined ? overrides[p.id] : (p.sales_count || p.salesCount || 12)
+            salesCount: overrides[p.id] !== undefined ? overrides[p.id] : (p.sales_count || p.salesCount || 12),
+            isGrandOpening: p.is_grand_opening
           }));
 
           setProducts(prev => {
@@ -297,6 +298,10 @@ function MainApp() {
     setProducts(prev => prev.map(p => p.id === prodId ? { ...p, salesCount: newSalesCount } : p));
   };
 
+  const handleToggleGrandOpeningProduct = (prodId: string | number) => {
+    setProducts(prev => prev.map(p => p.id === prodId ? { ...p, isGrandOpening: !p.isGrandOpening } : p));
+  };
+
   const handleDeleteProduct = async (prodId: string | number) => {
     setProducts(prev => prev.filter(p => p.id !== prodId));
     
@@ -379,11 +384,21 @@ function MainApp() {
           onSelectDistrict={setSelectedDistrict}
         />
 
+        {/* 🤖 Smart Recommendation Section (New / Grand Opening Shops & Products & Keyword Match) */}
+        <SmartRecommenderSection
+          products={products}
+          searchQuery={searchQuery}
+          onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
+          onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
+          onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+          onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
+        />
+
         <section className="space-y-4 pt-2">
           <div className="flex items-center justify-between border-b border-gray-200 pb-3">
             <div>
               <h2 className="text-xl md:text-2xl font-black text-navy tracking-wide uppercase">
-                SẢN PHẨM & DỊCH VỤ CÁC GIAN HÀNG {selectedProvince !== 'ALL' ? `- ${selectedProvince.toUpperCase()}` : ''}
+                SẢN PHẢM & DỊCH VỤ CÁC GIAN HÀNG {selectedProvince !== 'ALL' ? `- ${selectedProvince.toUpperCase()}` : ''}
               </h2>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
                 Supabase Realtime Marketplace • Lọc theo vị trí Google Maps & Kho hàng
@@ -513,6 +528,8 @@ function MainApp() {
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenFakeReviewModal={() => setIsFakeReviewOpen(true)}
         onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
+        products={products}
+        onToggleGrandOpeningProduct={handleToggleGrandOpeningProduct}
       />
 
       <ChangePasswordModal

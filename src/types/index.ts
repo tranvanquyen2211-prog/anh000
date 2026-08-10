@@ -13,6 +13,9 @@ export interface Product {
   details?: string;
   stock?: number;
   salesCount?: number;
+  isNew?: boolean;
+  isGrandOpening?: boolean;
+  tags?: string[];
   created_at?: string;
 }
 
@@ -71,6 +74,8 @@ export interface UserProfile {
   coins?: number;
   status?: 'active' | 'locked';
   shopType?: 'RENTAL' | 'RETAIL' | 'FNB' | 'BEAUTY';
+  isGrandOpeningShop?: boolean;
+  openingDate?: string;
 }
 
 export interface ToastMessage {

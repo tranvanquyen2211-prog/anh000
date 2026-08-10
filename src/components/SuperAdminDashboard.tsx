@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
-import type { UserProfile } from '../types';
+import type { UserProfile, Product } from '../types';
 import {
   Crown,
   UserCheck,
@@ -31,7 +31,10 @@ import {
   Wand2,
   Sparkles,
   Zap,
-  Globe
+  Globe,
+  PartyPopper,
+  Flame,
+  Search
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -58,6 +61,8 @@ interface SuperAdminDashboardProps {
   onOpenThemeCustomizer: () => void;
   onOpenFakeReviewModal?: () => void;
   onOpenShopStorefront?: (shopName: string) => void;
+  products?: Product[];
+  onToggleGrandOpeningProduct?: (productId: number | string) => void;
 }
 
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
@@ -65,7 +70,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   onClose,
   onOpenThemeCustomizer,
   onOpenFakeReviewModal,
-  onOpenShopStorefront
+  onOpenShopStorefront,
+  products = [],
+  onToggleGrandOpeningProduct
 }) => {
   const { user, impersonateShop } = useAuth();
   const { theme, updateTheme } = useTheme();
@@ -85,6 +92,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'fake-reviews'
     | 'buttons-categories'
     | 'broadcast-announcement'
+    | 'smart-recommender'
   >('users');
 
   // Users list state
@@ -168,6 +176,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [announcementTopic, setAnnouncementTopic] = useState<'PROMO' | 'MAINTENANCE' | 'REWARD' | 'NEW_COLLECTION'>('PROMO');
   const [isAiGeneratingText, setIsAiGeneratingText] = useState(false);
 
+  // Module 14: Smart Recommender Keyword Match Simulator State
+  const [testSearchKeyword, setTestSearchKeyword] = useState('váy cưới');
+
   useEffect(() => {
     const fetchCloudProfiles = async () => {
       try {
@@ -183,7 +194,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             walletBalance: p.wallet_balance || 1000000,
             coins: p.coins || 500,
             status: p.status || 'active',
-            avatar: p.avatar_url
+            avatar: p.avatar_url,
+            isGrandOpeningShop: p.is_grand_opening_shop
           }));
           
           setUsersList(prev => {
@@ -221,7 +233,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           wallet_balance: u.walletBalance,
           coins: u.coins,
           status: (u as any).status,
-          avatar_url: u.avatar
+          avatar_url: u.avatar,
+          is_grand_opening_shop: u.isGrandOpeningShop
         }
       ]);
     } catch (err) {
@@ -248,7 +261,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     const updatedUsers = [newUser, ...usersList.filter(u => u.phone !== newUser.phone)];
     setUsersList(updatedUsers);
 
-    const phoneUsersOnly = updatedUsers.filter(u => u.role !== 'SUPER_ADMIN');
+    const phoneUsersOnly = updatedUsers.filter(u => u && u.role !== 'SUPER_ADMIN');
     localStorage.setItem('tq_phone_users', JSON.stringify(phoneUsersOnly));
 
     await syncProfileToSupabase(newUser);
@@ -292,6 +305,26 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     }
   };
 
+  const toggleShopGrandOpeningTag = async (phone?: string) => {
+    if (!phone) return;
+    let targetShop: UserProfile | undefined;
+    const updated = usersList.map(u => {
+      if (u.phone === phone) {
+        const nextFlag = !u.isGrandOpeningShop;
+        targetShop = { ...u, isGrandOpeningShop: nextFlag };
+        return targetShop;
+      }
+      return u;
+    });
+    setUsersList(updated);
+    localStorage.setItem('tq_phone_users', JSON.stringify(updated.filter(u => u && u.role !== 'SUPER_ADMIN')));
+
+    if (targetShop) {
+      await syncProfileToSupabase(targetShop);
+      addToast(`🎉 Đã ${targetShop.isGrandOpeningShop ? 'gắn' : 'bỏ'} Tag Shop Khai Trương cho [${targetShop.name}]!`, 'success');
+    }
+  };
+
   const deleteUserAccount = async (phone?: string) => {
     if (!phone) return;
     if (phone === '0367818343' || phone === '0987654321') {
@@ -300,7 +333,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     }
     const updated = usersList.filter(u => u.phone !== phone);
     setUsersList(updated);
-    const phoneUsersOnly = updated.filter(u => u.role !== 'SUPER_ADMIN');
+    const phoneUsersOnly = updated.filter(u => u && u.role !== 'SUPER_ADMIN');
     localStorage.setItem('tq_phone_users', JSON.stringify(phoneUsersOnly));
 
     try {
@@ -488,6 +521,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     setAnnouncementMessage('');
   };
 
+  // Filter matched products for Admin Keyword Match Simulator
+  const matchedSimulatedProducts = testSearchKeyword.trim()
+    ? products.filter(p =>
+        p.title.toLowerCase().includes(testSearchKeyword.toLowerCase()) ||
+        p.shopName.toLowerCase().includes(testSearchKeyword.toLowerCase()) ||
+        (p.details && p.details.toLowerCase().includes(testSearchKeyword.toLowerCase()))
+      )
+    : [];
+
   return (
     <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
       <div className="bg-slate-900 border border-amber-500/40 text-slate-100 rounded-3xl w-full max-w-6xl h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
@@ -528,10 +570,10 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         {/* Layout Body: Sidebar + Main Content */}
         <div className="flex-1 flex overflow-hidden">
           
-          {/* 13 Module Sidebar Navigation */}
+          {/* 14 Module Sidebar Navigation */}
           <aside className="w-64 bg-slate-950 border-r border-slate-800 p-3 space-y-1 overflow-y-auto custom-scrollbar shrink-0 text-xs font-bold">
             <div className="text-[9px] font-black text-amber-400 uppercase mb-2 px-3 tracking-wider">
-              Phân Hệ Quyền Lực Overlord (13 Modules)
+              Phân Hệ Quyền Lực Overlord (14 Modules)
             </div>
 
             <button
@@ -653,6 +695,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               }`}
             >
               <Megaphone className="w-4 h-4 text-rose-400 animate-pulse" /> 13. 📢 Soạn & Gửi Thông Báo (AI)
+            </button>
+
+            <button
+              onClick={() => setAdminTab('smart-recommender')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'smart-recommender' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <PartyPopper className="w-4 h-4 text-amber-400 animate-bounce" /> 14. 🤖 Đề Xuất Shop & SP Khai Trương
             </button>
           </aside>
 
@@ -1364,6 +1415,127 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                     <Send className="w-4 h-4 text-white" /> 🚀 PHÁT THÔNG BÁO TỚI TOÀN BỘ TÀI KHOẢN HỆ THỐNG
                   </button>
                 </form>
+              </div>
+            )}
+
+            {/* MODULE 14: SMART RECOMMENDER & TRENDS MANAGEMENT */}
+            {adminTab === 'smart-recommender' && (
+              <div className="space-y-6">
+                
+                {/* 1. Shop Khai Trương Management Panel */}
+                <div className="bg-slate-950 p-5 rounded-2xl border border-amber-500/40 space-y-4 shadow-xl">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      <PartyPopper className="w-4 h-4 text-amber-400 animate-bounce" /> 1. QUẢN LÝ TẮT/BẬT TAG SHOP KHAI TRƯƠNG & GIAN HÀNG MỚI
+                    </h3>
+                    <span className="text-[10px] text-slate-400 font-bold">Hiển thị nổi bật trên banner trang chủ</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {usersList.filter(u => u.role === 'SHOP').map((sUser, idx) => (
+                      <div key={idx} className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={sUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sUser.name)}&background=0F2C59&color=fff`}
+                            alt={sUser.name}
+                            className="w-10 h-10 rounded-xl border border-amber-400"
+                          />
+                          <div>
+                            <span className="font-bold text-slate-100 text-xs block">{sUser.name}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{sUser.phone || sUser.email}</span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleShopGrandOpeningTag(sUser.phone)}
+                          className={`px-3 py-1.5 rounded-xl font-black text-[10px] uppercase transition cursor-pointer flex items-center gap-1 ${
+                            sUser.isGrandOpeningShop ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          <PartyPopper className="w-3.5 h-3.5" />
+                          {sUser.isGrandOpeningShop ? '✓ Đang Khai Trương' : '+ Gắn Tag Khai Trương'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 2. Sản Phẩm Khai Trương & Tag Mới Management */}
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <h3 className="text-xs font-black text-rose-400 uppercase tracking-wider flex items-center gap-2">
+                      <Flame className="w-4 h-4 text-rose-400" /> 2. DẪN ĐẦU ĐỀ XUẤT SẢN PHẨM KHAI TRƯƠNG & MỚI RA MẮT ({products.length} SẢN PHẨM)
+                    </h3>
+                  </div>
+
+                  <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                    {products.map((p, idx) => (
+                      <div key={idx} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <img src={p.img} alt={p.title} className="w-10 h-10 object-cover rounded-lg shrink-0" />
+                          <div className="min-w-0">
+                            <span className="font-bold text-slate-100 text-xs truncate block">{p.title}</span>
+                            <span className="text-[10px] text-amber-400 font-bold block">{p.shopName} - {p.price.toLocaleString('vi-VN')} đ</span>
+                          </div>
+                        </div>
+
+                        {onToggleGrandOpeningProduct && (
+                          <button
+                            type="button"
+                            onClick={() => onToggleGrandOpeningProduct(p.id)}
+                            className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase transition cursor-pointer shrink-0 ${
+                              p.isGrandOpening ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {p.isGrandOpening ? '🎉 Đang Đề Xuất Khai Trương' : '+ Tag Khai Trương'}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. AI Keyword Match Search Simulator */}
+                <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 p-5 rounded-2xl border border-indigo-500/40 space-y-4 shadow-xl">
+                  <div className="flex justify-between items-center border-b border-indigo-500/30 pb-2">
+                    <h3 className="text-xs font-black text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                      <Search className="w-4 h-4 text-indigo-400" /> 3. MÔ PHỎNG THUẬT TOÁN AI ĐỀ XUẤT TRÙNG TỪ KHÓA TÌM KIẾM
+                    </h3>
+                    <span className="bg-indigo-500/20 text-indigo-300 font-bold text-[9px] px-2 py-0.5 rounded border border-indigo-400/40">
+                      MÔ PHỎNG THỜI GIAN THỰC
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={testSearchKeyword}
+                      onChange={e => setTestSearchKeyword(e.target.value)}
+                      placeholder="Nhập từ khóa thử nghiệm (VD: váy cưới, trà sữa, spa...)"
+                      className="flex-1 bg-slate-900 border border-slate-700 text-amber-300 font-bold rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-indigo-400"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-[10px] text-slate-400 font-bold block">
+                      Kết quả AI khớp từ khóa "{testSearchKeyword}": {matchedSimulatedProducts.length} sản phẩm
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {matchedSimulatedProducts.map((p, idx) => (
+                        <div key={idx} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex items-center gap-3">
+                          <img src={p.img} alt={p.title} className="w-10 h-10 object-cover rounded-lg shrink-0" />
+                          <div className="min-w-0">
+                            <span className="font-bold text-slate-100 text-xs truncate block">{p.title}</span>
+                            <span className="text-[10px] text-emerald-400 font-mono font-bold block">Độ khớp từ khóa: 100% 🎯</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
               </div>
             )}
 
