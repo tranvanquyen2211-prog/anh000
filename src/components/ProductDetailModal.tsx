@@ -16,13 +16,15 @@ import {
   ChevronRight,
   PackageCheck,
   Star,
-  UserCheck
+  UserCheck,
+  ExternalLink
 } from 'lucide-react';
 
 interface ProductDetailModalProps {
   product: Product | null;
   onClose: () => void;
   onOpenChatWithProduct: (prod: Product) => void;
+  onOpenShopStorefront?: (shopName: string) => void;
   onProceedToCheckout?: () => void;
 }
 
@@ -30,6 +32,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   product,
   onClose,
   onOpenChatWithProduct,
+  onOpenShopStorefront,
   onProceedToCheckout
 }) => {
   const { addToCart } = useCart();
@@ -198,12 +201,21 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="space-y-5 flex flex-col justify-between">
               <div className="space-y-4">
                 
-                {/* Shop Badge & Title */}
+                {/* Clickable Shop Name Trigger */}
                 <div>
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-1">
-                    <Store className="w-4 h-4 text-amber-500" />
-                    <span>Gian Hàng: <strong className="text-navy">{product.shopName}</strong></span>
+                  <div
+                    onClick={() => {
+                      onClose();
+                      if (onOpenShopStorefront) onOpenShopStorefront(product.shopName);
+                    }}
+                    className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-1 cursor-pointer group/shop hover:text-amber-600 transition"
+                    title="Bấm để vào trang Cửa hàng xem các sản phẩm khác"
+                  >
+                    <Store className="w-4 h-4 text-amber-500 group-hover/shop:scale-110 transition-transform" />
+                    <span>Gian Hàng: <strong className="text-navy underline group-hover/shop:text-amber-600">{product.shopName}</strong></span>
+                    <ExternalLink className="w-3.5 h-3.5 text-amber-500 opacity-0 group-hover/shop:opacity-100 transition-opacity" />
                   </div>
+
                   <h1 className="text-xl sm:text-2xl font-black text-navy leading-tight">
                     {product.title}
                   </h1>

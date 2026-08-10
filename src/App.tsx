@@ -9,6 +9,7 @@ import { HeroBanner } from './components/HeroBanner';
 import { CategoryFilters } from './components/CategoryFilters';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
+import { ShopStorefrontModal } from './components/ShopStorefrontModal';
 import { EditProductSalesModal } from './components/EditProductSalesModal';
 import { AdminFakeReviewModal } from './components/AdminFakeReviewModal';
 import { AuthModal } from './components/AuthModal';
@@ -56,8 +57,9 @@ function MainApp() {
   const [isShopManagementOpen, setIsShopManagementOpen] = useState(false);
   const [isFakeReviewOpen, setIsFakeReviewOpen] = useState(false);
 
-  // Selected product state
+  // Selected product & shop state
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
+  const [selectedShopNameForStorefront, setSelectedShopNameForStorefront] = useState<string | null>(null);
   const [selectedProductForEditSales, setSelectedProductForEditSales] = useState<Product | null>(null);
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
 
@@ -255,7 +257,24 @@ function MainApp() {
         product={selectedProductForDetail}
         onClose={() => setSelectedProductForDetail(null)}
         onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+        onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
         onProceedToCheckout={() => setIsCartOpen(true)}
+      />
+
+      <ShopStorefrontModal
+        isOpen={Boolean(selectedShopNameForStorefront)}
+        onClose={() => setSelectedShopNameForStorefront(null)}
+        shopName={selectedShopNameForStorefront || ''}
+        products={products}
+        onOpenChatWithShop={(sName) => setChatProductContext({
+          id: `shop_${Date.now()}`,
+          title: `Hỏi đáp với Gian Hàng ${sName}`,
+          price: 0,
+          shopType: 'RETAIL',
+          shopName: sName,
+          img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80'
+        })}
+        onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
       />
 
       <EditProductSalesModal
@@ -270,7 +289,6 @@ function MainApp() {
         onClose={() => setIsFakeReviewOpen(false)}
         products={products}
         onReviewsGenerated={() => {
-          // Trigger refresh
           setProducts(prev => [...prev]);
         }}
       />
@@ -291,6 +309,14 @@ function MainApp() {
       <OrderHistoryModal
         isOpen={isOrderHistoryOpen}
         onClose={() => setIsOrderHistoryOpen(false)}
+        onOpenChatWithShop={(sName) => setChatProductContext({
+          id: `shop_${Date.now()}`,
+          title: `Hỏi đáp với Gian Hàng ${sName}`,
+          price: 0,
+          shopType: 'RETAIL',
+          shopName: sName,
+          img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80'
+        })}
       />
 
       <AdminThemeCustomizer
