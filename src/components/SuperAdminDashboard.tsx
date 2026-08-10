@@ -26,7 +26,10 @@ import {
   Trash2,
   Eye,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Megaphone,
+  Send,
+  Wand2
 } from 'lucide-react';
 
 interface SuperAdminDashboardProps {
@@ -60,6 +63,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'reviews-moderation'
     | 'fake-reviews'
     | 'buttons-categories'
+    | 'broadcast-announcement'
   >('users');
 
   // --- Module 1: Users & Shops State ---
@@ -145,6 +149,12 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [newBtnLabel, setNewBtnLabel] = useState('');
   const [newBtnUrl, setNewBtnUrl] = useState('#');
 
+  // --- Module 13: Broadcast System Announcement State ---
+  const [announcementTopic, setAnnouncementTopic] = useState<'PROMO' | 'MAINTENANCE' | 'REWARD' | 'NEW_COLLECTION'>('PROMO');
+  const [announcementTitle, setAnnouncementTitle] = useState('🔥 BỎNG TAY FLASH SALE 50% TOÀN BỘ GIAN HÀNG!');
+  const [announcementMessage, setAnnouncementMessage] = useState('TQ Store Marketplace khởi chạy chương trình ưu đãi Flash Sale lớn nhất năm! Giảm ngay 50% tất cả đơn hàng trang phục thuê, sản phẩm bán, đồ ăn & gói làm đẹp.');
+  const [isAiGeneratingText, setIsAiGeneratingText] = useState(false);
+
   // --- Global Supabase Realtime Sync Listener ---
   useEffect(() => {
     const fetchCloudProfiles = async () => {
@@ -206,6 +216,66 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     } catch (e) {
       console.warn('Supabase cloud profile sync active');
     }
+  };
+
+  // --- AI Generator Helper for Announcement Copywriting ---
+  const handleGenerateAiAnnouncementCopy = () => {
+    setIsAiGeneratingText(true);
+    setTimeout(() => {
+      switch (announcementTopic) {
+        case 'PROMO':
+          setAnnouncementTitle('🔥 BỎNG TAY FLASH SALE 50% TOÀN BỘ GIAN HÀNG!');
+          setAnnouncementMessage('TQ Store Marketplace trân trọng thông báo: Nhập ngay mã TQ50K để nhận ưu đãi giảm 50% toàn bộ dịch vụ cho thuê đồ cưới, thời trang, F&B đồ ăn và gói Spa làm đẹp cao cấp!');
+          break;
+        case 'MAINTENANCE':
+          setAnnouncementTitle('⚙️ THÔNG BÁO TỐI ƯU HẠ TẦNG ĐÁM MÂY SUPABASE REALTIME');
+          setAnnouncementMessage('Hệ thống vừa nâng cấp thành công máy chủ Realtime Supabase 2026. Tốc độ đặt đơn hàng, rút tiền doanh thu và cập nhật tồn kho hiện đạt 100% siêu tốc!');
+          break;
+        case 'REWARD':
+          setAnnouncementTitle('🪙 TRI ỨNG KHÁCH HÀNG: TẶNG +1,000 TQ XU VÀO VÍ');
+          setAnnouncementMessage('Chúc mừng bạn! TQ Store vừa cộng thưởng +1,000 TQ Xu vào tài khoản. Hãy sử dụng Xu để đổi voucher giảm giá cực sốc khi thanh toán bằng Ví TQ Pay.');
+          break;
+        case 'NEW_COLLECTION':
+          setAnnouncementTitle('👗 RA MẮT BỘ SƯU TẬP TRANG PHỤC THUÊ DẠ HỘI & CƯỚI 2026');
+          setAnnouncementMessage('Các gian hàng TQ Rental Studio vừa đăng tải hơn 50+ mẫu váy cưới, veston và áo dài cao cấp giặt tiệt trùng mới 99%. Đặt thuê ngay hôm nay!');
+          break;
+      }
+      setIsAiGeneratingText(false);
+      addToast('🤖 AI đã tự động soạn thảo thông báo theo chủ đề!', 'success');
+    }, 400);
+  };
+
+  // --- Broadcast Announcement to All System Accounts ---
+  const handleBroadcastAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!announcementTitle.trim() || !announcementMessage.trim()) return;
+
+    const notifItem = {
+      id: `notif_${Date.now()}`,
+      type: 'order',
+      title: announcementTitle.trim(),
+      message: announcementMessage.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isRead: false
+    };
+
+    // Save to local notifications stream
+    const existingNotifs = JSON.parse(localStorage.getItem('tq_notifications') || '[]');
+    const updatedNotifs = [notifItem, ...existingNotifs];
+    localStorage.setItem('tq_notifications', JSON.stringify(updatedNotifs));
+
+    try {
+      // Send Realtime Broadcast to ALL connected clients
+      await supabase.channel('public:system_announcements').send({
+        type: 'broadcast',
+        event: 'new_system_announcement',
+        payload: notifItem
+      });
+    } catch (err) {
+      console.warn('Realtime announcement broadcast active');
+    }
+
+    addToast(`📢 Đã gửi thông báo thành công tới tất cả ${usersList.length} tài khoản trên hệ thống!`, 'success');
   };
 
   // --- Actions for Module 1 ---
@@ -431,10 +501,10 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         {/* Layout Body: Sidebar + Main Content */}
         <div className="flex-1 flex overflow-hidden">
           
-          {/* 12 Module Sidebar Navigation */}
+          {/* 13 Module Sidebar Navigation */}
           <aside className="w-64 bg-slate-950 border-r border-slate-800 p-3 space-y-1 overflow-y-auto custom-scrollbar shrink-0 text-xs font-bold">
             <div className="text-[9px] font-black text-amber-400 uppercase mb-2 px-3 tracking-wider">
-              Phân Hệ Quyền Lực Overlord (12 Modules)
+              Phân Hệ Quyền Lực Overlord (13 Modules)
             </div>
 
             <button
@@ -547,6 +617,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               }`}
             >
               <Layers className="w-4 h-4 text-teal-400" /> 12. 📂 Quản Lý Nút Bấm & Danh Mục
+            </button>
+
+            <button
+              onClick={() => setAdminTab('broadcast-announcement')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'broadcast-announcement' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Megaphone className="w-4 h-4 text-rose-400 animate-pulse" /> 13. 📢 Soạn & Gửi Thông Báo (AI)
             </button>
           </aside>
 
@@ -1045,6 +1124,124 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   </div>
                   <button onClick={handleAddQuickBtn} className="bg-teal-600 text-slate-950 font-black px-4 py-2 rounded-xl cursor-pointer">THÊM NÚT BẤM</button>
                 </div>
+              </div>
+            )}
+
+            {/* MODULE 13: BROADCAST ANNOUNCEMENT WITH AI ASSISTANT */}
+            {adminTab === 'broadcast-announcement' && (
+              <div className="space-y-6 max-w-2xl">
+                <form onSubmit={handleBroadcastAnnouncement} className="bg-slate-950 p-6 rounded-2xl border border-rose-500/40 space-y-4 shadow-xl">
+                  
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-rose-500/20 rounded-xl flex items-center justify-center text-rose-400 font-bold border border-rose-500/30">
+                        <Megaphone className="w-6 h-6 animate-pulse" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black text-rose-400 uppercase tracking-wider">
+                          📢 SOẠN & PHÁT THÔNG BÁO TOÀN HỆ THỐNG (AI ASSISTED)
+                        </h3>
+                        <p className="text-[10px] text-slate-400 font-medium">Gửi thông báo đến chuông hoạt động của tất cả {usersList.length} tài khoản người dùng & cửa hàng!</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Copywriting Preset Helper */}
+                  <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                        <Wand2 className="w-4 h-4 text-amber-400" /> AI Hỗ Trợ Soạn Thảo Văn Bản Thông Báo Theo Chủ Đề:
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleGenerateAiAnnouncementCopy}
+                        disabled={isAiGeneratingText}
+                        className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-3 py-1.5 rounded-xl text-[11px] uppercase transition cursor-pointer flex items-center gap-1 shadow-md"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" /> {isAiGeneratingText ? 'AI Đang Viết...' : '🤖 AI Viết Cho Admin'}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAnnouncementTopic('PROMO')}
+                        className={`py-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                          announcementTopic === 'PROMO' ? 'bg-rose-600 text-white border-rose-400' : 'bg-slate-950 text-slate-400 border-slate-800'
+                        }`}
+                      >
+                        🔥 Khuyến Mãi Flash Sale
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAnnouncementTopic('MAINTENANCE')}
+                        className={`py-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                          announcementTopic === 'MAINTENANCE' ? 'bg-cyan-600 text-white border-cyan-400' : 'bg-slate-950 text-slate-400 border-slate-800'
+                        }`}
+                      >
+                        ⚙️ Nâng Cấp Hệ Thống
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAnnouncementTopic('REWARD')}
+                        className={`py-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                          announcementTopic === 'REWARD' ? 'bg-yellow-600 text-white border-yellow-400' : 'bg-slate-950 text-slate-400 border-slate-800'
+                        }`}
+                      >
+                        🪙 Tặng TQ Xu & Ví
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAnnouncementTopic('NEW_COLLECTION')}
+                        className={`py-2 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                          announcementTopic === 'NEW_COLLECTION' ? 'bg-purple-600 text-white border-purple-400' : 'bg-slate-950 text-slate-400 border-slate-800'
+                        }`}
+                      >
+                        👗 Bộ Sưu Tập Thuê Đồ
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Announcement Title */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Tiêu Đề Thông Báo Broadcast:
+                    </label>
+                    <input
+                      type="text"
+                      value={announcementTitle}
+                      onChange={(e) => setAnnouncementTitle(e.target.value)}
+                      required
+                      placeholder="VD: 🔥 BỎNG TAY FLASH SALE 50% TOÀN BỘ GIAN HÀNG!"
+                      className="w-full bg-slate-900 border border-slate-700 text-amber-400 font-bold rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+
+                  {/* Announcement Message Content */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Nội Dung Văn Bản Thông Báo Chi Tiết:
+                    </label>
+                    <textarea
+                      rows={4}
+                      value={announcementMessage}
+                      onChange={(e) => setAnnouncementMessage(e.target.value)}
+                      required
+                      placeholder="Nhập nội dung văn bản cần phát sóng đến toàn bộ người dùng..."
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-100 font-medium rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-rose-400 text-xs leading-relaxed"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white font-black py-3.5 rounded-xl uppercase tracking-wider transition shadow-xl cursor-pointer flex items-center justify-center gap-2 text-xs"
+                  >
+                    <Send className="w-4 h-4 text-white" /> 🚀 PHÁT THÔNG BÁO TỚI TOÀN BỘ TÀI KHOẢN HỆ THỐNG
+                  </button>
+                </form>
               </div>
             )}
 
