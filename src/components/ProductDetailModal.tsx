@@ -76,6 +76,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     };
 
     loadReviews();
+
+    // Realtime channel listener for synthetic & live reviews updates
+    const reviewChannel = supabase
+      .channel('public:reviews')
+      .on('broadcast', { event: 'synthetic_reviews_updated' }, (payload) => {
+        if (payload?.payload?.productId === product.id) {
+          loadReviews();
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(reviewChannel);
+    };
   }, [product?.id]);
 
   if (!product) return null;
