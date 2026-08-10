@@ -69,6 +69,8 @@ export interface UserProfile {
   avatar?: string;
   walletBalance?: number;
   coins?: number;
+  status?: 'active' | 'locked';
+  shopType?: 'RENTAL' | 'RETAIL' | 'FNB' | 'BEAUTY';
 }
 
 export interface ToastMessage {

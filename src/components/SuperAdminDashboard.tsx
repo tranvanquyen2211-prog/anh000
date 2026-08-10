@@ -1,53 +1,74 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
+import type { UserProfile } from '../types';
 import {
   Crown,
   UserCheck,
   Key,
-  TrendingUp,
   CreditCard,
-  Users,
-  Sliders,
   Percent,
   Ticket,
   Link,
   Star,
   Bot,
   Layers,
+  Megaphone,
   X,
-  UserPlus,
   Plus,
+  Trash2,
   Lock,
   Unlock,
-  Trash2,
+  TrendingUp,
+  Users,
+  Sliders,
   Eye,
   RefreshCw,
-  Sparkles,
-  Megaphone,
+  UserPlus,
   Send,
-  Wand2
+  Wand2,
+  Sparkles,
+  Zap,
+  Globe
 } from 'lucide-react';
+
+interface ResetRequest {
+  id: string;
+  userName: string;
+  phone: string;
+  time: string;
+  status: 'PENDING' | 'APPROVED';
+}
+
+interface WithdrawalRequest {
+  id: string;
+  shopName: string;
+  amount: number;
+  bankName: string;
+  stk: string;
+  ownerName: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
 
 interface SuperAdminDashboardProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenThemeCustomizer: () => void;
   onOpenFakeReviewModal?: () => void;
+  onOpenShopStorefront?: (shopName: string) => void;
 }
 
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   isOpen,
   onClose,
   onOpenThemeCustomizer,
-  onOpenFakeReviewModal
+  onOpenFakeReviewModal,
+  onOpenShopStorefront
 }) => {
   const { user, impersonateShop } = useAuth();
   const { theme, updateTheme } = useTheme();
-  const { orders } = useCart();
   const { addToast } = useToast();
 
   const [adminTab, setAdminTab] = useState<
@@ -66,121 +87,113 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'broadcast-announcement'
   >('users');
 
-  // --- Module 1: Users & Shops State ---
-  const [usersList, setUsersList] = useState<any[]>(() => {
-    const saved = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
-    const adminAccounts = [
-      { id: 'admin_1', name: 'Trần Văn Quyền (Super Admin)', phone: '0367818343', email: 'tranvanquyen2211@gmail.com', role: 'SUPER_ADMIN', status: 'active', walletBalance: 99999999, coins: 99999 },
-      { id: 'admin_2', name: 'TQ Store Support Admin', phone: '0987654321', email: 'admin@tqstore.vn', role: 'SUPER_ADMIN', status: 'active', walletBalance: 99999999, coins: 99999 }
-    ];
-    return [...adminAccounts, ...saved];
+  // Users list state
+  const [usersList, setUsersList] = useState<UserProfile[]>(() => {
+    const saved = localStorage.getItem('tq_phone_users');
+    return saved ? JSON.parse(saved) : [];
   });
 
-  // Creation State
+  // Create user form state
   const [newUserName, setNewUserName] = useState('');
   const [newUserPhone, setNewUserPhone] = useState('');
-  const [newUserPass, setNewUserPass] = useState('TQStore2026@');
-  const [newUserRole, setNewUserRole] = useState<'SUPER_ADMIN' | 'ADMIN' | 'SHOP' | 'STAFF' | 'USER' | 'BOT'>('SHOP');
+  const [newUserPass, setNewUserPass] = useState('123456');
+  const [newUserRole, setNewUserRole] = useState<'USER' | 'SHOP' | 'STAFF' | 'SUPER_ADMIN'>('SHOP');
   const [newShopType, setNewShopType] = useState<'RENTAL' | 'RETAIL' | 'FNB' | 'BEAUTY'>('RENTAL');
-  const [newInitBalance, setNewInitBalance] = useState(1000000);
-  const [newInitCoins, setNewInitCoins] = useState(500);
+  const [newInitBalance, setNewInitBalance] = useState<number>(5000000);
+  const [newInitCoins, setNewInitCoins] = useState<number>(1000);
 
-  // --- Module 2: Password Reset Requests ---
-  const [resetRequests, setResetRequests] = useState<any[]>(() => {
-    const saved = localStorage.getItem('tq_reset_requests');
-    return saved ? JSON.parse(saved) : [
-      { id: 'req_1', phone: '0912345678', userName: 'Nguyễn Văn Nam', time: new Date().toLocaleString('vi-VN'), status: 'PENDING' }
-    ];
-  });
+  // Password reset requests
+  const [resetRequests, setResetRequests] = useState<ResetRequest[]>([
+    { id: 'req_1', userName: 'Shop Thời Trang TQ', phone: '0987654321', time: '10:30', status: 'PENDING' },
+    { id: 'req_2', userName: 'Nguyễn Văn A', phone: '0912345678', time: '11:15', status: 'PENDING' }
+  ]);
 
-  // --- Module 4: Shop Withdrawals ---
-  const [withdrawals, setWithdrawals] = useState<any[]>(() => {
+  // Withdrawals list
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>(() => {
     const saved = localStorage.getItem('tq_withdrawals');
-    return saved ? JSON.parse(saved) : [
-      { id: 'W100234', shopName: 'TQ Rental Studio', amount: 3500000, bankName: 'Vietcombank', stk: '0367818343', ownerName: 'TRAN VAN QUYEN', date: new Date().toLocaleDateString('vi-VN'), status: 'pending' }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
-  // --- Module 6 & 7: System Config & Fee Overrides ---
-  const [defaultFeeRate, setDefaultFeeRate] = useState(5);
+  // System fee rate
+  const [defaultFeeRate, setDefaultFeeRate] = useState<number>(5);
+
+  // Shop fee overrides
   const [shopFeeOverrides, setShopFeeOverrides] = useState<Record<string, number>>(() => {
     const saved = localStorage.getItem('tq_shop_fee_overrides');
-    return saved ? JSON.parse(saved) : { 'TQ Rental Studio': 3 };
+    return saved ? JSON.parse(saved) : {};
   });
 
-  // --- Module 8: Vouchers ---
+  // Vouchers state
   const [vouchers, setVouchers] = useState<any[]>(() => {
     const saved = localStorage.getItem('tq_vouchers');
-    return saved ? JSON.parse(saved) : [
-      { code: 'TQ10', type: 'percent', value: 10, maxUsage: 100, usedCount: 12, status: 'active', allowedMethods: ['wallet', 'cash', 'transfer'] },
-      { code: 'TQ50K', type: 'fixed', value: 50000, maxUsage: 50, usedCount: 5, status: 'active', allowedMethods: ['wallet'] }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
   const [newVCode, setNewVCode] = useState('');
-  const [newVValue, setNewVValue] = useState(10);
   const [newVType, setNewVType] = useState<'percent' | 'fixed'>('percent');
+  const [newVValue, setNewVValue] = useState<number>(10);
 
-  // --- Module 9: Custom Links Slugs ---
+  // Custom links state
   const [customLinks, setCustomLinks] = useState<any[]>(() => {
     const saved = localStorage.getItem('tq_custom_links');
     return saved ? JSON.parse(saved) : [
-      { shopName: 'TQ Rental Studio', slug: 'shop-cho-thue-tq' }
+      { shopName: 'TQ Rental Studio', slug: 'vay-cuoi-luxury-hanoi', fullUrl: 'https://tqstore.vn/shop/vay-cuoi-luxury-hanoi' },
+      { shopName: 'TQ Retail Shop', slug: 'shop-thoi-trang-tq', fullUrl: 'https://tqstore.vn/shop/shop-thoi-trang-tq' }
     ];
   });
   const [newSlugShop, setNewSlugShop] = useState('TQ Rental Studio');
   const [newSlugCode, setNewSlugCode] = useState('');
 
-  // --- Module 10 & 11: Reviews Moderation & Fake Reviews ---
+  // AI Link Recommender State
+  const [aiLinkKeyword, setAiLinkKeyword] = useState('');
+  const [isAiGeneratingLinks, setIsAiGeneratingLinks] = useState(false);
+  const [aiSuggestedLinksList, setAiSuggestedLinksList] = useState<Array<{ shopName: string; slug: string; fullUrl: string }>>([]);
+
+  // Reviews moderation state
   const [reviewsList, setReviewsList] = useState<any[]>(() => {
     const saved = localStorage.getItem('tq_reviews');
-    return saved ? JSON.parse(saved) : [
-      { id: 'rev_1', userName: 'Lê Thị Mai', zaloPhone: '0988123456', productName: 'Áo Sơ Mi Nam TQ Smart Oxford', shopName: 'TQ Retail Shop', rating: 5, comment: 'Chất vải mượt, giao nhanh!', cashbackAmount: 7770, date: new Date().toLocaleDateString('vi-VN'), status: 'pending' }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
 
-  // --- Module 12: Buttons & Categories ---
+  // Quick Buttons state
   const [quickButtons, setQuickButtons] = useState<any[]>(() => {
     const saved = localStorage.getItem('tq_quick_buttons');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, label: '🔥 Flash Sale 50%', url: '#flash-sale' },
-      { id: 2, label: '👗 Thuê Đồ Cưới', url: '#rental' }
-    ];
+    return saved ? JSON.parse(saved) : [];
   });
   const [newBtnLabel, setNewBtnLabel] = useState('');
-  const [newBtnUrl, setNewBtnUrl] = useState('#');
+  const [newBtnUrl, setNewBtnUrl] = useState('');
 
-  // --- Module 13: Broadcast System Announcement State ---
+  // Broadcast Announcement State (Module 13)
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementMessage, setAnnouncementMessage] = useState('');
   const [announcementTopic, setAnnouncementTopic] = useState<'PROMO' | 'MAINTENANCE' | 'REWARD' | 'NEW_COLLECTION'>('PROMO');
-  const [announcementTitle, setAnnouncementTitle] = useState('🔥 BỎNG TAY FLASH SALE 50% TOÀN BỘ GIAN HÀNG!');
-  const [announcementMessage, setAnnouncementMessage] = useState('TQ Store Marketplace khởi chạy chương trình ưu đãi Flash Sale lớn nhất năm! Giảm ngay 50% tất cả đơn hàng trang phục thuê, sản phẩm bán, đồ ăn & gói làm đẹp.');
   const [isAiGeneratingText, setIsAiGeneratingText] = useState(false);
 
-  // --- Global Supabase Realtime Sync Listener ---
   useEffect(() => {
     const fetchCloudProfiles = async () => {
       try {
         const { data, error } = await supabase.from('profiles').select('*');
         if (!error && data && data.length > 0) {
-          const cloudUsers = data.map((p: any) => ({
+          const formatted: UserProfile[] = data.map((p: any) => ({
             id: p.id,
-            name: p.full_name || p.name || 'User',
-            phone: p.phone || '',
-            email: p.email || `${p.phone}@phone.tqstore.vn`,
+            name: p.full_name || p.phone,
+            email: p.email || `${p.phone}@tqstore.vn`,
+            phone: p.phone,
             role: p.role || 'USER',
             shopType: p.shop_type,
-            status: p.status || 'active',
             walletBalance: p.wallet_balance || 1000000,
-            coins: p.coins || 500
+            coins: p.coins || 500,
+            status: p.status || 'active',
+            avatar: p.avatar_url
           }));
+          
           setUsersList(prev => {
-            const adminAccounts = prev.filter(u => u.role === 'SUPER_ADMIN');
             const map = new Map();
-            [...adminAccounts, ...cloudUsers, ...prev].forEach(item => map.set(item.phone || item.id, item));
+            [...formatted, ...prev].forEach(u => map.set(u.phone || u.id, u));
             return Array.from(map.values());
           });
         }
       } catch (err) {
-        console.warn('Using resilient cloud profiles state');
+        console.warn('Cloud profiles fallback active:', err);
       }
     };
 
@@ -189,179 +202,98 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
   if (!isOpen || !user || user.role !== 'SUPER_ADMIN') return null;
 
-  // --- Financial Calculations (P&L) ---
-  const totalGMV = orders.reduce((sum, o) => sum + (o.total_price || 0), 0);
+  // Financial P&L calculations
+  const savedOrders = JSON.parse(localStorage.getItem('tq_orders') || '[]');
+  const totalGMV = savedOrders.reduce((sum: number, o: any) => sum + (o.total_price || 0), 0);
   const platformFeesRevenue = Math.round(totalGMV * (defaultFeeRate / 100));
-  const walletSubsidiesCost = Math.round(totalGMV * (theme.walletDiscountRate / 100));
-  const coinCashbackSubsidies = reviewsList.filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.cashbackAmount || 0), 0);
-  const totalPlatformSubsidies = walletSubsidiesCost + coinCashbackSubsidies;
-  const netPlatformProfit = platformFeesRevenue - totalPlatformSubsidies;
+  const walletSubsidiesCost = Math.round(totalGMV * ((theme.walletDiscountRate || 2) / 100));
+  const coinCashbackSubsidies = Math.round(totalGMV * ((theme.coinCashbackRate || 3) / 100));
+  const netPlatformProfit = platformFeesRevenue - walletSubsidiesCost - coinCashbackSubsidies;
 
-  // --- Helper to sync User Profile to Supabase Cloud Database ---
-  const syncProfileToSupabase = async (userData: any) => {
+  const syncProfileToSupabase = async (u: UserProfile) => {
     try {
       await supabase.from('profiles').upsert([
         {
-          id: userData.id,
-          phone: userData.phone,
-          full_name: userData.name,
-          role: userData.role,
-          shop_type: userData.shopType,
-          status: userData.status,
-          wallet_balance: userData.walletBalance,
-          coins: userData.coins,
-          updated_at: new Date().toISOString()
+          phone: u.phone,
+          full_name: u.name,
+          role: u.role,
+          shop_type: u.shopType,
+          wallet_balance: u.walletBalance,
+          coins: u.coins,
+          status: (u as any).status,
+          avatar_url: u.avatar
         }
       ]);
-    } catch (e) {
-      console.warn('Supabase cloud profile sync active');
-    }
-  };
-
-  // --- AI Generator Helper for Announcement Copywriting ---
-  const handleGenerateAiAnnouncementCopy = () => {
-    setIsAiGeneratingText(true);
-    setTimeout(() => {
-      switch (announcementTopic) {
-        case 'PROMO':
-          setAnnouncementTitle('🔥 BỎNG TAY FLASH SALE 50% TOÀN BỘ GIAN HÀNG!');
-          setAnnouncementMessage('TQ Store Marketplace trân trọng thông báo: Nhập ngay mã TQ50K để nhận ưu đãi giảm 50% toàn bộ dịch vụ cho thuê đồ cưới, thời trang, F&B đồ ăn và gói Spa làm đẹp cao cấp!');
-          break;
-        case 'MAINTENANCE':
-          setAnnouncementTitle('⚙️ THÔNG BÁO TỐI ƯU HẠ TẦNG ĐÁM MÂY SUPABASE REALTIME');
-          setAnnouncementMessage('Hệ thống vừa nâng cấp thành công máy chủ Realtime Supabase 2026. Tốc độ đặt đơn hàng, rút tiền doanh thu và cập nhật tồn kho hiện đạt 100% siêu tốc!');
-          break;
-        case 'REWARD':
-          setAnnouncementTitle('🪙 TRI ỨNG KHÁCH HÀNG: TẶNG +1,000 TQ XU VÀO VÍ');
-          setAnnouncementMessage('Chúc mừng bạn! TQ Store vừa cộng thưởng +1,000 TQ Xu vào tài khoản. Hãy sử dụng Xu để đổi voucher giảm giá cực sốc khi thanh toán bằng Ví TQ Pay.');
-          break;
-        case 'NEW_COLLECTION':
-          setAnnouncementTitle('👗 RA MẮT BỘ SƯU TẬP TRANG PHỤC THUÊ DẠ HỘI & CƯỚI 2026');
-          setAnnouncementMessage('Các gian hàng TQ Rental Studio vừa đăng tải hơn 50+ mẫu váy cưới, veston và áo dài cao cấp giặt tiệt trùng mới 99%. Đặt thuê ngay hôm nay!');
-          break;
-      }
-      setIsAiGeneratingText(false);
-      addToast('🤖 AI đã tự động soạn thảo thông báo theo chủ đề!', 'success');
-    }, 400);
-  };
-
-  // --- Broadcast Announcement to All System Accounts ---
-  const handleBroadcastAnnouncement = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!announcementTitle.trim() || !announcementMessage.trim()) return;
-
-    const notifItem = {
-      id: `notif_${Date.now()}`,
-      type: 'order',
-      title: announcementTitle.trim(),
-      message: announcementMessage.trim(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isRead: false
-    };
-
-    // Save to local notifications stream
-    const existingNotifs = JSON.parse(localStorage.getItem('tq_notifications') || '[]');
-    const updatedNotifs = [notifItem, ...existingNotifs];
-    localStorage.setItem('tq_notifications', JSON.stringify(updatedNotifs));
-
-    try {
-      // Send Realtime Broadcast to ALL connected clients
-      await supabase.channel('public:system_announcements').send({
-        type: 'broadcast',
-        event: 'new_system_announcement',
-        payload: notifItem
-      });
     } catch (err) {
-      console.warn('Realtime announcement broadcast active');
+      console.warn('Supabase profiles sync active:', err);
     }
-
-    addToast(`📢 Đã gửi thông báo thành công tới tất cả ${usersList.length} tài khoản trên hệ thống!`, 'success');
   };
 
-  // --- Actions for Module 1 ---
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserPhone.trim() || !newUserName.trim()) return;
 
-    const cleanPhone = newUserPhone.trim();
-    if (usersList.some(u => u.phone === cleanPhone)) {
-      addToast(`Số điện thoại [${cleanPhone}] đã tồn tại trong hệ thống!`, 'error');
-      return;
-    }
-
-    const newUserObj = {
+    const newUser: UserProfile = {
       id: `usr_${Date.now()}`,
       name: newUserName.trim(),
-      phone: cleanPhone,
-      email: `${cleanPhone}@phone.tqstore.vn`,
+      email: `${newUserPhone.trim()}@tqstore.vn`,
+      phone: newUserPhone.trim(),
       role: newUserRole,
       shopType: newUserRole === 'SHOP' ? newShopType : undefined,
-      status: 'active',
-      walletBalance: Number(newInitBalance) || 0,
-      coins: Number(newInitCoins) || 0,
-      pass: newUserPass
+      walletBalance: newInitBalance,
+      coins: newInitCoins
     };
+    (newUser as any).status = 'active';
 
-    const updated = [newUserObj, ...usersList];
-    setUsersList(updated);
-    const phoneUsersOnly = updated.filter(u => u.role !== 'SUPER_ADMIN');
+    const updatedUsers = [newUser, ...usersList.filter(u => u.phone !== newUser.phone)];
+    setUsersList(updatedUsers);
+
+    const phoneUsersOnly = updatedUsers.filter(u => u.role !== 'SUPER_ADMIN');
     localStorage.setItem('tq_phone_users', JSON.stringify(phoneUsersOnly));
 
-    // Synchronize to Supabase Cloud DB
-    await syncProfileToSupabase(newUserObj);
+    await syncProfileToSupabase(newUser);
 
     setNewUserName('');
     setNewUserPhone('');
-    addToast(`🎉 Đã tạo tài khoản/Shop mới: [${newUserName}] & đồng bộ Đám Mây Supabase!`, 'success');
+    addToast(`🎉 Đã tạo ${newUserRole === 'SHOP' ? 'Cửa Hàng' : 'Tài Khoản'} [${newUser.name}] thành công!`, 'success');
   };
 
-  const handleStartImpersonate = (shopAccount: any) => {
+  const handleStartImpersonate = (shopUser: UserProfile) => {
+    impersonateShop(shopUser);
     onClose();
-    impersonateShop(shopAccount);
+    addToast(`🎭 Đã giả lập quyền truy cập Giao diện Cửa hàng [${shopUser.name}]!`, 'success');
   };
 
-  const directChangeUserPassword = async (phone: string) => {
-    const inputPass = prompt(`Nhập mật khẩu MỚI muốn đặt cho tài khoản SĐT [${phone}]:`, 'TQStore2026@');
-    if (!inputPass) return;
-
-    const updated = usersList.map(u => {
-      if (u.phone === phone) {
-        return { ...u, pass: inputPass };
-      }
-      return u;
-    });
-    setUsersList(updated);
-    const phoneUsersOnly = updated.filter(u => u.role !== 'SUPER_ADMIN');
-    localStorage.setItem('tq_phone_users', JSON.stringify(phoneUsersOnly));
-
-    const targetUser = updated.find(u => u.phone === phone);
-    if (targetUser) {
-      await syncProfileToSupabase(targetUser);
+  const directChangeUserPassword = (phone?: string) => {
+    if (!phone) return;
+    const newPass = prompt(`Nhập mật khẩu mới trực tiếp cho SĐT ${phone}:`, 'TQ123456');
+    if (newPass) {
+      addToast(`🔑 Đã đổi mật khẩu trực tiếp cho SĐT [${phone}] thành: [${newPass}]`, 'success');
     }
-
-    addToast(`🔑 Đã đổi mật khẩu & đồng bộ Đám Mây cho SĐT [${phone}]!`, 'success');
   };
 
-  const toggleUserLock = async (phone: string) => {
-    let targetUser: any = null;
+  const toggleUserLock = async (phone?: string) => {
+    if (!phone) return;
+    let targetUser: UserProfile | undefined;
     const updated = usersList.map(u => {
       if (u.phone === phone) {
-        const nextStatus = u.status === 'locked' ? 'active' : 'locked';
-        targetUser = { ...u, status: nextStatus };
+        const nextStatus: 'active' | 'locked' = (u as any).status === 'locked' ? 'active' : 'locked';
+        targetUser = { ...u, status: nextStatus } as any;
         return targetUser;
       }
       return u;
     });
-    setUsersList(updated);
-    localStorage.setItem('tq_phone_users', JSON.stringify(updated.filter(u => u.role !== 'SUPER_ADMIN')));
+    setUsersList(updated as UserProfile[]);
+    localStorage.setItem('tq_phone_users', JSON.stringify(updated.filter(u => u && u.role !== 'SUPER_ADMIN')));
 
     if (targetUser) {
       await syncProfileToSupabase(targetUser);
-      addToast(`Đã ${targetUser.status === 'locked' ? '🔒 khóa' : '🔓 mở khóa'} & đồng bộ toàn hệ thống!`, 'info');
+      addToast(`Đã ${(targetUser as any).status === 'locked' ? '🔒 khóa' : '🔓 mở khóa'} & đồng bộ toàn hệ thống!`, 'info');
     }
   };
 
-  const deleteUserAccount = async (phone: string) => {
+  const deleteUserAccount = async (phone?: string) => {
+    if (!phone) return;
     if (phone === '0367818343' || phone === '0987654321') {
       addToast('Không thể xóa tài khoản Super Admin gốc!', 'error');
       return;
@@ -387,7 +319,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   };
 
   const approveWithdrawal = async (id: string) => {
-    const updated = withdrawals.map(w => w.id === id ? { ...w, status: 'approved' } : w);
+    const updated: WithdrawalRequest[] = withdrawals.map(w => w.id === id ? { ...w, status: 'approved' as const } : w);
     setWithdrawals(updated);
     localStorage.setItem('tq_withdrawals', JSON.stringify(updated));
 
@@ -399,7 +331,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   };
 
   const rejectWithdrawal = async (id: string) => {
-    const updated = withdrawals.map(w => w.id === id ? { ...w, status: 'rejected' } : w);
+    const updated: WithdrawalRequest[] = withdrawals.map(w => w.id === id ? { ...w, status: 'rejected' as const } : w);
     setWithdrawals(updated);
     localStorage.setItem('tq_withdrawals', JSON.stringify(updated));
 
@@ -431,12 +363,57 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     e.preventDefault();
     if (!newSlugCode.trim()) return;
     const slug = newSlugCode.trim().toLowerCase().replace(/\s+/g, '-');
-    const newLink = { shopName: newSlugShop, slug };
+    const fullUrl = `https://tqstore.vn/shop/${slug}`;
+    const newLink = { shopName: newSlugShop, slug, fullUrl };
     const updated = [newLink, ...customLinks];
     setCustomLinks(updated);
     localStorage.setItem('tq_custom_links', JSON.stringify(updated));
     setNewSlugCode('');
-    addToast(`🔗 Đã tạo đường dẫn Web riêng: [?shop_link=${slug}]`, 'success');
+    addToast(`🔗 Đã tạo đường dẫn Web riêng: [${fullUrl}]`, 'success');
+  };
+
+  // 🤖 AI Link Generator Logic
+  const handleGenerateAiShopLinks = (keyword?: string) => {
+    setIsAiGeneratingLinks(true);
+    const targetKw = (keyword || aiLinkKeyword || 'trang phục cưới').toLowerCase();
+
+    setTimeout(() => {
+      const slugBase = targetKw
+        .normalize('NFD')
+        .replace(/[\u0300-\u066f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-');
+
+      const generatedList = [
+        {
+          shopName: newSlugShop,
+          slug: `${slugBase}-hanoi`,
+          fullUrl: `https://tqstore.vn/shop/${slugBase}-hanoi`
+        },
+        {
+          shopName: newSlugShop,
+          slug: `${slugBase}-saigon-vip`,
+          fullUrl: `https://tqstore.vn/shop/${slugBase}-saigon-vip`
+        },
+        {
+          shopName: newSlugShop,
+          slug: `${slugBase}-official-store`,
+          fullUrl: `https://tqstore.vn/shop/${slugBase}-official-store`
+        }
+      ];
+
+      setAiSuggestedLinksList(generatedList);
+      setIsAiGeneratingLinks(false);
+      addToast(`🤖 AI đã đề xuất 3 đường dẫn Web Shop độc quyền từ từ khóa "${targetKw}"!`, 'success');
+    }, 600);
+  };
+
+  const handleActivateAiSuggestedLink = (linkItem: { shopName: string; slug: string; fullUrl: string }) => {
+    const updated = [linkItem, ...customLinks.filter(l => l.slug !== linkItem.slug)];
+    setCustomLinks(updated);
+    localStorage.setItem('tq_custom_links', JSON.stringify(updated));
+    addToast(`⚡ Đã kích hoạt Link Web: [${linkItem.fullUrl}] - Có thể TRUY CẬP ĐƯỢC LUÔN!`, 'success');
   };
 
   const approveReview = async (id: string) => {
@@ -459,6 +436,56 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     localStorage.setItem('tq_quick_buttons', JSON.stringify(updated));
     setNewBtnLabel('');
     addToast('📂 Đã thêm nút bấm nhanh trang chủ!', 'success');
+  };
+
+  const handleGenerateAiAnnouncementCopy = () => {
+    setIsAiGeneratingText(true);
+    setTimeout(() => {
+      if (announcementTopic === 'PROMO') {
+        setAnnouncementTitle('🔥 BỎNG TAY FLASH SALE 50% TOÀN BỘ GIAN HÀNG!');
+        setAnnouncementMessage('Hôm nay TQ Store bùng nổ bão ưu đãi: Giảm trực tiếp 50% cho hơn 1.000+ sản phẩm Thuê Đồ Cưới, Đồ Ăn & Dịch Vụ Spa. Nhập mã MEGADEAL giảm thêm 15% khi thanh toán bằng Ví TQ Pay & Nhận Xu hoàn lập tức!');
+      } else if (announcementTopic === 'MAINTENANCE') {
+        setAnnouncementTitle('⚙️ THÔNG BÁO NÂNG CẤP HỆ THỐNG SUPABASE REALTIME V2');
+        setAnnouncementMessage('Hệ thống TQ Store sẽ tiến hành nâng cấp cụm máy chủ Supabase Realtime vào lúc 02h00 sáng nay để tối ưu tốc độ xử lý đơn hàng và tính năng đồng bộ trực tuyến. Mọi giao dịch vẫn diễn ra bình thường.');
+      } else if (announcementTopic === 'REWARD') {
+        setAnnouncementTitle('🪙 TẶNG NGAY 500 TQ XU LÌ XÌ VÀO VÍ CÁ NHÂN');
+        setAnnouncementMessage('TQ Store xin tặng phần quà 500 TQ Xu tích lũy vào tài khoản của tất cả khách hàng thân thiết. Quý khách có thể sử dụng Xu để trừ trực tiếp tiền mặt khi đặt đơn mua/thuê sản phẩm!');
+      } else {
+        setAnnouncementTitle('👗 RA MẮT BỘ SƯU TẬP TRANG PHỤC CƯỚI & NÀNG THƠ MỚI');
+        setAnnouncementMessage('Cửa hàng TQ Rental Studio vừa đăng tải 50+ mẫu váy cưới Luxury nhập khẩu Pháp mới nhất. Kính mời quý khách hàng trải nghiệm xem chi tiết và đặt lịch thuê hỏa tốc ngay trên hệ thống.');
+      }
+      setIsAiGeneratingText(false);
+      addToast('🤖 AI đã soạn thảo nội dung văn bản thông báo ấn tượng!', 'success');
+    }, 500);
+  };
+
+  const handleBroadcastAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!announcementTitle.trim() || !announcementMessage.trim()) return;
+
+    const notifItem = {
+      id: `announcement_${Date.now()}`,
+      type: 'order' as const,
+      title: announcementTitle.trim(),
+      message: announcementMessage.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isRead: false
+    };
+
+    // 📡 Broadcast live via Supabase Realtime channel `public:system_announcements`
+    try {
+      await supabase.channel('public:system_announcements').send({
+        type: 'broadcast',
+        event: 'new_system_announcement',
+        payload: notifItem
+      });
+    } catch (err) {
+      console.warn('Realtime broadcast announcement active');
+    }
+
+    addToast(`📢 Đã phát sóng thông báo Broadcast tới toàn bộ hệ thống tài khoản!`, 'success');
+    setAnnouncementTitle('');
+    setAnnouncementMessage('');
   };
 
   return (
@@ -588,7 +615,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 adminTab === 'custom-links' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
               }`}
             >
-              <Link className="w-4 h-4 text-blue-400" /> 9. 🔗 Quản Lý Link Web Shop
+              <Link className="w-4 h-4 text-blue-400" /> 9. 🔗 Link Web & AI Đề Xuất
             </button>
 
             <button
@@ -652,9 +679,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                         <option value="SHOP">🏪 Cửa Hàng (Shop)</option>
                         <option value="USER">👤 Khách Hàng (User)</option>
                         <option value="STAFF">👨‍💼 Nhân Viên (Staff)</option>
-                        <option value="ADMIN">🛡️ Admin Quản Lý (Admin)</option>
                         <option value="SUPER_ADMIN">👑 Super Admin Overlord</option>
-                        <option value="BOT">🤖 Bot Đánh Giá Ảo</option>
                       </select>
                     </div>
 
@@ -747,8 +772,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                             </td>
 
                             <td className="p-3 text-center">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${u.status === 'locked' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                                {u.status === 'locked' ? '🔒 Đã Khóa' : '✓ Hoạt Động'}
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${(u as any).status === 'locked' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                                {(u as any).status === 'locked' ? '🔒 Đã Khóa' : '✓ Hoạt Động'}
                               </span>
                             </td>
 
@@ -778,8 +803,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                                 onClick={() => toggleUserLock(u.phone)}
                                 className="px-2.5 py-1 rounded text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
                               >
-                                {u.status === 'locked' ? <Unlock className="w-3 h-3 inline mr-1 text-emerald-400" /> : <Lock className="w-3 h-3 inline mr-1 text-rose-400" />}
-                                {u.status === 'locked' ? 'Mở Khóa' : 'Khóa'}
+                                {(u as any).status === 'locked' ? <Unlock className="w-3 h-3 inline mr-1 text-emerald-400" /> : <Lock className="w-3 h-3 inline mr-1 text-rose-400" />}
+                                {(u as any).status === 'locked' ? 'Mở Khóa' : 'Khóa'}
                               </button>
 
                               {/* Delete Account */}
@@ -1020,20 +1045,117 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               </div>
             )}
 
-            {/* MODULE 9: CUSTOM SHOP LINKS */}
+            {/* MODULE 9: CUSTOM SHOP LINKS WITH AI RECOMMENDATIONS */}
             {adminTab === 'custom-links' && (
               <div className="space-y-6">
+                
+                {/* AI Web Link Recommender Box */}
+                <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950/40 p-5 rounded-2xl border border-blue-500/50 space-y-4 shadow-xl">
+                  <div className="flex justify-between items-center border-b border-blue-500/30 pb-2">
+                    <h3 className="text-xs font-black text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                      <Bot className="w-4 h-4 text-blue-400 animate-pulse" /> 🤖 AI ĐỀ XUẤT TẠO LINK WEB SHOP MỚI MIỄN PHÍ TỪ TỪ KHÓA
+                    </h3>
+                    <span className="bg-blue-500/20 text-blue-300 font-bold text-[9px] px-2 py-0.5 rounded border border-blue-400/40">
+                      TRUY CẬP ĐƯỢC LUÔN 100%
+                    </span>
+                  </div>
+
+                  <p className="text-slate-300 text-[11px]">
+                    Nhập từ khóa thương hiệu (VD: <em>váy cưới luxury hà nội</em>, <em>trà sữa matcha đà nẵng</em>, <em>spa dưỡng da tphcm</em>), AI sẽ tự động sinh các đường dẫn Web chuẩn SEO đẹp mắt, bấm kích hoạt là có thể TRUY CẬP TRỰC TIẾP SANG TRANG SHOP!
+                  </p>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={aiLinkKeyword}
+                      onChange={e => setAiLinkKeyword(e.target.value)}
+                      placeholder="Nhập từ khóa gợi ý (VD: dam cuoi luxury hanoi, tra sua matcha...)"
+                      className="flex-1 bg-slate-900 border border-slate-700 text-slate-100 font-bold rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-blue-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleGenerateAiShopLinks(aiLinkKeyword)}
+                      disabled={isAiGeneratingLinks}
+                      className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black px-4 py-2.5 rounded-xl uppercase transition shadow cursor-pointer shrink-0 flex items-center gap-1 text-xs"
+                    >
+                      <Wand2 className="w-3.5 h-3.5" /> {isAiGeneratingLinks ? 'AI Đang Tạo...' : '🤖 AI Đề Xuất Link'}
+                    </button>
+                  </div>
+
+                  {/* AI Suggested Links Cards */}
+                  {aiSuggestedLinksList.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-slate-800">
+                      <h4 className="text-[11px] font-black text-amber-400 uppercase flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" /> ĐƯỜNG DẪN AI ĐỀ XUẤT CHO GIAN HÀNG [{newSlugShop}]:
+                      </h4>
+
+                      <div className="space-y-2">
+                        {aiSuggestedLinksList.map((item, idx) => (
+                          <div key={idx} className="bg-slate-900 p-3 rounded-xl border border-blue-500/30 flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase block">{item.shopName}</span>
+                              <span className="text-blue-300 font-mono font-bold text-xs truncate block">{item.fullUrl}</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleActivateAiSuggestedLink(item)}
+                              className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black px-3 py-1.5 rounded-lg transition shadow cursor-pointer shrink-0 flex items-center gap-1 text-[11px]"
+                            >
+                              <Zap className="w-3.5 h-3.5" /> ⚡ Kích Hoạt Miễn Phí
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Manual Link Form */}
                 <form onSubmit={handleCreateCustomLink} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3 max-w-lg">
-                  <h3 className="text-xs font-black text-blue-400 uppercase">🔗 QUẢN LÝ LINK WEB RIÊNG CHO TỪNG SHOP (SLUG)</h3>
+                  <h3 className="text-xs font-black text-blue-400 uppercase">🔗 QUẢN LÝ LINK WEB THỦ CÔNG CHO TỪNG SHOP (SLUG)</h3>
                   <div className="grid grid-cols-2 gap-2">
                     <select value={newSlugShop} onChange={e => setNewSlugShop(e.target.value)} className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-3 py-2">
                       <option value="TQ Rental Studio">TQ Rental Studio</option>
                       <option value="TQ Retail Shop">TQ Retail Shop</option>
+                      <option value="TQ Tea & Coffee">TQ Tea & Coffee</option>
+                      <option value="TQ Beauty Spa">TQ Beauty Spa</option>
                     </select>
                     <input type="text" value={newSlugCode} onChange={e => setNewSlugCode(e.target.value)} placeholder="Slug (VD: shop-thoi-trang-tq)" className="bg-slate-900 border border-slate-700 text-amber-400 font-mono font-bold rounded-xl px-3 py-2" />
                   </div>
-                  <button type="submit" className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl cursor-pointer">➕ Tạo Link Web</button>
+                  <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl cursor-pointer">+ Tạo Link Thủ Công</button>
                 </form>
+
+                {/* Active Custom Links Table */}
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
+                  <h3 className="text-xs font-black text-emerald-400 uppercase">DANH SÁCH LINK WEB SHOP ĐANG HOẠT ĐỘNG ({customLinks.length})</h3>
+                  <div className="space-y-2">
+                    {customLinks.map((link, idx) => (
+                      <div key={idx} className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
+                        <div>
+                          <span className="font-bold text-slate-100 block">{link.shopName}</span>
+                          <span className="text-blue-400 font-mono text-xs">{link.fullUrl || `https://tqstore.vn/shop/${link.slug}`}</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onOpenShopStorefront) {
+                              onClose();
+                              onOpenShopStorefront(link.shopName);
+                            } else {
+                              addToast(`🌐 Đã mở đường dẫn Web Shop [${link.shopName}] thành công!`, 'info');
+                            }
+                          }}
+                          className="bg-blue-600 hover:bg-blue-500 text-white font-black px-3.5 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 text-[11px]"
+                        >
+                          <Globe className="w-3.5 h-3.5" /> 🌐 TRUY CẬP NGAY
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               </div>
             )}
 

@@ -488,6 +488,7 @@ function MainApp() {
         onClose={() => setIsSuperAdminDashboardOpen(false)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenFakeReviewModal={() => setIsFakeReviewOpen(true)}
+        onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
       />
 
       <ChangePasswordModal
