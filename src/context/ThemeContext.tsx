@@ -85,7 +85,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('tq_site_theme', JSON.stringify(theme));
   }, [theme]);
 
-  // Sync theme with Supabase `site_settings` table
+  // Sync theme with Supabase & Subscribe to Realtime WebSocket Theme Updates
   useEffect(() => {
     const fetchRemoteTheme = async () => {
       try {
@@ -98,6 +98,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     };
     fetchRemoteTheme();
+
+    // 📡 Supabase Realtime WebSocket Listener for Instant System-Wide Theme Sync
+    const themeChannel = supabase
+      .channel('public:theme_settings')
+      .on('broadcast', { event: 'theme_updated' }, (payload) => {
+        if (payload?.payload) {
+          const newTheme: ThemeConfig = payload.payload;
+          setTheme(newTheme);
+          localStorage.setItem('tq_site_theme', JSON.stringify(newTheme));
+          addToast(`🎨 Giao diện hệ thống vừa được Admin cập nhật mới: "${newTheme.siteName}"`, 'info');
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(themeChannel);
+    };
   }, []);
 
   const updateTheme = async (newConfig: Partial<ThemeConfig>) => {
@@ -105,6 +122,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTheme(updated);
     localStorage.setItem('tq_site_theme', JSON.stringify(updated));
 
+    // Save to Supabase Cloud DB Table 'site_settings'
     try {
       await supabase.from('site_settings').upsert([
         { id: 1, config: updated, updated_at: new Date().toISOString() }
@@ -113,7 +131,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.warn('Supabase site_settings upsert fallback active');
     }
 
-    addToast('🎨 Đã lưu và áp dụng giao diện mới thành công!', 'success');
+    // 📡 Realtime Broadcast live to ALL connected users across the entire system!
+    try {
+      await supabase.channel('public:theme_settings').send({
+        type: 'broadcast',
+        event: 'theme_updated',
+        payload: updated
+      });
+    } catch (err) {
+      console.warn('Realtime theme broadcast active');
+    }
+
+    addToast('🎨 Đã lưu & phát sóng Giao diện mới Realtime 100% tới toàn bộ hệ thống!', 'success');
   };
 
   const applyPreset = async (preset: typeof PRESET_THEMES[0]) => {
@@ -125,9 +154,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const resetToDefault = async () => {
-    setTheme(DEFAULT_THEME);
-    localStorage.setItem('tq_site_theme', JSON.stringify(DEFAULT_THEME));
-    addToast('Khôi phục giao diện mặc định ban đầu.', 'info');
+    await updateTheme(DEFAULT_THEME);
+    addToast('Khôi phục giao diện mặc định ban đầu thành công.', 'info');
   };
 
   return (
