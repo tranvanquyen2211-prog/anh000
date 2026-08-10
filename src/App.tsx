@@ -13,6 +13,7 @@ import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { OrderHistoryModal } from './components/OrderHistoryModal';
 import { AdminThemeCustomizer } from './components/AdminThemeCustomizer';
+import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { LiveChatWidget } from './components/LiveChatWidget';
 import { Footer } from './components/Footer';
@@ -32,6 +33,7 @@ function MainApp() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
   const [isAdminThemeOpen, setIsAdminThemeOpen] = useState(false);
+  const [isSuperAdminDashboardOpen, setIsSuperAdminDashboardOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   // Chat product context
@@ -83,6 +85,7 @@ function MainApp() {
         onOpenCartDrawer={() => setIsCartOpen(true)}
         onOpenOrderHistory={() => setIsOrderHistoryOpen(true)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
+        onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
@@ -170,6 +173,12 @@ function MainApp() {
       <AdminThemeCustomizer
         isOpen={isAdminThemeOpen}
         onClose={() => setIsAdminThemeOpen(false)}
+      />
+
+      <SuperAdminDashboard
+        isOpen={isSuperAdminDashboardOpen}
+        onClose={() => setIsSuperAdminDashboardOpen(false)}
+        onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
       />
 
       <ChangePasswordModal

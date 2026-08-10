@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -11,6 +11,7 @@ interface HeaderProps {
   onOpenOrderHistory: () => void;
   onOpenThemeCustomizer?: () => void;
   onOpenChangePassword?: () => void;
+  onOpenSuperAdminDashboard?: () => void;
   selectedCategory: ShopType | 'ALL';
   onSelectCategory: (cat: ShopType | 'ALL') => void;
   searchQuery: string;
@@ -25,6 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenOrderHistory,
   onOpenThemeCustomizer,
   onOpenChangePassword,
+  onOpenSuperAdminDashboard,
   selectedCategory,
   onSelectCategory,
   searchQuery,
@@ -82,16 +84,28 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Actions & Account */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Super Admin Dashboard Button */}
+          {user && user.role === 'SUPER_ADMIN' && onOpenSuperAdminDashboard && (
+            <button
+              onClick={onOpenSuperAdminDashboard}
+              className="bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer animate-pulse border border-amber-300"
+              title="Quản trị Super Admin Overlord"
+            >
+              <Crown className="w-4 h-4 text-slate-950" />
+              <span className="hidden sm:inline">Bảng Quản Trị Admin</span>
+            </button>
+          )}
+
           {/* Admin UI Customizer Button for Super Admin */}
           {user && user.role === 'SUPER_ADMIN' && onOpenThemeCustomizer && (
             <button
               onClick={onOpenThemeCustomizer}
-              className="bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer animate-pulse border border-amber-300"
+              className="bg-slate-900 hover:bg-slate-950 text-amber-300 px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-amber-400/40"
               title="Chỉnh sửa giao diện trang web"
             >
-              <Palette className="w-4 h-4" />
-              <span>Giao Diện Admin</span>
+              <Palette className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">Giao Diện</span>
             </button>
           )}
 
@@ -108,7 +122,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-2">
               {/* Wallet Badge */}
               <div
-                className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-xs hidden sm:flex items-center gap-1.5 cursor-pointer hover:scale-105 transition"
+                className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-xs hidden md:flex items-center gap-1.5 cursor-pointer hover:scale-105 transition"
                 title="Ví TQ Pay"
               >
                 <Wallet className="w-3.5 h-3.5 text-emerald-200" />
@@ -117,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Coins Badge */}
               <div
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-xs hidden sm:flex items-center gap-1.5 cursor-pointer hover:scale-105 transition"
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-xs hidden md:flex items-center gap-1.5 cursor-pointer hover:scale-105 transition"
                 title="Ví TQ Xu tích lũy"
               >
                 <Coins className="w-3.5 h-3.5 text-yellow-100" />
@@ -132,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-6 h-6 rounded-full object-cover border border-amber-400"
                 />
                 <div className="flex flex-col text-left">
-                  <span className="text-xs font-bold text-navy max-w-[100px] truncate">{user.name}</span>
+                  <span className="text-xs font-bold text-navy max-w-[90px] truncate">{user.name}</span>
                   <span className="text-[9px] font-extrabold text-orange uppercase">
                     {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : user.role}
                   </span>
@@ -225,6 +239,16 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Package className="w-3.5 h-3.5" /> Lịch sử Đơn Hàng
           </button>
+
+          {/* Extra Admin Control Shortcut */}
+          {user && user.role === 'SUPER_ADMIN' && onOpenSuperAdminDashboard && (
+            <button
+              onClick={onOpenSuperAdminDashboard}
+              className="px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1 text-yellow-400 font-extrabold cursor-pointer hover:bg-navy-light ml-auto"
+            >
+              <Crown className="w-3.5 h-3.5" /> Bảng Điều Hành Admin
+            </button>
+          )}
         </div>
       </nav>
     </header>
