@@ -6,11 +6,15 @@ import { useToast } from './ToastContext';
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
+  isImpersonating: boolean;
+  originalAdmin: UserProfile | null;
   loginEmail: (email: string, pass: string) => Promise<boolean>;
   registerEmail: (email: string, pass: string, name?: string) => Promise<boolean>;
   loginPhone: (phone: string, pass: string) => Promise<boolean>;
   registerPhone: (phone: string, pass: string, name?: string) => Promise<boolean>;
   changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
+  impersonateShop: (shopUser: any) => void;
+  exitImpersonation: () => void;
   logout: () => Promise<void>;
 }
 
@@ -25,6 +29,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('tq_user_profile');
     return saved ? JSON.parse(saved) : null;
   });
+  
+  // Impersonation state
+  const [isImpersonating, setIsImpersonating] = useState<boolean>(() => {
+    return localStorage.getItem('tq_is_impersonating') === 'true';
+  });
+  const [originalAdmin, setOriginalAdmin] = useState<UserProfile | null>(() => {
+    const savedAdmin = localStorage.getItem('tq_original_admin');
+    return savedAdmin ? JSON.parse(savedAdmin) : null;
+  });
+
   const [loading, setLoading] = useState<boolean>(true);
   const { addToast } = useToast();
 
@@ -55,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const getInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+        if (session?.user && !isImpersonating) {
           const userEmail = session.user.email || '';
           const userPhone = session.user.user_metadata?.phone || session.user.phone || '';
           const profile = createProfileObject(
@@ -77,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getInitialSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
+      if (session?.user && !isImpersonating) {
         const userEmail = session.user.email || '';
         const userPhone = session.user.user_metadata?.phone || session.user.phone || '';
         const profile = createProfileObject(
@@ -88,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         setUser(profile);
         localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-      } else if (_event === 'SIGNED_OUT') {
+      } else if (_event === 'SIGNED_OUT' && !isImpersonating) {
         setUser(null);
         localStorage.removeItem('tq_user_profile');
       }
@@ -97,7 +111,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [isImpersonating]);
+
+  // Impersonate Shop Action
+  const impersonateShop = (shopAccount: any) => {
+    if (!user) return;
+    
+    // Save original Super Admin if not already saved
+    if (!originalAdmin) {
+      setOriginalAdmin(user);
+      localStorage.setItem('tq_original_admin', JSON.stringify(user));
+    }
+
+    const simulatedShopProfile: UserProfile = {
+      id: shopAccount.id || `shop_${Date.now()}`,
+      name: shopAccount.name || 'Cửa hàng Giả Lập',
+      phone: shopAccount.phone || '0900000000',
+      email: shopAccount.email || `${shopAccount.phone}@phone.tqstore.vn`,
+      role: 'SHOP',
+      isGuest: false,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(shopAccount.name)}&background=059669&color=fff`,
+      walletBalance: shopAccount.walletBalance || 5000000,
+      coins: shopAccount.coins || 1200
+    };
+
+    setUser(simulatedShopProfile);
+    setIsImpersonating(true);
+    localStorage.setItem('tq_is_impersonating', 'true');
+    localStorage.setItem('tq_user_profile', JSON.stringify(simulatedShopProfile));
+
+    addToast(`🎭 Đã chuyển sang giao diện giả lập Cửa Hàng [${simulatedShopProfile.name}]!`, 'success');
+  };
+
+  // Exit Impersonation Mode
+  const exitImpersonation = () => {
+    if (originalAdmin) {
+      setUser(originalAdmin);
+      localStorage.setItem('tq_user_profile', JSON.stringify(originalAdmin));
+    }
+    setIsImpersonating(false);
+    setOriginalAdmin(null);
+    localStorage.removeItem('tq_is_impersonating');
+    localStorage.removeItem('tq_original_admin');
+
+    addToast('👑 Đã quay trở lại giao diện Super Admin Overlord!', 'info');
+  };
 
   // Global Email Login
   const loginEmail = async (email: string, pass: string): Promise<boolean> => {
@@ -274,7 +332,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Global Password Change Function (Updates Supabase Auth Cloud DB & Local Storage)
+  // Global Password Change Function
   const changePassword = async (_currentPass: string, newPass: string): Promise<boolean> => {
     if (!user) {
       addToast('Bạn cần đăng nhập để đổi mật khẩu!', 'error');
@@ -282,7 +340,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // 1. Update password in Supabase Auth Cloud Database
       const { error } = await supabase.auth.updateUser({
         password: newPass
       });
@@ -292,7 +349,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // 2. Update local phone accounts persistence if applicable
       if (user.phone) {
         const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
         const idx = localAccounts.findIndex((u: any) => u.phone === user.phone);
@@ -317,7 +373,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Supabase signout warning:', e);
     }
     setUser(null);
+    setIsImpersonating(false);
+    setOriginalAdmin(null);
     localStorage.removeItem('tq_user_profile');
+    localStorage.removeItem('tq_is_impersonating');
+    localStorage.removeItem('tq_original_admin');
     addToast('Đã đăng xuất tài khoản.', 'info');
   };
 
@@ -325,11 +385,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{
       user,
       loading,
+      isImpersonating,
+      originalAdmin,
       loginEmail,
       registerEmail,
       loginPhone,
       registerPhone,
       changePassword,
+      impersonateShop,
+      exitImpersonation,
       logout
     }}>
       {children}

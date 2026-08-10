@@ -34,12 +34,32 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, isImpersonating, exitImpersonation } = useAuth();
   const { totalItemsCount } = useCart();
   const { theme } = useTheme();
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100">
+      
+      {/* Impersonation Banner */}
+      {isImpersonating && (
+        <div className="bg-gradient-to-r from-rose-600 via-amber-600 to-red-700 text-white px-4 py-2 flex items-center justify-between text-xs font-black shadow-md border-b border-rose-400">
+          <div className="flex items-center gap-2">
+            <span className="bg-white text-rose-700 px-2 py-0.5 rounded text-[10px] font-black animate-pulse">
+              🎭 ĐANG GIẢ LẬP
+            </span>
+            <span>Giao diện Cửa Hàng: <strong className="underline decoration-amber-300">{user?.name}</strong></span>
+          </div>
+
+          <button
+            onClick={exitImpersonation}
+            className="bg-amber-300 hover:bg-amber-400 text-slate-950 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition shadow cursor-pointer flex items-center gap-1.5 border border-white/50"
+          >
+            <Crown className="w-4 h-4 text-slate-950" /> QUAY LẠI SUPER ADMIN
+          </button>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
         {/* Brand Logo */}
         <div
@@ -148,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-bold text-navy max-w-[90px] truncate">{user.name}</span>
                   <span className="text-[9px] font-extrabold text-orange uppercase">
-                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : user.role}
+                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : user.role === 'SHOP' ? 'GIẢ LẬP SHOP' : user.role}
                   </span>
                 </div>
 
