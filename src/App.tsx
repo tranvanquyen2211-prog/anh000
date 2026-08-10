@@ -221,9 +221,25 @@ function MainApp() {
       })
       .subscribe();
 
+    // Listen to live broadcast system announcements sent by Super Admin (Module 13)
+    const announcementChannel = supabase
+      .channel('public:system_announcements')
+      .on('broadcast', { event: 'new_system_announcement' }, (payload) => {
+        if (payload?.payload) {
+          const notif = payload.payload;
+          setNotifications(prev => {
+            const updated = [notif, ...prev.filter(n => n.id !== notif.id)];
+            localStorage.setItem('tq_notifications', JSON.stringify(updated));
+            return updated;
+          });
+        }
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(productChannel);
       supabase.removeChannel(orderChannel);
+      supabase.removeChannel(announcementChannel);
     };
   }, []);
 
