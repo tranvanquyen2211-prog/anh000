@@ -110,8 +110,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [newUserPass, setNewUserPass] = useState('123456');
   const [newUserRole, setNewUserRole] = useState<'USER' | 'SHOP' | 'STAFF' | 'SUPER_ADMIN'>('SHOP');
   const [newShopType, setNewShopType] = useState<'RENTAL' | 'RETAIL' | 'FNB' | 'BEAUTY'>('RENTAL');
-  const [newInitBalance, setNewInitBalance] = useState<number>(5000000);
-  const [newInitCoins, setNewInitCoins] = useState<number>(1000);
+  const [newInitBalance, setNewInitBalance] = useState<number>(0);
+  const [newInitCoins, setNewInitCoins] = useState<number>(0);
 
   // Password reset requests
   const [resetRequests, setResetRequests] = useState<ResetRequest[]>([

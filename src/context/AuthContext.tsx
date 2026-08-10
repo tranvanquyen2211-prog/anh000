@@ -62,8 +62,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: isAdmin ? 'SUPER_ADMIN' : 'USER',
       isGuest: false,
       avatar: defaultAvatar,
-      walletBalance: isAdmin ? 99999999 : 1000000,
-      coins: isAdmin ? 99999 : 500
+      walletBalance: isAdmin ? 99999999 : 0,
+      coins: isAdmin ? 99999 : 0
     };
   };
 
