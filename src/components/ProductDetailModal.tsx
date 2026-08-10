@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { supabase } from '../lib/supabase';
+import { detectProvinceFromShopInfo } from '../data/vietnamLocations';
 import {
   X,
   ShoppingCart,
@@ -17,7 +18,9 @@ import {
   PackageCheck,
   Star,
   UserCheck,
-  ExternalLink
+  ExternalLink,
+  MapPin,
+  Navigation
 } from 'lucide-react';
 
 interface ProductDetailModalProps {
@@ -126,6 +129,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const averageRating = reviews.length > 0
     ? (reviews.reduce((sum, r) => sum + (r.rating || 5), 0) / reviews.length).toFixed(1)
     : '5.0';
+
+  // 📍 SHOP LOCATION & GOOGLE MAPS NAVIGATION LOGIC
+  const shopConfig = JSON.parse(localStorage.getItem(`tq_shop_config_${product.shopName}`) || '{}');
+  const warehouseAddress = shopConfig.warehouseAddress || shopConfig.pickupAddress || 'Hệ thống Kho Tổng TQ Store Marketplace';
+  const provinceName = detectProvinceFromShopInfo(product.shopName, warehouseAddress, shopConfig.googleMapsUrl);
+  
+  const googleMapsUrl = shopConfig.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${product.shopName} ${warehouseAddress}`)}`;
 
   return (
     <div className="fixed inset-0 z-50 bg-navy-dark/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -267,6 +277,36 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3.5 rounded-2xl border border-gray-100 font-medium whitespace-pre-line">
                     {product.details || `Sản phẩm cao cấp từ thương hiệu ${product.shopName}. Đảm bảo chất lượng tiêu chuẩn 100%, giặt sấy đóng gói vô trùng cẩn thận trước khi giao tới tay khách hàng.`}
                   </p>
+                </div>
+
+                {/* 📍 SHOP LOCATION & GOOGLE MAPS NAVIGATION SECTION */}
+                <div className="bg-gradient-to-br from-slate-900 via-navy-dark to-slate-950 text-white p-4 rounded-2xl border border-amber-400/40 space-y-2.5 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 bg-rose-500 rounded-lg flex items-center justify-center text-white font-bold shadow shrink-0">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <h4 className="text-xs font-black text-amber-300 uppercase tracking-wider">
+                        📍 VỊ TRÍ GIAN HÀNG & KHO ({provinceName})
+                      </h4>
+                    </div>
+                    <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-bold px-2 py-0.5 rounded border border-emerald-400/30">
+                      ✓ Đã xác minh
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-gray-200 font-medium leading-relaxed">
+                    🏢 <strong>Địa chỉ shop:</strong> {warehouseAddress}
+                  </p>
+
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black py-2.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2 cursor-pointer border border-amber-300"
+                  >
+                    <Navigation className="w-4 h-4 text-slate-950" /> 🗺️ MỞ GOOGLE MAPS CHỈ ĐƯỜNG ĐẾN SHOP <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
                 </div>
 
                 {/* Quantity Control */}

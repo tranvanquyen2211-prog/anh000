@@ -185,7 +185,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         }
       ]);
 
-      // 2. Broadcast Realtime Channel Event so all active users see the product instantly
+      // 2. Broadcast Realtime Channel Event so products update in catalog
       await supabase.channel('public:products').send({
         type: 'broadcast',
         event: 'new_product_posted',

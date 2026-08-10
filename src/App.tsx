@@ -210,12 +210,6 @@ function MainApp() {
             salesCount: p.sales_count || 12
           };
           setProducts(prev => [formatted, ...prev.filter(item => item.id !== formatted.id)]);
-          
-          pushNewNotification({
-            type: 'product',
-            title: '🛍️ Sản phẩm mới được đăng',
-            message: `Shop [${formatted.shopName}] vừa đăng sản phẩm mới: "${formatted.title}".`
-          });
         }
       })
       .on('broadcast', { event: 'product_updated' }, (payload) => {
@@ -228,11 +222,6 @@ function MainApp() {
         if (payload?.payload) {
           const formatted: Product = payload.payload;
           setProducts(prev => [formatted, ...prev.filter(item => item.id !== formatted.id)]);
-          pushNewNotification({
-            type: 'product',
-            title: '🛍️ Sản phẩm mới được đăng',
-            message: `Shop [${formatted.shopName}] vừa đăng sản phẩm mới: "${formatted.title}".`
-          });
         }
       })
       .subscribe();
@@ -287,11 +276,6 @@ function MainApp() {
 
   const handleProductAdded = (newProd: Product) => {
     setProducts(prev => [newProd, ...prev.filter(item => item.id !== newProd.id)]);
-    pushNewNotification({
-      type: 'product',
-      title: '🛍️ Đăng sản phẩm thành công',
-      message: `Sản phẩm "${newProd.title}" của shop [${newProd.shopName}] đã tải lên toàn hệ thống.`
-    });
   };
 
   const handleSalesCountUpdated = (prodId: string | number, newSalesCount: number) => {
