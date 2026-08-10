@@ -62,10 +62,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   return (
     <div
       onClick={handleCardClick}
-      className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between product-card relative group cursor-pointer"
+      className="bg-white rounded-2xl p-2.5 sm:p-3.5 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between product-card relative group cursor-pointer"
     >
       {/* Shop Category Badge */}
-      <span className={`absolute top-4 left-4 text-[9px] font-black px-2.5 py-0.5 rounded-full shadow-xs z-10 uppercase tracking-wider ${getBadgeStyle(product.shopType)}`}>
+      <span className={`absolute top-3.5 left-3.5 text-[8px] sm:text-[9px] font-black px-2 sm:px-2.5 py-0.5 rounded-full shadow-xs z-10 uppercase tracking-wider ${getBadgeStyle(product.shopType)}`}>
         {product.badge || product.shopType}
       </span>
 
@@ -73,20 +73,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       {user && user.role === 'SUPER_ADMIN' && onOpenEditSalesCount && (
         <button
           onClick={(e) => { e.stopPropagation(); onOpenEditSalesCount(product); }}
-          className="absolute top-4 right-16 bg-slate-900/90 hover:bg-slate-950 text-amber-300 text-[8px] font-black px-2 py-0.5 rounded-full shadow-md z-20 border border-amber-400 flex items-center gap-1 cursor-pointer"
+          className="absolute top-3.5 right-14 sm:right-16 bg-slate-900/90 hover:bg-slate-950 text-amber-300 text-[7px] sm:text-[8px] font-black px-1.5 sm:px-2 py-0.5 rounded-full shadow-md z-20 border border-amber-400 flex items-center gap-1 cursor-pointer"
           title="Super Admin: Sửa tổng số lượt mua cho sản phẩm này"
         >
-          <Edit3 className="w-2.5 h-2.5 text-amber-400" /> Sửa Lượt Mua
+          <Edit3 className="w-2.5 h-2.5 text-amber-400" /> Sửa
         </button>
       )}
 
-      <span className="absolute top-4 right-4 bg-amber-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-xs z-10 flex items-center gap-0.5">
-        🪙 3% Xu
+      <span className="absolute top-3.5 right-3.5 bg-amber-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-xs z-10 flex items-center gap-0.5">
+        🪙 3%
       </span>
 
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         {/* Product Image & Multi-Image Gallery */}
-        <div className="bg-gray-50 rounded-xl overflow-hidden h-44 flex items-center justify-center relative border border-gray-100 group/img">
+        <div className="bg-gray-50 rounded-xl overflow-hidden h-36 sm:h-44 flex items-center justify-center relative border border-gray-100 group/img">
           <img
             src={activeImg}
             alt={product.title}

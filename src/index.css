@@ -48,3 +48,20 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 1);
 }
+
+/* Mobile & Touch Responsive Enhancements */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.safe-pb {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}

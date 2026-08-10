@@ -397,6 +397,60 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
       </nav>
+
+      {/* 📱 MOBILE ADAPTIVE BOTTOM NAVIGATION BAR (Auto-detects Mobile Devices) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800 text-slate-200 safe-pb flex items-center justify-around py-2 shadow-2xl">
+        <button
+          onClick={() => { setActiveTab('shop'); onSelectCategory('ALL'); }}
+          className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
+            activeTab === 'shop' && selectedCategory === 'ALL' ? 'text-amber-400 font-extrabold' : 'text-slate-400'
+          }`}
+        >
+          <span className="text-base">🏠</span>
+          <span>Trang Chủ</span>
+        </button>
+
+        {onOpenWatchToEarnModal && (
+          <button
+            onClick={onOpenWatchToEarnModal}
+            className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-pink-400 relative cursor-pointer"
+          >
+            <Tv className="w-5 h-5 text-pink-400 animate-pulse" />
+            <span>Kiếm Xu</span>
+          </button>
+        )}
+
+        <button
+          onClick={onOpenCartDrawer}
+          className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-400 relative cursor-pointer"
+        >
+          <div className="relative">
+            <ShoppingCart className="w-5 h-5 text-amber-300" />
+            {totalItemsCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-orange text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                {totalItemsCount}
+              </span>
+            )}
+          </div>
+          <span>Giỏ Hàng</span>
+        </button>
+
+        <button
+          onClick={onOpenChatInbox}
+          className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-emerald-400 cursor-pointer"
+        >
+          <MessageSquare className="w-5 h-5 text-emerald-400" />
+          <span>Tin Nhắn</span>
+        </button>
+
+        <button
+          onClick={user ? onOpenOrderHistory : onOpenAuthModal}
+          className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-400 cursor-pointer"
+        >
+          <User className="w-5 h-5 text-slate-300" />
+          <span>{user ? (user.name.split(' ')[0] || 'Tài khoản') : 'Đăng Nhập'}</span>
+        </button>
+      </div>
     </header>
   );
 };
