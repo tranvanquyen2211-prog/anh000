@@ -14,6 +14,7 @@ interface AuthContextType {
   registerPhone: (phone: string, pass: string, name?: string) => Promise<boolean>;
   changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
   updateAvatar: (newAvatarUrl: string) => Promise<boolean>;
+  updateCoins: (amount: number, isAddition?: boolean) => Promise<void>;
   impersonateShop: (shopUser: any) => void;
   exitImpersonation: () => void;
   logout: () => Promise<void>;
@@ -419,6 +420,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Realtime update user coins balance across system
+  const updateCoins = async (amount: number, isAddition: boolean = true) => {
+    if (!user) return;
+
+    const newCoins = isAddition ? (user.coins || 0) + amount : amount;
+    const updatedUser: UserProfile = {
+      ...user,
+      coins: newCoins
+    };
+
+    setUser(updatedUser);
+    localStorage.setItem('tq_user_profile', JSON.stringify(updatedUser));
+
+    // Also update in tq_phone_users array if applicable
+    if (user.phone) {
+      const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+      const idx = localAccounts.findIndex((u: any) => u.phone === user.phone);
+      if (idx > -1) {
+        localAccounts[idx].coins = newCoins;
+        localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+      }
+    }
+
+    // Sync to Supabase Cloud DB
+    try {
+      await supabase.from('profiles').upsert([
+        {
+          id: user.id,
+          coins: newCoins,
+          updated_at: new Date().toISOString()
+        }
+      ]);
+    } catch (e) {
+      console.warn('Cloud coin sync active');
+    }
+  };
+
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -446,6 +484,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       registerPhone,
       changePassword,
       updateAvatar,
+      updateCoins,
       impersonateShop,
       exitImpersonation,
       logout

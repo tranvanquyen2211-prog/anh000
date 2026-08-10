@@ -31,7 +31,7 @@ interface WatchToEarnModalProps {
 }
 
 export const WatchToEarnModal: React.FC<WatchToEarnModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user, updateCoins } = useAuth();
   const { addToast } = useToast();
 
   // Load videos list from localStorage or defaults
@@ -138,14 +138,9 @@ export const WatchToEarnModal: React.FC<WatchToEarnModalProps> = ({ isOpen, onCl
       return;
     }
 
-    // Award coins to user profile
+    // Award coins to user profile & sync system-wide
     if (user) {
-      const updatedCoins = (user.coins || 0) + video.rewardCoins;
-      user.coins = updatedCoins;
-
-      const savedUser = JSON.parse(localStorage.getItem('tq_user_profile') || '{}');
-      savedUser.coins = updatedCoins;
-      localStorage.setItem('tq_user_profile', JSON.stringify(savedUser));
+      updateCoins(video.rewardCoins);
 
       // Save completed list
       const newCompleted = [...completedVideoIds, video.id];
