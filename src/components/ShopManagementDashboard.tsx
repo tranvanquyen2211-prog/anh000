@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
-import type { Product, ChatMessage } from '../types';
+import type { Product } from '../types';
 import {
   Store,
   X,
@@ -13,9 +13,7 @@ import {
   PlusCircle,
   Trash2,
   CreditCard,
-  MessageSquare,
-  Send,
-  User
+  Star
 } from 'lucide-react';
 
 interface ShopManagementDashboardProps {
@@ -37,7 +35,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const { orders } = useCart();
   const { addToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'earnings' | 'inbox'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'earnings' | 'reviews'>('products');
 
   // Withdrawal state
   const [bankName, setBankName] = useState('Vietcombank');
@@ -45,64 +43,6 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const [accountName, setAccountName] = useState(user?.name || 'TÊN CHỦ TÀI KHOẢN');
   const [withdrawAmount, setWithdrawAmount] = useState<number | ''>(1000000);
   const [isRequestingWithdraw, setIsRequestingWithdraw] = useState(false);
-
-  // --- Shop Inbox State ---
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
-    const saved = localStorage.getItem('tq_messages');
-    return saved ? JSON.parse(saved) : [
-      { id: 'm1', user_name: 'Lê Thị Mai', user_phone: '0988123456', content: 'Shop ơi đầm này có sẵn size M không?', created_at: '10:15', sender_type: 'customer' },
-      { id: 'm2', user_name: user?.name || 'TQ Shop', user_phone: user?.phone || '0367818343', content: 'Dạ shop sẵn hàng giao hỏa tốc anh chị nhé!', created_at: '10:16', sender_type: 'shop' }
-    ];
-  });
-  const [replyInput, setReplyInput] = useState('');
-  const [selectedCustomer, setSelectedCustomer] = useState<string>('0988123456');
-
-  // Supabase Realtime Chat Subscription for Shop Inbox
-  useEffect(() => {
-    const fetchCloudMessages = async () => {
-      try {
-        const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-        if (!error && data && data.length > 0) {
-          const formatted: ChatMessage[] = data.map((m: any) => ({
-            id: m.id,
-            user_id: m.user_id,
-            user_name: m.user_name || 'Khách Hàng',
-            user_phone: m.user_phone || '09xxxxxxxx',
-            content: m.content,
-            created_at: new Date(m.created_at || Date.now()).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-            sender_type: m.sender_type || 'customer'
-          }));
-          setChatMessages(formatted);
-        }
-      } catch (err) {
-        console.warn('Cloud messages sync active');
-      }
-    };
-
-    fetchCloudMessages();
-
-    const channel = supabase
-      .channel('public:messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        if (payload.new) {
-          const m = payload.new;
-          const newMsg: ChatMessage = {
-            id: m.id,
-            user_name: m.user_name || 'Khách Hàng',
-            user_phone: m.user_phone || '09xxxxxxxx',
-            content: m.content,
-            created_at: new Date(m.created_at || Date.now()).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-            sender_type: m.sender_type || 'customer'
-          };
-          setChatMessages(prev => [...prev, newMsg]);
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
 
   if (!isOpen || !user) return null;
 
@@ -115,41 +55,6 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const totalShopProductsCount = shopProducts.length;
   const shopOrders = orders.filter(o => o.items && o.items.length > 0);
   const totalShopRevenue = shopOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
-
-  const handleSendShopReply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!replyInput.trim()) return;
-
-    const replyMsg: ChatMessage = {
-      id: `shop_msg_${Date.now()}`,
-      user_name: user.name || 'Gian Hàng TQ',
-      user_phone: user.phone || '0367818343',
-      content: replyInput.trim(),
-      created_at: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-      sender_type: 'shop'
-    };
-
-    const updated = [...chatMessages, replyMsg];
-    setChatMessages(updated);
-    localStorage.setItem('tq_messages', JSON.stringify(updated));
-
-    try {
-      await supabase.from('messages').insert([
-        {
-          id: replyMsg.id,
-          user_name: replyMsg.user_name,
-          user_phone: replyMsg.user_phone,
-          content: replyMsg.content,
-          sender_type: 'shop'
-        }
-      ]);
-    } catch (e) {
-      console.warn('Cloud message insert active');
-    }
-
-    setReplyInput('');
-    addToast('💬 Đã gửi tin nhắn phản hồi Realtime cho Khách hàng!', 'success');
-  };
 
   const handleRequestWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,11 +171,11 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
 
           <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex items-center gap-3">
             <div className="w-9 h-9 bg-purple-500/20 text-purple-400 rounded-xl flex items-center justify-center font-bold">
-              <MessageSquare className="w-5 h-5 text-purple-400" />
+              <Star className="w-5 h-5 fill-purple-400" />
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Tin Nhắn Hộp Thư</span>
-              <h4 className="text-sm font-black text-purple-400 font-mono">{chatMessages.length} Tin Nhắn</h4>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Đánh Giá Shop</span>
+              <h4 className="text-sm font-black text-purple-400 font-mono">5.0 ⭐ (Rất Tốt)</h4>
             </div>
           </div>
         </div>
@@ -293,15 +198,6 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
             }`}
           >
             <ShoppingBag className="w-4 h-4" /> 🛍️ Đơn Hàng Cửa Hàng ({shopOrders.length})
-          </button>
-
-          <button
-            onClick={() => setActiveTab('inbox')}
-            className={`py-3 px-4 border-b-2 transition cursor-pointer flex items-center gap-2 ${
-              activeTab === 'inbox' ? 'border-emerald-400 text-emerald-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4 text-purple-400" /> 💬 HỘP THƯ SHOP REALTIME ({chatMessages.length})
           </button>
 
           <button
@@ -417,73 +313,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
             </div>
           )}
 
-          {/* TAB 3: SHOP INBOX REALTIME */}
-          {activeTab === 'inbox' && (
-            <div className="bg-slate-950 rounded-2xl border border-slate-800 h-[62vh] flex overflow-hidden">
-              
-              {/* Customer Conversations Sidebar */}
-              <div className="w-64 border-r border-slate-800 p-3 space-y-2 shrink-0 overflow-y-auto">
-                <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider block mb-2">
-                  Danh Sách Khách Hàng Chat
-                </span>
-                <div
-                  onClick={() => setSelectedCustomer('0988123456')}
-                  className={`p-2.5 rounded-xl cursor-pointer transition border flex items-center gap-2.5 ${
-                    selectedCustomer === '0988123456' ? 'bg-slate-900 border-amber-400/50 text-amber-300 font-bold' : 'border-slate-800 text-slate-400 hover:bg-slate-900'
-                  }`}
-                >
-                  <div className="w-8 h-8 bg-amber-400 text-slate-950 font-black rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h5 className="text-xs font-bold text-slate-100">Lê Thị Mai</h5>
-                    <span className="text-[9px] text-slate-400 font-mono">0988123456</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Chat Thread */}
-              <div className="flex-1 flex flex-col justify-between p-4 bg-slate-900/40">
-                <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-                  {chatMessages.map(msg => (
-                    <div
-                      key={msg.id}
-                      className={`flex flex-col ${msg.sender_type === 'shop' ? 'items-end' : 'items-start'}`}
-                    >
-                      <span className="text-[9px] font-bold text-slate-400 mb-0.5">
-                        {msg.user_name} • {msg.created_at}
-                      </span>
-                      <div className={`p-3 rounded-2xl max-w-sm text-xs ${
-                        msg.sender_type === 'shop' ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-slate-800 text-slate-100 rounded-bl-none'
-                      }`}>
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Reply Form */}
-                <form onSubmit={handleSendShopReply} className="pt-3 border-t border-slate-800 flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={replyInput}
-                    onChange={e => setReplyInput(e.target.value)}
-                    placeholder="Nhập nội dung phản hồi cho khách hàng..."
-                    className="flex-1 bg-slate-950 border border-slate-700 text-slate-100 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-amber-400"
-                  />
-                  <button
-                    type="submit"
-                    className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black px-4 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1 text-xs"
-                  >
-                    <Send className="w-4 h-4" /> Gửi Phản Hồi
-                  </button>
-                </form>
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB 4: EARNINGS & WITHDRAWAL */}
+          {/* TAB 3: EARNINGS & WITHDRAWAL */}
           {activeTab === 'earnings' && (
             <div className="space-y-6 max-w-xl">
               <form onSubmit={handleRequestWithdrawal} className="bg-slate-950 p-5 rounded-2xl border border-emerald-500/30 space-y-4">
