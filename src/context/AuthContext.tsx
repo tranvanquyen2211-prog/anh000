@@ -51,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  // Sync Supabase Auth session on load & across device sessions
   useEffect(() => {
     const getInitialSession = async () => {
       try {
@@ -99,9 +100,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Email Login
+  // Global Email Login (Query Supabase Cloud DB)
   const loginEmail = async (email: string, pass: string): Promise<boolean> => {
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
@@ -109,15 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        // Fallback for immediate login if email confirmation error occurs
-        if (error.message.toLowerCase().includes('confirm')) {
-          const profile = createProfileObject(`user_${Date.now()}`, cleanEmail, '', cleanEmail.split('@')[0]);
-          setUser(profile);
-          localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-          addToast(`Xin chào ${profile.name}! Đăng nhập thành công (Bỏ qua xác minh email).`, 'success');
-          return true;
-        }
-        addToast(`Lỗi đăng nhập: ${error.message}`, 'error');
+        addToast(`Lỗi đăng nhập: Sai email hoặc mật khẩu (${error.message})`, 'error');
         return false;
       }
 
@@ -135,47 +128,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Email Registration -> Instantly Logs In
+  // Global Email Registration (Saves permanently to Supabase Cloud DB)
   const registerEmail = async (email: string, pass: string, name?: string): Promise<boolean> => {
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const displayName = name || cleanEmail.split('@')[0];
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email: cleanEmail,
         password: pass,
         options: {
           data: {
-            full_name: name || cleanEmail.split('@')[0]
+            full_name: displayName
           }
         }
       });
 
-      if (error && !error.message.toLowerCase().includes('confirm')) {
+      if (error) {
         addToast(`Lỗi đăng ký: ${error.message}`, 'error');
         return false;
       }
 
-      // Auto-login immediately after sign up without waiting for email confirmation link!
-      const userId = data?.user?.id || `user_${Date.now()}`;
-      const profile = createProfileObject(userId, cleanEmail, '', name || cleanEmail.split('@')[0]);
-      
-      // Attempt logging in with credentials immediately
-      await supabase.auth.signInWithPassword({ email: cleanEmail, password: pass }).catch(() => {});
-      
-      setUser(profile);
-      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-      addToast('🎉 Đăng ký thành công! Đã tự động đăng nhập vào hệ thống.', 'success');
-      return true;
+      if (data.user) {
+        // Sign in immediately to establish cloud session across devices
+        await supabase.auth.signInWithPassword({ email: cleanEmail, password: pass }).catch(() => {});
+        
+        const profile = createProfileObject(data.user.id, cleanEmail, '', displayName);
+        setUser(profile);
+        localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+        addToast('🎉 Đăng ký tài khoản thành công! Bạn có thể đăng nhập trên bất kỳ thiết bị nào.', 'success');
+        return true;
+      }
+      return false;
     } catch (err: any) {
-      // Fallback auto login
-      const profile = createProfileObject(`user_${Date.now()}`, cleanEmail, '', name || cleanEmail.split('@')[0]);
-      setUser(profile);
-      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-      addToast('🎉 Đăng ký thành công! Đã tự động đăng nhập vào hệ thống.', 'success');
-      return true;
+      addToast(`Lỗi đăng ký: ${err?.message || err}`, 'error');
+      return false;
     }
   };
 
-  // Phone Number Login
+  // Global Phone Number Registration (Saves permanently to Supabase Cloud DB)
+  const registerPhone = async (phone: string, pass: string, name?: string): Promise<boolean> => {
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    const syntheticEmail = `${cleanPhone}@phone.tqstore.vn`;
+    const displayName = name || (ADMIN_PHONES.includes(cleanPhone) ? 'Super Admin Overlord' : `Khách SĐT ${cleanPhone}`);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: syntheticEmail,
+        password: pass,
+        options: {
+          data: {
+            full_name: displayName,
+            phone: cleanPhone
+          }
+        }
+      });
+
+      if (error) {
+        // If user already exists in Supabase Cloud DB, attempt login directly
+        if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('exists')) {
+          return await loginPhone(cleanPhone, pass);
+        }
+        addToast(`Lỗi đăng ký SĐT: ${error.message}`, 'error');
+        return false;
+      }
+
+      if (data.user) {
+        // Establish Cloud Session
+        await supabase.auth.signInWithPassword({ email: syntheticEmail, password: pass }).catch(() => {});
+
+        const profile = createProfileObject(data.user.id, '', cleanPhone, displayName);
+        setUser(profile);
+        localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+        addToast(`🎉 Đăng ký thành công SĐT [${cleanPhone}]! Đã lưu trữ toàn hệ thống.`, 'success');
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      addToast(`Lỗi đăng ký SĐT: ${err?.message || err}`, 'error');
+      return false;
+    }
+  };
+
+  // Global Phone Number Login (Queries Supabase Cloud DB)
   const loginPhone = async (phone: string, pass: string): Promise<boolean> => {
     const cleanPhone = phone.trim().replace(/\s+/g, '');
     const syntheticEmail = `${cleanPhone}@phone.tqstore.vn`;
@@ -187,18 +222,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        // Check local storage accounts fallback
-        const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
-        const found = localAccounts.find((u: any) => u.phone === cleanPhone && u.pass === pass);
-        if (found) {
-          const profile = createProfileObject(found.id, '', cleanPhone, found.name);
-          setUser(profile);
-          localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-          addToast(`Xin chào ${profile.name}! Đăng nhập bằng SĐT thành công.`, 'success');
-          return true;
-        }
-
-        addToast(`Lỗi đăng nhập SĐT: ${error.message}`, 'error');
+        // If not found in Cloud DB yet, suggest registering
+        addToast(`Lỗi đăng nhập: Số điện thoại chưa được đăng ký hoặc sai mật khẩu.`, 'error');
         return false;
       }
 
@@ -213,50 +238,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       addToast(`Lỗi đăng nhập: ${err?.message || err}`, 'error');
       return false;
-    }
-  };
-
-  // Phone Number Registration -> Instantly Logs In
-  const registerPhone = async (phone: string, pass: string, name?: string): Promise<boolean> => {
-    const cleanPhone = phone.trim().replace(/\s+/g, '');
-    const syntheticEmail = `${cleanPhone}@phone.tqstore.vn`;
-    const displayName = name || `Khách SĐT ${cleanPhone}`;
-
-    try {
-      const { data } = await supabase.auth.signUp({
-        email: syntheticEmail,
-        password: pass,
-        options: {
-          data: {
-            full_name: displayName,
-            phone: cleanPhone
-          }
-        }
-      });
-
-      const userId = data?.user?.id || `phone_${Date.now()}`;
-      const profile = createProfileObject(userId, '', cleanPhone, displayName);
-
-      // Save local phone account record for fallback persistence
-      const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
-      if (!localAccounts.some((u: any) => u.phone === cleanPhone)) {
-        localAccounts.push({ id: userId, phone: cleanPhone, pass, name: displayName });
-        localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
-      }
-
-      // Auto sign in
-      await supabase.auth.signInWithPassword({ email: syntheticEmail, password: pass }).catch(() => {});
-
-      setUser(profile);
-      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-      addToast(`🎉 Đăng ký thành công SĐT [${cleanPhone}]! Đã tự động đăng nhập.`, 'success');
-      return true;
-    } catch (err: any) {
-      const profile = createProfileObject(`phone_${Date.now()}`, '', cleanPhone, displayName);
-      setUser(profile);
-      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-      addToast(`🎉 Đăng ký thành công SĐT [${cleanPhone}]! Đã tự động đăng nhập.`, 'success');
-      return true;
     }
   };
 
