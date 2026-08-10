@@ -13,13 +13,15 @@ import {
   PlusCircle,
   Trash2,
   CreditCard,
-  Star,
   Sliders,
   MapPin,
   QrCode,
   Phone,
   Save,
-  Sparkles
+  Sparkles,
+  AlertTriangle,
+  Calendar,
+  ShieldAlert
 } from 'lucide-react';
 
 interface ShopManagementDashboardProps {
@@ -47,10 +49,10 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const [bankName, setBankName] = useState('Vietcombank');
   const [accountNumber, setAccountNumber] = useState(user?.phone || '0367818343');
   const [accountName, setAccountName] = useState(user?.name || 'TÊN CHỦ TÀI KHOẢN');
-  const [withdrawAmount, setWithdrawAmount] = useState<number | ''>(1000000);
+  const [withdrawAmount, setWithdrawAmount] = useState<number | ''>('');
   const [isRequestingWithdraw, setIsRequestingWithdraw] = useState(false);
 
-  // --- SHOP CONFIGURATION & PROFILE BRANDING STATE ---
+  // Shop config state
   const [warehouseAddress, setWarehouseAddress] = useState('123 Đường Nguyễn Trãi, Phường Bến Thành, Quận 1, TP.HCM');
   const [pickupAddress, setPickupAddress] = useState('Kho Tổng TQ Store - 123 Nguyễn Trãi, Quận 1, TP.HCM');
   const [googleMapsUrl, setGoogleMapsUrl] = useState('https://maps.google.com/?q=10.776889,106.700806');
@@ -94,10 +96,38 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
     p => p.shopName.toLowerCase() === (user.name || '').toLowerCase() || p.shopName.includes(user.name || '')
   );
 
-  // Calculate shop analytics
-  const totalShopProductsCount = shopProducts.length;
+  // --- REVENUE & WITHDRAWAL CALCULATIONS ---
   const shopOrders = orders.filter(o => o.items && o.items.length > 0);
-  const totalShopRevenue = shopOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
+  const grossRevenue = shopOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
+  
+  // Platform fee rate (Default 5%)
+  const platformFeeRate = 5;
+  const platformFeeAmount = Math.round(grossRevenue * (platformFeeRate / 100));
+  
+  // Existing withdrawals list for this shop
+  const savedWithdrawals: any[] = JSON.parse(localStorage.getItem('tq_withdrawals') || '[]');
+  const myShopWithdrawals = savedWithdrawals.filter(
+    w => w.shopName?.toLowerCase() === user.name?.toLowerCase() && w.status !== 'rejected'
+  );
+  const totalWithdrawn = myShopWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
+
+  // Eligible withdrawable balance (Số dư hợp lệ có thể rút) = Gross Revenue - Platform Fee - Total Withdrawn
+  const eligibleWithdrawableBalance = Math.max(0, grossRevenue - platformFeeAmount - totalWithdrawn);
+
+  // --- DATE & FREQUENCY RESTRICTION RULES ---
+  const today = new Date();
+  const currentDay = today.getDate();
+  const todayString = today.toLocaleDateString('vi-VN');
+
+  // Rule 1: Withdrawal only allowed on the 14th and 25th of the month
+  const isWithdrawalDay = currentDay === 14 || currentDay === 25;
+
+  // Rule 2: Maximum 1 withdrawal request per day
+  const hasAlreadyWithdrawnToday = savedWithdrawals.some(
+    w => w.shopName?.toLowerCase() === user.name?.toLowerCase() && w.date === todayString
+  );
+
+  const canCreateWithdrawal = isWithdrawalDay && !hasAlreadyWithdrawnToday && eligibleWithdrawableBalance > 0;
 
   const handleSaveShopConfig = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,11 +148,9 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
       updated_at: new Date().toISOString()
     };
 
-    // Save to local storage
     localStorage.setItem(`tq_shop_config_${user.name}`, JSON.stringify(configObj));
 
     try {
-      // Sync to Supabase Cloud Database table `profiles`
       await supabase.from('profiles').upsert([
         {
           phone: user.phone,
@@ -150,8 +178,24 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
 
   const handleRequestWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isWithdrawalDay) {
+      addToast(`⚠️ Hôm nay là Ngày ${currentDay}. Cổng rút tiền chỉ mở vào Ngày 14 và Ngày 25 hàng tháng!`, 'error');
+      return;
+    }
+
+    if (hasAlreadyWithdrawnToday) {
+      addToast('⚠️ Cửa hàng của bạn đã tạo 1 lệnh rút hôm nay! Mỗi ngày chỉ được rút tối đa 1 lần.', 'error');
+      return;
+    }
+
     if (!withdrawAmount || Number(withdrawAmount) <= 0) {
       addToast('Vui lòng nhập số tiền rút hợp lệ!', 'error');
+      return;
+    }
+
+    if (Number(withdrawAmount) > eligibleWithdrawableBalance) {
+      addToast(`❌ Số tiền rút vượt quá số dư hợp lệ có thể rút (${eligibleWithdrawableBalance.toLocaleString('vi-VN')} đ sau khi trừ ${platformFeeRate}% phí sàn)!`, 'error');
       return;
     }
 
@@ -164,16 +208,14 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
       bankName,
       stk: accountNumber,
       ownerName: accountName,
-      date: new Date().toLocaleDateString('vi-VN'),
+      date: todayString,
       status: 'pending'
     };
 
-    // Save to local storage withdrawals
-    const saved = JSON.parse(localStorage.getItem('tq_withdrawals') || '[]');
-    localStorage.setItem('tq_withdrawals', JSON.stringify([withdrawReq, ...saved]));
+    const updatedWithdrawals = [withdrawReq, ...savedWithdrawals];
+    localStorage.setItem('tq_withdrawals', JSON.stringify(updatedWithdrawals));
 
     try {
-      // Sync to Supabase cloud
       await supabase.from('withdrawals').insert([
         {
           id: withdrawReq.id,
@@ -190,7 +232,8 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
     }
 
     setIsRequestingWithdraw(false);
-    addToast(`💸 Đã gửi yêu cầu rút [${Number(withdrawAmount).toLocaleString('vi-VN')} đ] về STK ${bankName}!`, 'success');
+    setWithdrawAmount('');
+    addToast(`💸 Đã tạo lệnh rút [${Number(withdrawReq.amount).toLocaleString('vi-VN')} đ] thành công Ngày ${currentDay}!`, 'success');
   };
 
   return (
@@ -236,8 +279,18 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
               <DollarSign className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Doanh Thu Cửa Hàng</span>
-              <h4 className="text-sm font-black text-emerald-400 font-mono">{totalShopRevenue.toLocaleString('vi-VN')} đ</h4>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Doanh Thu Gộp (Gross)</span>
+              <h4 className="text-sm font-black text-emerald-400 font-mono">{grossRevenue.toLocaleString('vi-VN')} đ</h4>
+            </div>
+          </div>
+
+          <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex items-center gap-3">
+            <div className="w-9 h-9 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center font-bold">
+              <CreditCard className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Số Dư Hợp Lệ Rút (-5%)</span>
+              <h4 className="text-sm font-black text-amber-400 font-mono">{eligibleWithdrawableBalance.toLocaleString('vi-VN')} đ</h4>
             </div>
           </div>
 
@@ -246,28 +299,18 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
               <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Tổng Số Đơn Hàng</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Đơn Hàng Cửa Hàng</span>
               <h4 className="text-sm font-black text-blue-400 font-mono">{shopOrders.length} Đơn</h4>
             </div>
           </div>
 
           <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex items-center gap-3">
-            <div className="w-9 h-9 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center font-bold">
-              <Package className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Sản Phẩm Đang Bán</span>
-              <h4 className="text-sm font-black text-amber-400 font-mono">{totalShopProductsCount} Mặt Hàng</h4>
-            </div>
-          </div>
-
-          <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex items-center gap-3">
             <div className="w-9 h-9 bg-purple-500/20 text-purple-400 rounded-xl flex items-center justify-center font-bold">
-              <Star className="w-5 h-5 fill-purple-400" />
+              <Calendar className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Đánh Giá Shop</span>
-              <h4 className="text-sm font-black text-purple-400 font-mono">5.0 ⭐ (Rất Tốt)</h4>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Lịch Rút Tiền Hàng Tháng</span>
+              <h4 className="text-xs font-black text-purple-300">Ngày 14 & 25 (Hôm nay: Ngày {currentDay})</h4>
             </div>
           </div>
         </div>
@@ -280,7 +323,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
               activeTab === 'products' ? 'border-emerald-400 text-emerald-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Package className="w-4 h-4" /> 📦 Quản Lý Sản Phẩm ({totalShopProductsCount})
+            <Package className="w-4 h-4" /> 📦 Quản Lý Sản Phẩm ({shopProducts.length})
           </button>
 
           <button
@@ -298,7 +341,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
               activeTab === 'earnings' ? 'border-emerald-400 text-emerald-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <CreditCard className="w-4 h-4" /> 💰 Ví Doanh Thu & Rút Tiền
+            <CreditCard className="w-4 h-4" /> 💰 Ví Doanh Thu & Rút Tiền (Ngày 14 & 25)
           </button>
 
           <button
@@ -414,12 +457,56 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
             </div>
           )}
 
-          {/* TAB 3: EARNINGS & WITHDRAWAL */}
+          {/* TAB 3: EARNINGS & WITHDRAWAL MECHANISM */}
           {activeTab === 'earnings' && (
-            <div className="space-y-6 max-w-xl">
-              <form onSubmit={handleRequestWithdrawal} className="bg-slate-950 p-5 rounded-2xl border border-emerald-500/30 space-y-4">
+            <div className="space-y-6 max-w-2xl">
+              
+              {/* Financial Calculation Breakdown Card */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-amber-500/30 space-y-3">
+                <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" /> BẢNG TÍNH DOANH THU & SỐ DƯ HỢP LỆ CÓ THỂ RÚT
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block font-bold">1. Doanh Thu Gộp:</span>
+                    <h4 className="text-base font-black text-blue-400 font-mono mt-0.5">{grossRevenue.toLocaleString('vi-VN')} đ</h4>
+                  </div>
+
+                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                    <span className="text-slate-400 text-[10px] block font-bold">2. Phí Sàn TQ Store ({platformFeeRate}%):</span>
+                    <h4 className="text-base font-black text-rose-400 font-mono mt-0.5">-{platformFeeAmount.toLocaleString('vi-VN')} đ</h4>
+                  </div>
+
+                  <div className="bg-slate-900 p-3 rounded-xl border border-emerald-500/40">
+                    <span className="text-emerald-400 text-[10px] block font-bold">3. SỐ DƯ HỢP LỆ CÓ THỂ RÚT:</span>
+                    <h4 className="text-base font-black text-emerald-400 font-mono mt-0.5">{eligibleWithdrawableBalance.toLocaleString('vi-VN')} đ</h4>
+                  </div>
+                </div>
+              </div>
+
+              {/* Rules Warning Banner */}
+              <div className={`p-4 rounded-2xl border space-y-2 ${
+                isWithdrawalDay ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300' : 'bg-amber-950/40 border-amber-500/40 text-amber-300'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {isWithdrawalDay ? <Calendar className="w-5 h-5 text-emerald-400 shrink-0" /> : <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />}
+                  <h4 className="font-black text-xs uppercase">
+                    QUY ĐỊNH CỔNG RÚT TIỀN: NGÀY 14 & 25 HÀNG THÁNG (MỖI NGÀY 1 LẦN RÚT)
+                  </h4>
+                </div>
+
+                <div className="text-[11px] space-y-1 text-slate-300 pl-7">
+                  <p>• <strong>Lịch rút tiền:</strong> Hệ thống chỉ mở cổng chấp nhận lệnh rút tiền vào đúng **Ngày 14** và **Ngày 25** hàng tháng. (Hôm nay: **Ngày {currentDay}** - {isWithdrawalDay ? '✅ CỔNG ĐANG MỞ' : '🔒 CỔNG ĐANG ĐÓNG'})</p>
+                  <p>• <strong>Tần suất rút:</strong> Mỗi ngày gian hàng chỉ được tạo tối đa **1 lệnh rút tiền**.</p>
+                  <p>• <strong>Công thức số dư hợp lệ:</strong> `Số dư thực rút = Tổng doanh thu - 5% phí sàn - Tiền đã rút`.</p>
+                </div>
+              </div>
+
+              {/* Withdrawal Request Form */}
+              <form onSubmit={handleRequestWithdrawal} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
                 <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" /> 💸 YÊU CẦU RÚT TIỀN DOANH THU VỀ NGÂN HÀNG
+                  <CreditCard className="w-4 h-4" /> 💸 TẠO LỆNH RÚT TIỀN DOANH THU VỀ NGÂN HÀNG
                 </h3>
 
                 <div className="space-y-3">
@@ -462,12 +549,15 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
                   </div>
 
                   <div>
-                    <label className="block text-emerald-400 font-bold mb-1">Số Tiền Muốn Rút (VNĐ)</label>
+                    <label className="block text-emerald-400 font-bold mb-1">
+                      Số Tiền Muốn Rút (VNĐ) - Tối đa: {eligibleWithdrawableBalance.toLocaleString('vi-VN')} đ
+                    </label>
                     <input
                       type="number"
                       value={withdrawAmount}
                       onChange={e => setWithdrawAmount(e.target.value ? Number(e.target.value) : '')}
                       required
+                      placeholder={`Nhập số tiền (Tối đa ${eligibleWithdrawableBalance.toLocaleString('vi-VN')}đ)`}
                       className="w-full bg-slate-900 border border-slate-700 text-emerald-400 font-mono font-black rounded-xl px-3 py-2"
                     />
                   </div>
@@ -475,10 +565,23 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
 
                 <button
                   type="submit"
-                  disabled={isRequestingWithdraw}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black py-3 rounded-xl uppercase tracking-wider transition shadow-md cursor-pointer disabled:opacity-50"
+                  disabled={!canCreateWithdrawal || isRequestingWithdraw}
+                  className={`w-full font-black py-3.5 rounded-xl uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2 cursor-pointer ${
+                    canCreateWithdrawal
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-slate-950'
+                      : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                  }`}
                 >
-                  {isRequestingWithdraw ? 'Đang Gửi Lệnh...' : 'XÁC NHẬN GỬI LỆNH RÚT TIỀN 14D'}
+                  <ShieldAlert className="w-4 h-4" />
+                  {!isWithdrawalDay
+                    ? `🔒 CỔNG RÚT ĐÓNG (MỞ VÀO NGÀY 14 & 25 - HÔM NAY NGÀY ${currentDay})`
+                    : hasAlreadyWithdrawnToday
+                    ? '⚠️ ĐÃ TẠO 1 LỆNH RÚT HÔM NAY (GIỚI HẠN 1 LẦN/NGÀY)'
+                    : eligibleWithdrawableBalance <= 0
+                    ? '❌ KHÔNG ĐỦ SỐ DƯ HỢP LỆ ĐỂ RÚT'
+                    : isRequestingWithdraw
+                    ? 'Đang Gửi Lệnh...'
+                    : `XÁC NHẬN GỬI LỆNH RÚT TIỀN (NGÀY ${currentDay})`}
                 </button>
               </form>
             </div>
