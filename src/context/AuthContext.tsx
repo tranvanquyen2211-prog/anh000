@@ -13,6 +13,7 @@ interface AuthContextType {
   loginPhone: (phone: string, pass: string) => Promise<boolean>;
   registerPhone: (phone: string, pass: string, name?: string) => Promise<boolean>;
   changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
+  updateAvatar: (newAvatarUrl: string) => Promise<boolean>;
   impersonateShop: (shopUser: any) => void;
   exitImpersonation: () => void;
   logout: () => Promise<void>;
@@ -48,10 +49,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
-  const createProfileObject = (id: string, email?: string, phone?: string, name?: string): UserProfile => {
+  const createProfileObject = (id: string, email?: string, phone?: string, name?: string, avatarUrl?: string): UserProfile => {
     const isAdmin = isUserAdmin(email, phone);
     const displayName = name || (isAdmin ? 'Super Admin Overlord' : (phone || email?.split('@')[0] || 'Khách hàng'));
-    
+    const defaultAvatar = avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(isAdmin ? 'Admin' : displayName)}&background=0F2C59&color=fff`;
+
     return {
       id,
       email: email || `${phone}@phone.tqstore.vn`,
@@ -59,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       name: displayName,
       role: isAdmin ? 'SUPER_ADMIN' : 'USER',
       isGuest: false,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(isAdmin ? 'Admin' : displayName)}&background=0F2C59&color=fff`,
+      avatar: defaultAvatar,
       walletBalance: isAdmin ? 99999999 : 1000000,
       coins: isAdmin ? 99999 : 500
     };
@@ -76,7 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             session.user.id,
             userEmail,
             userPhone,
-            session.user.user_metadata?.full_name
+            session.user.user_metadata?.full_name,
+            session.user.user_metadata?.avatar
           );
           setUser(profile);
           localStorage.setItem('tq_user_profile', JSON.stringify(profile));
@@ -98,7 +101,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           session.user.id,
           userEmail,
           userPhone,
-          session.user.user_metadata?.full_name
+          session.user.user_metadata?.full_name,
+          session.user.user_metadata?.avatar
         );
         setUser(profile);
         localStorage.setItem('tq_user_profile', JSON.stringify(profile));
@@ -112,6 +116,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       authListener.subscription.unsubscribe();
     };
   }, [isImpersonating]);
+
+  // Update Avatar System-wide
+  const updateAvatar = async (newAvatarUrl: string): Promise<boolean> => {
+    if (!user) {
+      addToast('Bạn chưa đăng nhập tài khoản!', 'error');
+      return false;
+    }
+
+    const updatedUser: UserProfile = {
+      ...user,
+      avatar: newAvatarUrl
+    };
+
+    setUser(updatedUser);
+    localStorage.setItem('tq_user_profile', JSON.stringify(updatedUser));
+
+    // Update phone users list if applicable
+    if (user.phone) {
+      const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+      const idx = localAccounts.findIndex((u: any) => u.phone === user.phone);
+      if (idx > -1) {
+        localAccounts[idx].avatar = newAvatarUrl;
+        localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+      }
+    }
+
+    try {
+      // 1. Update Supabase Auth metadata
+      await supabase.auth.updateUser({
+        data: { avatar: newAvatarUrl }
+      });
+
+      // 2. Sync to Supabase Cloud Table `profiles`
+      await supabase.from('profiles').upsert([
+        {
+          id: user.id,
+          phone: user.phone,
+          full_name: user.name,
+          avatar: newAvatarUrl,
+          updated_at: new Date().toISOString()
+        }
+      ]);
+    } catch (e) {
+      console.warn('Cloud avatar sync active');
+    }
+
+    addToast('📸 Đã đổi ảnh đại diện và đồng bộ 100% trên toàn hệ thống!', 'success');
+    return true;
+  };
 
   // Impersonate Shop Action
   const impersonateShop = (shopAccount: any) => {
@@ -130,7 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email: shopAccount.email || `${shopAccount.phone}@phone.tqstore.vn`,
       role: 'SHOP',
       isGuest: false,
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(shopAccount.name)}&background=059669&color=fff`,
+      avatar: shopAccount.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(shopAccount.name)}&background=059669&color=fff`,
       walletBalance: shopAccount.walletBalance || 5000000,
       coins: shopAccount.coins || 1200
     };
@@ -179,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        const profile = createProfileObject(data.user.id, data.user.email, '', data.user.user_metadata?.full_name);
+        const profile = createProfileObject(data.user.id, data.user.email, '', data.user.user_metadata?.full_name, data.user.user_metadata?.avatar);
         setUser(profile);
         localStorage.setItem('tq_user_profile', JSON.stringify(profile));
         addToast(`Xin chào ${profile.name}! Đăng nhập thành công.`, 'success');
@@ -320,7 +373,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        const profile = createProfileObject(data.user.id, '', cleanPhone, data.user.user_metadata?.full_name);
+        const profile = createProfileObject(data.user.id, '', cleanPhone, data.user.user_metadata?.full_name, data.user.user_metadata?.avatar);
         setUser(profile);
         localStorage.setItem('tq_user_profile', JSON.stringify(profile));
         addToast(`Xin chào ${profile.name}! Đăng nhập bằng SĐT thành công.`, 'success');
@@ -392,6 +445,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loginPhone,
       registerPhone,
       changePassword,
+      updateAvatar,
       impersonateShop,
       exitImpersonation,
       logout

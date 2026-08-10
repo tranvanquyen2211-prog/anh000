@@ -15,6 +15,7 @@ import { OrderHistoryModal } from './components/OrderHistoryModal';
 import { AdminThemeCustomizer } from './components/AdminThemeCustomizer';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { ChangeAvatarModal } from './components/ChangeAvatarModal';
 import { AddProductModal } from './components/AddProductModal';
 import { ShopManagementDashboard } from './components/ShopManagementDashboard';
 import { LiveChatWidget } from './components/LiveChatWidget';
@@ -41,6 +42,7 @@ function MainApp() {
   const [isAdminThemeOpen, setIsAdminThemeOpen] = useState(false);
   const [isSuperAdminDashboardOpen, setIsSuperAdminDashboardOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isShopManagementOpen, setIsShopManagementOpen] = useState(false);
 
@@ -155,6 +157,7 @@ function MainApp() {
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
+        onOpenChangeAvatar={() => setIsChangeAvatarOpen(true)}
         onOpenAddProductModal={() => setIsAddProductOpen(true)}
         onOpenShopManagementDashboard={() => setIsShopManagementOpen(true)}
         selectedCategory={selectedCategory}
@@ -254,6 +257,11 @@ function MainApp() {
       <ChangePasswordModal
         isOpen={isChangePasswordOpen}
         onClose={() => setIsChangePasswordOpen(false)}
+      />
+
+      <ChangeAvatarModal
+        isOpen={isChangeAvatarOpen}
+        onClose={() => setIsChangeAvatarOpen(false)}
       />
 
       <AddProductModal

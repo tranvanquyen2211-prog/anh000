@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -11,6 +11,7 @@ interface HeaderProps {
   onOpenOrderHistory: () => void;
   onOpenThemeCustomizer?: () => void;
   onOpenChangePassword?: () => void;
+  onOpenChangeAvatar?: () => void;
   onOpenSuperAdminDashboard?: () => void;
   onOpenAddProductModal?: () => void;
   onOpenShopManagementDashboard?: () => void;
@@ -28,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenOrderHistory,
   onOpenThemeCustomizer,
   onOpenChangePassword,
+  onOpenChangeAvatar,
   onOpenSuperAdminDashboard,
   onOpenAddProductModal,
   onOpenShopManagementDashboard,
@@ -189,11 +191,23 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* User Avatar & Menu */}
               <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-xl shadow-xs">
-                <img
-                  src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0F2C59&color=fff`}
-                  alt={user.name}
-                  className="w-6 h-6 rounded-full object-cover border border-amber-400"
-                />
+                
+                {/* Clickable Avatar with Camera Overlay */}
+                <div
+                  onClick={onOpenChangeAvatar}
+                  className="relative cursor-pointer group/avatar shrink-0"
+                  title="Đổi ảnh đại diện Avatar"
+                >
+                  <img
+                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0F2C59&color=fff`}
+                    alt={user.name}
+                    className="w-7 h-7 rounded-full object-cover border border-amber-400 group-hover/avatar:opacity-80 transition"
+                  />
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition">
+                    <Camera className="w-3 h-3 text-amber-400" />
+                  </div>
+                </div>
+
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-bold text-navy max-w-[90px] truncate">{user.name}</span>
                   <span className="text-[9px] font-extrabold text-orange uppercase">
