@@ -19,7 +19,10 @@ import {
   Layers,
   X,
   UserPlus,
-  Plus
+  Plus,
+  Lock,
+  Unlock,
+  Trash2
 } from 'lucide-react';
 
 interface SuperAdminDashboardProps {
@@ -53,7 +56,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'buttons-categories'
   >('users');
 
-  // --- Module 1: Users State ---
+  // --- Module 1: Users & Shops State ---
   const [usersList, setUsersList] = useState<any[]>(() => {
     const saved = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
     const adminAccounts = [
@@ -62,11 +65,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     ];
     return [...adminAccounts, ...saved];
   });
+
+  // Creation State
   const [newUserName, setNewUserName] = useState('');
   const [newUserPhone, setNewUserPhone] = useState('');
   const [newUserPass, setNewUserPass] = useState('TQStore2026@');
-  const [newUserRole, setNewUserRole] = useState<'USER' | 'SHOP' | 'STAFF' | 'BOT_REVIEW'>('SHOP');
+  const [newUserRole, setNewUserRole] = useState<'SUPER_ADMIN' | 'ADMIN' | 'SHOP' | 'STAFF' | 'USER' | 'BOT'>('SHOP');
   const [newShopType, setNewShopType] = useState<'RENTAL' | 'RETAIL' | 'FNB' | 'BEAUTY'>('RENTAL');
+  const [newInitBalance, setNewInitBalance] = useState(1000000);
+  const [newInitCoins, setNewInitCoins] = useState(500);
 
   // --- Module 2: Password Reset Requests ---
   const [resetRequests, setResetRequests] = useState<any[]>(() => {
@@ -142,7 +149,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const totalPlatformSubsidies = walletSubsidiesCost + coinCashbackSubsidies;
   const netPlatformProfit = platformFeesRevenue - totalPlatformSubsidies;
 
-  // --- Actions ---
+  // --- Actions for Module 1 ---
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserPhone.trim() || !newUserName.trim()) return;
@@ -161,8 +168,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       role: newUserRole,
       shopType: newUserRole === 'SHOP' ? newShopType : undefined,
       status: 'active',
-      walletBalance: 1000000,
-      coins: 500
+      walletBalance: Number(newInitBalance) || 0,
+      coins: Number(newInitCoins) || 0,
+      pass: newUserPass
     };
 
     const updated = [newUserObj, ...usersList];
@@ -172,14 +180,31 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
     setNewUserName('');
     setNewUserPhone('');
-    addToast(`➕ Đã khởi tạo tài khoản mới: [${newUserName}] (${newUserRole})`, 'success');
+    addToast(`🎉 Đã tạo tài khoản/Shop mới: [${newUserName}] (${newUserRole})`, 'success');
+  };
+
+  const directChangeUserPassword = (phone: string) => {
+    const inputPass = prompt(`Nhập mật khẩu MỚI muốn đặt cho tài khoản SĐT [${phone}]:`, 'TQStore2026@');
+    if (!inputPass) return;
+
+    const updated = usersList.map(u => {
+      if (u.phone === phone) {
+        return { ...u, pass: inputPass };
+      }
+      return u;
+    });
+    setUsersList(updated);
+    const phoneUsersOnly = updated.filter(u => u.role !== 'SUPER_ADMIN');
+    localStorage.setItem('tq_phone_users', JSON.stringify(phoneUsersOnly));
+
+    addToast(`🔑 Đã đổi mật khẩu thành công cho tài khoản SĐT [${phone}]! Mật khẩu cũ bị hủy.`, 'success');
   };
 
   const toggleUserLock = (phone: string) => {
     const updated = usersList.map(u => {
       if (u.phone === phone) {
         const nextStatus = u.status === 'locked' ? 'active' : 'locked';
-        addToast(`Đã ${nextStatus === 'locked' ? 'khóa' : 'mở khóa'} tài khoản [${phone}]`, 'info');
+        addToast(`Đã ${nextStatus === 'locked' ? '🔒 khóa' : '🔓 mở khóa'} tài khoản [${phone}]`, 'info');
         return { ...u, status: nextStatus };
       }
       return u;
@@ -196,7 +221,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     setUsersList(updated);
     const phoneUsersOnly = updated.filter(u => u.role !== 'SUPER_ADMIN');
     localStorage.setItem('tq_phone_users', JSON.stringify(phoneUsersOnly));
-    addToast(`Đã xóa vĩnh viễn tài khoản SĐT [${phone}]`, 'info');
+    addToast(`🗑️ Đã xóa vĩnh viễn tài khoản SĐT [${phone}]`, 'info');
   };
 
   const approveResetRequest = (id: string, phone: string) => {
@@ -281,7 +306,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               <h2 className="text-lg sm:text-xl font-black text-amber-400 uppercase tracking-wide flex items-center gap-2">
                 SUPER ADMIN OVERLORD PANEL
               </h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">TẬP QUYỀN ĐIỀU HÀNH HỆ THỐNG & FINANCIAL ANALYTICS</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">BẢNG QUẢN TRỊ TỔNG THỂ TÀI KHOẢN & FINANCIAL ANALYTICS</p>
             </div>
           </div>
 
@@ -316,7 +341,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                 adminTab === 'users' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
               }`}
             >
-              <UserCheck className="w-4 h-4 text-amber-400" /> 1. 👤 Tạo & Quản Lý Tài Khoản
+              <UserCheck className="w-4 h-4 text-amber-400" /> 1. 👤 Quản Lý Tài Khoản & Shop
             </button>
 
             <button
@@ -426,27 +451,35 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           {/* Module Panel Main View */}
           <main className="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar text-xs">
             
-            {/* MODULE 1: USERS */}
+            {/* MODULE 1: USERS & SHOPS MANAGEMENT */}
             {adminTab === 'users' && (
               <div className="space-y-6">
+                
+                {/* Form Create Account / Shop */}
                 <form onSubmit={handleCreateUser} className="bg-slate-950 p-5 rounded-2xl border border-amber-500/30 shadow-xl space-y-4">
-                  <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
-                    <UserPlus className="w-4 h-4" /> Thêm mới tài khoản đặc quyền vào hệ thống
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      <UserPlus className="w-4 h-4" /> TẠO TÀI KHOẢN MỚI & TẠO SHOP GIAN HÀNG
+                    </h3>
+                    <span className="text-[10px] text-slate-400">Thiết lập Role & Loại Shop chính xác</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div>
-                      <label className="block font-bold text-slate-300 mb-1">Loại Tài khoản (Role)</label>
+                      <label className="block font-bold text-slate-300 mb-1">1. Chọn Role Tài Khoản</label>
                       <select value={newUserRole} onChange={e => setNewUserRole(e.target.value as any)} className="w-full bg-slate-900 border border-slate-700 text-amber-300 font-bold rounded-xl px-3 py-2">
-                        <option value="SHOP">🏪 Tài khoản Gian Hàng / Shop</option>
-                        <option value="STAFF">👨‍💼 Tài khoản Nhân viên (Staff)</option>
-                        <option value="BOT_REVIEW">🤖 Tài khoản Đánh giá ảo (Bot)</option>
-                        <option value="USER">👤 Tài khoản Khách hàng (User)</option>
+                        <option value="SHOP">🏪 Cửa Hàng (Shop)</option>
+                        <option value="USER">👤 Khách Hàng (User)</option>
+                        <option value="STAFF">👨‍💼 Nhân Viên (Staff)</option>
+                        <option value="ADMIN">🛡️ Admin Quản Lý (Admin)</option>
+                        <option value="SUPER_ADMIN">👑 Super Admin Overlord</option>
+                        <option value="BOT">🤖 Bot Đánh Giá Ảo</option>
                       </select>
                     </div>
 
                     {newUserRole === 'SHOP' && (
                       <div>
-                        <label className="block font-bold text-emerald-400 mb-1">Mô hình Cửa hàng</label>
+                        <label className="block font-bold text-emerald-400 mb-1">2. Chọn Loại Shop Gian Hàng</label>
                         <select value={newShopType} onChange={e => setNewShopType(e.target.value as any)} className="w-full bg-slate-900 border border-emerald-500/50 text-emerald-300 font-bold rounded-xl px-3 py-2">
                           <option value="RENTAL">👗 Shop Cho Thuê Đồ (Rental)</option>
                           <option value="RETAIL">🛍️ Shop Bán Đồ (Retail)</option>
@@ -457,34 +490,56 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                     )}
 
                     <div>
-                      <label className="block font-bold text-slate-300 mb-1">Tên Hiển Thị / Tên Shop</label>
-                      <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} required placeholder="Ví dụ: TQ Beauty Spa..." className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3 py-2" />
+                      <label className="block font-bold text-slate-300 mb-1">Họ Tên / Tên Cửa Hàng</label>
+                      <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} required placeholder="VD: TQ Luxury Rental Studio" className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3 py-2" />
                     </div>
+
                     <div>
-                      <label className="block font-bold text-slate-300 mb-1">Số điện thoại / ID Đăng nhập</label>
+                      <label className="block font-bold text-slate-300 mb-1">Số điện thoại đăng nhập</label>
                       <input type="tel" value={newUserPhone} onChange={e => setNewUserPhone(e.target.value)} required placeholder="09xxxxxxxx" className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3 py-2" />
                     </div>
+
                     <div>
-                      <label className="block font-bold text-slate-300 mb-1">Mật khẩu ban đầu</label>
+                      <label className="block font-bold text-slate-300 mb-1">Mật khẩu khởi tạo</label>
                       <input type="text" value={newUserPass} onChange={e => setNewUserPass(e.target.value)} required className="w-full bg-slate-900 border border-slate-700 text-amber-400 font-mono font-bold rounded-xl px-3 py-2" />
                     </div>
+
+                    <div>
+                      <label className="block font-bold text-emerald-400 mb-1">Số dư Ví TQ Pay ban đầu (VNĐ)</label>
+                      <input type="number" value={newInitBalance} onChange={e => setNewInitBalance(Number(e.target.value))} required className="w-full bg-slate-900 border border-slate-700 text-emerald-400 font-mono font-bold rounded-xl px-3 py-2" />
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-amber-400 mb-1">Số TQ Xu ban đầu (Xu)</label>
+                      <input type="number" value={newInitCoins} onChange={e => setNewInitCoins(Number(e.target.value))} required className="w-full bg-slate-900 border border-slate-700 text-amber-400 font-mono font-bold rounded-xl px-3 py-2" />
+                    </div>
                   </div>
-                  <button type="submit" className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5">
-                    <Plus className="w-4 h-4" /> + XÁC NHẬN TẠO TÀI KHOẢN
+
+                  <button type="submit" className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-1.5 shadow-md">
+                    <Plus className="w-4 h-4" /> + TẠO TÀI KHOẢN & KHỞI TẠO SHOP
                   </button>
                 </form>
 
+                {/* Users List Table */}
                 <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
-                  <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">Danh sách toàn bộ Tài khoản ({usersList.length})</h3>
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
+                      QUẢN LÝ DANH SÁCH TOÀN BỘ TÀI KHOẢN SÀN ({usersList.length} TÀI KHOẢN)
+                    </h3>
+                    <span className="text-[10px] text-amber-400 font-bold">XEM SỐ DƯ VÍ, TQ XU & ĐỔI MK MỌI TÀI KHOẢN</span>
+                  </div>
+
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-slate-900 text-slate-400 text-[10px] uppercase border-b border-slate-800">
                           <th className="p-3">Họ Tên / Gian Hàng</th>
-                          <th className="p-3">SĐT / ID Login</th>
-                          <th className="p-3">Cấp Quyền & Mô Hình</th>
+                          <th className="p-3">SĐT Login</th>
+                          <th className="p-3">Phân Quyền & Loại Shop</th>
+                          <th className="p-3 text-right">Ví TQ Pay</th>
+                          <th className="p-3 text-right">TQ Xu</th>
                           <th className="p-3 text-center">Trạng Thái</th>
-                          <th className="p-3 text-right">Thao Tác Quản Trị</th>
+                          <th className="p-3 text-right">Thao Tác Quản Trị Super Admin</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-800/60">
@@ -499,17 +554,50 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                                 {u.role === 'SHOP' ? `SHOP ${u.shopType || ''}` : u.role}
                               </span>
                             </td>
+                            
+                            {/* Wallet Balance */}
+                            <td className="p-3 text-right font-mono font-bold text-emerald-400">
+                              {(u.walletBalance || 1000000).toLocaleString('vi-VN')} đ
+                            </td>
+
+                            {/* TQ Coins */}
+                            <td className="p-3 text-right font-mono font-bold text-amber-400">
+                              {(u.coins || 500).toLocaleString('vi-VN')} Xu
+                            </td>
+
                             <td className="p-3 text-center">
                               <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${u.status === 'locked' ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                                {u.status === 'locked' ? 'Khóa' : 'Hoạt Động'}
+                                {u.status === 'locked' ? '🔒 Đã Khóa' : '✓ Hoạt Động'}
                               </span>
                             </td>
+
                             <td className="p-3 text-right space-x-1.5">
-                              <button onClick={() => toggleUserLock(u.phone)} className="px-2.5 py-1 rounded text-[10px] font-bold bg-slate-800 text-slate-200 cursor-pointer">
-                                {u.status === 'locked' ? 'Mở' : 'Khóa'}
+                              {/* Direct Password Change */}
+                              <button
+                                onClick={() => directChangeUserPassword(u.phone)}
+                                className="px-2 py-1 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition cursor-pointer"
+                                title="Trực tiếp đổi mật khẩu tài khoản"
+                              >
+                                <Key className="w-3 h-3 inline mr-1" /> Đổi MK
                               </button>
+
+                              {/* Lock / Unlock */}
+                              <button
+                                onClick={() => toggleUserLock(u.phone)}
+                                className="px-2.5 py-1 rounded text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
+                              >
+                                {u.status === 'locked' ? <Unlock className="w-3 h-3 inline mr-1 text-emerald-400" /> : <Lock className="w-3 h-3 inline mr-1 text-rose-400" />}
+                                {u.status === 'locked' ? 'Mở Khóa' : 'Khóa'}
+                              </button>
+
+                              {/* Delete Account */}
                               {u.role !== 'SUPER_ADMIN' && (
-                                <button onClick={() => deleteUserAccount(u.phone)} className="px-2 py-1 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400 cursor-pointer">Xóa</button>
+                                <button
+                                  onClick={() => deleteUserAccount(u.phone)}
+                                  className="px-2 py-1 rounded text-[10px] font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 cursor-pointer"
+                                >
+                                  <Trash2 className="w-3 h-3 inline mr-1" /> Xóa
+                                </button>
                               )}
                             </td>
                           </tr>
