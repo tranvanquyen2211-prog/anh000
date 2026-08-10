@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   Plus,
   Trash2,
-  Sparkles
+  Sparkles,
+  FolderOpen
 } from 'lucide-react';
 
 interface AddProductModalProps {
@@ -30,6 +31,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [shopType, setShopType] = useState<ShopType>('RENTAL');
   const [title, setTitle] = useState('');
@@ -39,7 +41,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   const [stock] = useState(50);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Up to 7 Image URLs
+  // Up to 7 Image URLs / Data URLs
   const [imageUrls, setImageUrls] = useState<string[]>(['']);
 
   // --- Dynamic Category-Specific Spec Fields ---
@@ -83,6 +85,40 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     }
     const updated = imageUrls.filter((_, i) => i !== index);
     setImageUrls(updated);
+  };
+
+  // --- Handle Device Gallery File Select ---
+  const handleDeviceFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = 7 - imageUrls.filter(u => u.trim().length > 0).length;
+    if (remainingSlots <= 0) {
+      addToast('Đã đạt giới hạn tối đa 7 hình ảnh!', 'info');
+      return;
+    }
+
+    const selectedFiles = Array.from(files).slice(0, remainingSlots);
+    const newImageDataUrls: string[] = [];
+
+    let processedCount = 0;
+    selectedFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          newImageDataUrls.push(event.target.result as string);
+        }
+        processedCount++;
+        if (processedCount === selectedFiles.length) {
+          // Merge existing valid non-empty URLs with newly uploaded Data URLs
+          const currentValid = imageUrls.filter(u => u.trim().length > 0);
+          const combined = [...currentValid, ...newImageDataUrls].slice(0, 7);
+          setImageUrls(combined.length > 0 ? combined : ['']);
+          addToast(`📸 Đã tải lên ${selectedFiles.length} hình ảnh từ Thư viện thiết bị!`, 'success');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,7 +205,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     setDescription('');
     onClose();
 
-    addToast(`🎉 ĐÃ ĐĂNG SẢN PHẨM & ĐỒNG BỘ ĐÁM MÂY SUPABASE REALTIME THÀNH CÔNG!`, 'success');
+    addToast(`🎉 ĐÃ ĐĂNG SẢN PHẨM MỚI (${finalImagesList.length} ẢNH) THÀNH CÔNG!`, 'success');
   };
 
   return (
@@ -382,37 +418,69 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             )}
           </div>
 
-          {/* Multiple Image URLs (Up to 7 Images) */}
-          <div className="space-y-2 border-t border-b border-gray-100 py-3">
+          {/* STEP 4: Multiple Image Upload (Gallery Files & Link URLs) */}
+          <div className="space-y-3 border-t border-b border-gray-100 py-3">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-black text-navy uppercase tracking-wider">
-                📸 HÌNH ẢNH SẢN PHẨM (TỐI ĐA 7 ẢNH) - ({imageUrls.length}/7)
+                📸 HÌNH ẢNH SẢN PHẨM (TỐI ĐA 7 ẢNH) - ({imageUrls.filter(u => u.trim().length > 0).length}/7)
               </label>
-              {imageUrls.length < 7 && (
+              
+              <div className="flex items-center gap-2">
+                {/* Upload from Device Gallery Button */}
                 <button
                   type="button"
-                  onClick={addImageField}
-                  className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-navy text-white text-xs font-bold px-3 py-1 rounded-xl hover:bg-navy-dark transition flex items-center gap-1 cursor-pointer shadow-xs"
                 >
-                  <Plus className="w-3.5 h-3.5" /> + Thêm Ảnh {imageUrls.length + 1}
+                  <FolderOpen className="w-3.5 h-3.5 text-amber-400" /> Tải từ Thư Viện Ảnh
                 </button>
-              )}
+
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleDeviceFileSelect}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                />
+
+                {imageUrls.length < 7 && (
+                  <button
+                    type="button"
+                    onClick={addImageField}
+                    className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> + URL Ảnh
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
+            {/* List of Image Inputs & Image Previews */}
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
               {imageUrls.map((url, idx) => (
                 <div key={idx} className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-gray-400 w-12 shrink-0">Ảnh {idx + 1}:</span>
+                  
+                  {/* Thumbnail Preview if available */}
+                  {url && (
+                    <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-200 shrink-0 bg-gray-100">
+                      <img src={url} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+
                   <div className="relative flex-1">
                     <ImageIcon className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
                     <input
-                      type="url"
+                      type="text"
                       value={url}
                       onChange={e => handleImageChange(idx, e.target.value)}
-                      placeholder={`Link URL ảnh ${idx + 1} (https://images.unsplash.com/...)`}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-navy focus:bg-white transition"
+                      placeholder={`Link URL hoặc Ảnh đã chọn ${idx + 1}`}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-navy focus:bg-white transition truncate"
                     />
                   </div>
+
                   {imageUrls.length > 1 && (
                     <button
                       type="button"
@@ -451,7 +519,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
-            {isSubmitting ? 'Đang Đăng Sản Phẩm...' : `XÁC NHẬN ĐĂNG SP & ĐỒNG BỘ ĐÁM MÂY [${shopType}]`}
+            {isSubmitting ? 'Đang Đăng Sản Phẩm...' : `XÁC NHẬN ĐĂNG SP DANH MỤC [${shopType}]`}
           </button>
         </form>
 
