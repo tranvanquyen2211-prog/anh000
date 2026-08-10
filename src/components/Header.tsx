@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, MessageSquare } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -14,7 +14,6 @@ interface HeaderProps {
   onOpenSuperAdminDashboard?: () => void;
   onOpenAddProductModal?: () => void;
   onOpenShopManagementDashboard?: () => void;
-  onOpenUserInboxModal?: () => void;
   selectedCategory: ShopType | 'ALL';
   onSelectCategory: (cat: ShopType | 'ALL') => void;
   searchQuery: string;
@@ -32,7 +31,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSuperAdminDashboard,
   onOpenAddProductModal,
   onOpenShopManagementDashboard,
-  onOpenUserInboxModal,
   selectedCategory,
   onSelectCategory,
   searchQuery,
@@ -188,20 +186,6 @@ export const Header: React.FC<HeaderProps> = ({
                 <Coins className="w-3.5 h-3.5 text-yellow-100" />
                 <span>{(user.coins || 0).toLocaleString('vi-VN')} Xu</span>
               </div>
-
-              {/* Global User Inbox Button */}
-              {onOpenUserInboxModal && (
-                <button
-                  onClick={onOpenUserInboxModal}
-                  className="bg-navy hover:bg-navy-dark text-amber-300 p-2 rounded-xl transition cursor-pointer relative shadow-xs"
-                  title="Hộp Thư Tài Khoản (Inbox)"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span className="absolute -top-1 -right-1 bg-amber-500 text-slate-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                    !
-                  </span>
-                </button>
-              )}
 
               {/* User Avatar & Menu */}
               <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-xl shadow-xs">

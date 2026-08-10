@@ -17,7 +17,6 @@ import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { AddProductModal } from './components/AddProductModal';
 import { ShopManagementDashboard } from './components/ShopManagementDashboard';
-import { UserInboxModal } from './components/UserInboxModal';
 import { LiveChatWidget } from './components/LiveChatWidget';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
@@ -44,7 +43,6 @@ function MainApp() {
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isShopManagementOpen, setIsShopManagementOpen] = useState(false);
-  const [isUserInboxOpen, setIsUserInboxOpen] = useState(false);
 
   // Chat product context
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
@@ -159,7 +157,6 @@ function MainApp() {
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
         onOpenAddProductModal={() => setIsAddProductOpen(true)}
         onOpenShopManagementDashboard={() => setIsShopManagementOpen(true)}
-        onOpenUserInboxModal={() => setIsUserInboxOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         searchQuery={searchQuery}
@@ -271,11 +268,6 @@ function MainApp() {
         onOpenAddProductModal={() => { setIsShopManagementOpen(false); setIsAddProductOpen(true); }}
         products={products}
         onDeleteProduct={handleDeleteProduct}
-      />
-
-      <UserInboxModal
-        isOpen={isUserInboxOpen}
-        onClose={() => setIsUserInboxOpen(false)}
       />
     </div>
   );
