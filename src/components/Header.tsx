@@ -4,12 +4,13 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
   onOpenCartDrawer: () => void;
   onOpenOrderHistory: () => void;
+  onOpenChatInbox: () => void;
   onOpenThemeCustomizer?: () => void;
   onOpenChangePassword?: () => void;
   onOpenChangeAvatar?: () => void;
@@ -35,6 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuthModal,
   onOpenCartDrawer,
   onOpenOrderHistory,
+  onOpenChatInbox,
   onOpenThemeCustomizer,
   onOpenChangePassword,
   onOpenChangeAvatar,
@@ -250,6 +252,18 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           )}
 
+          {/* Chat Inbox Button */}
+          <button
+            onClick={onOpenChatInbox}
+            className="relative flex items-center justify-center p-2.5 text-navy hover:text-orange transition-colors rounded-xl hover:bg-gray-100 cursor-pointer"
+            title="Xem danh sách tin nhắn với các Cửa hàng"
+          >
+            <MessageSquare className="w-5 h-5 text-navy" />
+            <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+              4
+            </span>
+          </button>
+
           {/* System Notification Bell Icon Button */}
           <div className="relative">
             <button
@@ -340,6 +354,14 @@ export const Header: React.FC<HeaderProps> = ({
             className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1 text-amber-300 font-extrabold cursor-pointer hover:bg-navy-light`}
           >
             <Package className="w-3.5 h-3.5" /> Lịch sử Đơn Hàng
+          </button>
+
+          {/* Chat Inbox Navigation Shortcut */}
+          <button
+            onClick={onOpenChatInbox}
+            className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1 text-emerald-300 font-extrabold cursor-pointer hover:bg-navy-light`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" /> Tin Nhắn Với Shop
           </button>
 
           {/* Extra Admin Control Shortcut */}

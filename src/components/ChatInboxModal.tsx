@@ -1,0 +1,346 @@
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import type { Product } from '../types';
+import {
+  X,
+  MessageSquare,
+  Search,
+  Send,
+  ShieldCheck
+} from 'lucide-react';
+
+export interface ChatThread {
+  id: string;
+  contactName: string;
+  contactRole: 'SHOP' | 'USER' | 'ADMIN';
+  avatarUrl?: string;
+  lastMessage: string;
+  lastTimestamp: string;
+  unreadCount: number;
+}
+
+export interface ChatMessageItem {
+  id: string;
+  senderName: string;
+  senderRole: string;
+  text: string;
+  timestamp: string;
+  productContext?: Product | null;
+}
+
+interface ChatInboxModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectConversationProduct?: (product: Product) => void;
+}
+
+export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
+  isOpen,
+  onClose
+}) => {
+  const { user } = useAuth();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeThreadId, setActiveThreadId] = useState<string>('thread_1');
+  const [inputText, setInputText] = useState('');
+
+  // Default preset conversation threads
+  const [threads, setThreads] = useState<ChatThread[]>(() => {
+    const saved = localStorage.getItem('tq_chat_threads');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'thread_1',
+        contactName: 'TQ Rental Studio',
+        contactRole: 'SHOP',
+        lastMessage: 'Dạ shop sẵn size M trang phục cưới ạ, anh/chị cần ship hỏa tốc không ạ?',
+        lastTimestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        unreadCount: 1
+      },
+      {
+        id: 'thread_2',
+        contactName: 'TQ Retail Shop',
+        contactRole: 'SHOP',
+        lastMessage: 'Đơn hàng sơ mi Oxford của anh đã được đóng gói và bàn giao shipper.',
+        lastTimestamp: '10:15',
+        unreadCount: 0
+      },
+      {
+        id: 'thread_3',
+        contactName: 'TQ Tea & Coffee',
+        contactRole: 'SHOP',
+        lastMessage: 'Trà sữa matcha đường đen sẵn sàng giao nóng hổi ạ!',
+        lastTimestamp: 'Hôm qua',
+        unreadCount: 0
+      },
+      {
+        id: 'thread_4',
+        contactName: 'TQ Beauty Spa',
+        contactRole: 'SHOP',
+        lastMessage: 'Lịch hẹn chăm sóc da mặt của chị vào 15h00 chiều nay nhé ạ.',
+        lastTimestamp: '08/08',
+        unreadCount: 0
+      }
+    ];
+  });
+
+  // Message history per thread
+  const [messagesMap, setMessagesMap] = useState<Record<string, ChatMessageItem[]>>(() => {
+    const saved = localStorage.getItem('tq_chat_messages_map');
+    return saved ? JSON.parse(saved) : {
+      thread_1: [
+        {
+          id: 'msg_1',
+          senderName: 'TQ Rental Studio',
+          senderRole: 'SHOP',
+          text: 'Xin chào quý khách! TQ Rental Studio chuyên cho thuê trang phục dạ hội & cưới cao cấp.',
+          timestamp: '10:00'
+        },
+        {
+          id: 'msg_2',
+          senderName: user?.name || 'Khách Hàng',
+          senderRole: 'USER',
+          text: 'Shop cho mình hỏi đầm dạ hội đỏ có sẵn size M không ạ?',
+          timestamp: '10:02'
+        },
+        {
+          id: 'msg_3',
+          senderName: 'TQ Rental Studio',
+          senderRole: 'SHOP',
+          text: 'Dạ shop sẵn size M trang phục cưới ạ, anh/chị cần ship hỏa tốc không ạ?',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]
+    };
+  });
+
+  if (!isOpen) return null;
+
+  const activeThread = threads.find(t => t.id === activeThreadId) || threads[0];
+  const activeMessages = messagesMap[activeThreadId] || [];
+
+  const filteredThreads = threads.filter(t =>
+    t.contactName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim() || !activeThread) return;
+
+    const newMsg: ChatMessageItem = {
+      id: `msg_${Date.now()}`,
+      senderName: user?.name || 'Tôi',
+      senderRole: user?.role || 'USER',
+      text: inputText.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const updatedMap = {
+      ...messagesMap,
+      [activeThreadId]: [...(messagesMap[activeThreadId] || []), newMsg]
+    };
+    setMessagesMap(updatedMap);
+    localStorage.setItem('tq_chat_messages_map', JSON.stringify(updatedMap));
+
+    // Update last message in thread
+    const updatedThreads = threads.map(t =>
+      t.id === activeThreadId
+        ? {
+            ...t,
+            lastMessage: inputText.trim(),
+            lastTimestamp: newMsg.timestamp,
+            unreadCount: 0
+          }
+        : t
+    );
+    setThreads(updatedThreads);
+    localStorage.setItem('tq_chat_threads', JSON.stringify(updatedThreads));
+
+    setInputText('');
+
+    // Auto simulated response from Shop
+    setTimeout(() => {
+      const autoResp: ChatMessageItem = {
+        id: `msg_resp_${Date.now()}`,
+        senderName: activeThread.contactName,
+        senderRole: 'SHOP',
+        text: `Cảm ơn bạn đã nhắn tin cho ${activeThread.contactName}! Chuyên viên tư vấn đang soạn tin phản hồi trong giây lát...`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setMessagesMap(prev => {
+        const nextMap = {
+          ...prev,
+          [activeThreadId]: [...(prev[activeThreadId] || []), autoResp]
+        };
+        localStorage.setItem('tq_chat_messages_map', JSON.stringify(nextMap));
+        return nextMap;
+      });
+    }, 1000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-navy-dark/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-5xl w-full h-[90vh] relative border border-gray-100 overflow-hidden flex flex-col sm:flex-row animate-in fade-in zoom-in-95">
+        
+        {/* LEFT SIDEBAR: Conversations List */}
+        <div className="w-full sm:w-80 bg-gray-50 border-r border-gray-200 flex flex-col shrink-0">
+          
+          {/* Header */}
+          <div className="p-4 border-b border-gray-200 bg-navy text-white space-y-3">
+            <div className="flex justify-between items-center">
+              <h2 className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-amber-400" /> HỘP THƯ TIN NHẮN ({threads.length})
+              </h2>
+              <button
+                onClick={onClose}
+                className="sm:hidden text-gray-300 hover:text-white p-1 rounded-full cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Tìm tên gian hàng, người dùng..."
+                className="w-full bg-navy-light text-white text-xs rounded-xl pl-9 pr-3 py-1.5 focus:outline-none placeholder-gray-400"
+              />
+            </div>
+          </div>
+
+          {/* Threads List */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+            {filteredThreads.map(thread => (
+              <div
+                key={thread.id}
+                onClick={() => setActiveThreadId(thread.id)}
+                className={`p-3 rounded-2xl transition cursor-pointer flex items-center gap-3 border ${
+                  activeThreadId === thread.id
+                    ? 'bg-navy text-white border-navy shadow-md'
+                    : 'bg-white text-gray-700 border-gray-100 hover:bg-gray-100'
+                }`}
+              >
+                <div className="relative shrink-0">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${
+                    activeThreadId === thread.id ? 'bg-amber-400 text-slate-950' : 'bg-navy text-white'
+                  }`}>
+                    {thread.contactName.charAt(0)}
+                  </div>
+                  <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full absolute bottom-0 right-0 border-2 border-white"></span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-bold text-xs truncate">{thread.contactName}</h4>
+                    <span className={`text-[9px] font-mono ${activeThreadId === thread.id ? 'text-amber-300' : 'text-gray-400'}`}>
+                      {thread.lastTimestamp}
+                    </span>
+                  </div>
+                  <p className={`text-[11px] truncate mt-0.5 ${activeThreadId === thread.id ? 'text-gray-300' : 'text-gray-500'}`}>
+                    {thread.lastMessage}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT MAIN PANEL: Active Chat Window */}
+        <div className="flex-1 flex flex-col bg-white">
+          
+          {/* Chat Header */}
+          {activeThread ? (
+            <>
+              <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-navy text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                    {activeThread.contactName.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-navy text-sm flex items-center gap-1.5">
+                      {activeThread.contactName}
+                      <span className="bg-emerald-100 text-emerald-800 text-[9px] font-black px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                        <ShieldCheck className="w-3 h-3 text-emerald-600" /> Gian Hàng Xác Thực
+                      </span>
+                    </h3>
+                    <p className="text-[10px] text-gray-500 font-medium flex items-center gap-1">
+                      <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Đang hoạt động • Trả lời siêu tốc trong 5 phút
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={onClose}
+                  className="hidden sm:block text-gray-400 hover:text-navy p-2 rounded-full hover:bg-gray-200 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Chat Messages Body */}
+              <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-3 bg-gray-50/50">
+                {activeMessages.map(msg => {
+                  const isMe = msg.senderName === (user?.name || 'Tôi') || msg.senderRole === user?.role;
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                    >
+                      <div className="flex items-center gap-1 text-[9px] text-gray-400 mb-1 px-1">
+                        <span className="font-bold">{msg.senderName}</span>
+                        <span>•</span>
+                        <span className="font-mono">{msg.timestamp}</span>
+                      </div>
+
+                      <div
+                        className={`max-w-md p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
+                          isMe
+                            ? 'bg-navy text-white rounded-tr-none'
+                            : 'bg-white text-gray-800 border border-gray-200 rounded-tl-none font-medium'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Chat Input Form */}
+              <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-200 bg-white flex items-center gap-2 shrink-0">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={e => setInputText(e.target.value)}
+                  placeholder={`Nhập tin nhắn trao đổi với ${activeThread.contactName}...`}
+                  className="flex-1 bg-gray-100 text-xs text-navy font-medium rounded-2xl px-4 py-3 focus:outline-none focus:bg-white focus:border focus:border-navy transition"
+                />
+
+                <button
+                  type="submit"
+                  className="bg-orange hover:bg-orange-dark text-white font-black px-4 py-3 rounded-2xl text-xs uppercase tracking-wider transition shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Send className="w-4 h-4" /> Gửi
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 space-y-2">
+              <MessageSquare className="w-12 h-12 text-gray-300" />
+              <h4 className="font-bold text-sm text-navy">Chưa chọn cuộc trò chuyện nào</h4>
+              <p className="text-xs text-gray-500">Vui lòng chọn gian hàng bên trái để bắt đầu chat.</p>
+            </div>
+          )}
+
+        </div>
+
+      </div>
+    </div>
+  );
+};

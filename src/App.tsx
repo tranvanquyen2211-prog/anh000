@@ -14,6 +14,7 @@ import { ShopStorefrontModal } from './components/ShopStorefrontModal';
 import { EditProductSalesModal } from './components/EditProductSalesModal';
 import { AdminFakeReviewModal } from './components/AdminFakeReviewModal';
 import { type SystemNotification } from './components/NotificationCenter';
+import { ChatInboxModal } from './components/ChatInboxModal';
 import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -78,6 +79,7 @@ function MainApp() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
+  const [isChatInboxOpen, setIsChatInboxOpen] = useState(false);
   const [isAdminThemeOpen, setIsAdminThemeOpen] = useState(false);
   const [isSuperAdminDashboardOpen, setIsSuperAdminDashboardOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -245,7 +247,7 @@ function MainApp() {
       .channel('public:shop_configs')
       .on('broadcast', { event: 'shop_address_updated' }, (payload) => {
         if (payload?.payload?.shopName) {
-          setProducts(prev => [...prev]); // Trigger re-render to update location filtering & badges live
+          setProducts(prev => [...prev]);
         }
       })
       .subscribe();
@@ -317,6 +319,7 @@ function MainApp() {
         onOpenAuthModal={() => setIsAuthOpen(true)}
         onOpenCartDrawer={() => setIsCartOpen(true)}
         onOpenOrderHistory={() => setIsOrderHistoryOpen(true)}
+        onOpenChatInbox={() => setIsChatInboxOpen(true)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
@@ -402,6 +405,12 @@ function MainApp() {
       />
 
       <Footer />
+
+      <ChatInboxModal
+        isOpen={isChatInboxOpen}
+        onClose={() => setIsChatInboxOpen(false)}
+        onSelectConversationProduct={(prod) => setSelectedProductForDetail(prod)}
+      />
 
       <ProductDetailModal
         product={selectedProductForDetail}
