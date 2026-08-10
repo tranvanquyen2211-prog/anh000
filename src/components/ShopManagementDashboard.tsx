@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -13,7 +13,13 @@ import {
   PlusCircle,
   Trash2,
   CreditCard,
-  Star
+  Star,
+  Sliders,
+  MapPin,
+  QrCode,
+  Phone,
+  Save,
+  Sparkles
 } from 'lucide-react';
 
 interface ShopManagementDashboardProps {
@@ -35,7 +41,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const { orders } = useCart();
   const { addToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'earnings' | 'reviews'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'earnings' | 'config'>('products');
 
   // Withdrawal state
   const [bankName, setBankName] = useState('Vietcombank');
@@ -43,6 +49,43 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const [accountName, setAccountName] = useState(user?.name || 'TÊN CHỦ TÀI KHOẢN');
   const [withdrawAmount, setWithdrawAmount] = useState<number | ''>(1000000);
   const [isRequestingWithdraw, setIsRequestingWithdraw] = useState(false);
+
+  // --- SHOP CONFIGURATION & PROFILE BRANDING STATE ---
+  const [warehouseAddress, setWarehouseAddress] = useState('123 Đường Nguyễn Trãi, Phường Bến Thành, Quận 1, TP.HCM');
+  const [pickupAddress, setPickupAddress] = useState('Kho Tổng TQ Store - 123 Nguyễn Trãi, Quận 1, TP.HCM');
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('https://maps.google.com/?q=10.776889,106.700806');
+  
+  const [shopBankName, setShopBankName] = useState('Vietcombank (VCB)');
+  const [shopSTK, setShopSTK] = useState(user?.phone || '0367818343');
+  const [shopOwnerName, setShopOwnerName] = useState(user?.name || 'TRAN VAN QUYEN');
+  const [qrCodeUrl, setQrCodeUrl] = useState('https://api.vietqr.io/image/970436-0367818343-compact.png?amount=0&accountName=TRAN%20VAN%20QUYEN');
+
+  const [slogan, setSlogan] = useState('Chuyên Trang Phục Cho Thuê & Bán Đồ Luxury Top 1 Việt Nam');
+  const [bio, setBio] = useState('TQ Store Gian Hàng Uy Tín - Cam kết hàng chính hãng 100%, giặt sấy tiệt trùng công nghệ cao, giao hàng hỏa tốc trong 2 giờ.');
+  const [bannerUrl, setBannerUrl] = useState('https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80');
+  const [hotline, setHotline] = useState('0367818343');
+
+  useEffect(() => {
+    if (user?.name) {
+      const savedConfig = localStorage.getItem(`tq_shop_config_${user.name}`);
+      if (savedConfig) {
+        try {
+          const parsed = JSON.parse(savedConfig);
+          if (parsed.warehouseAddress) setWarehouseAddress(parsed.warehouseAddress);
+          if (parsed.pickupAddress) setPickupAddress(parsed.pickupAddress);
+          if (parsed.googleMapsUrl) setGoogleMapsUrl(parsed.googleMapsUrl);
+          if (parsed.shopBankName) setShopBankName(parsed.shopBankName);
+          if (parsed.shopSTK) setShopSTK(parsed.shopSTK);
+          if (parsed.shopOwnerName) setShopOwnerName(parsed.shopOwnerName);
+          if (parsed.qrCodeUrl) setQrCodeUrl(parsed.qrCodeUrl);
+          if (parsed.slogan) setSlogan(parsed.slogan);
+          if (parsed.bio) setBio(parsed.bio);
+          if (parsed.bannerUrl) setBannerUrl(parsed.bannerUrl);
+          if (parsed.hotline) setHotline(parsed.hotline);
+        } catch (e) {}
+      }
+    }
+  }, [user]);
 
   if (!isOpen || !user) return null;
 
@@ -55,6 +98,55 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const totalShopProductsCount = shopProducts.length;
   const shopOrders = orders.filter(o => o.items && o.items.length > 0);
   const totalShopRevenue = shopOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
+
+  const handleSaveShopConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const configObj = {
+      shopName: user.name,
+      warehouseAddress,
+      pickupAddress,
+      googleMapsUrl,
+      shopBankName,
+      shopSTK,
+      shopOwnerName,
+      qrCodeUrl,
+      slogan,
+      bio,
+      bannerUrl,
+      hotline,
+      updated_at: new Date().toISOString()
+    };
+
+    // Save to local storage
+    localStorage.setItem(`tq_shop_config_${user.name}`, JSON.stringify(configObj));
+
+    try {
+      // Sync to Supabase Cloud Database table `profiles`
+      await supabase.from('profiles').upsert([
+        {
+          phone: user.phone,
+          full_name: user.name,
+          role: 'SHOP',
+          warehouse_address: warehouseAddress,
+          pickup_address: pickupAddress,
+          google_maps_url: googleMapsUrl,
+          bank_name: shopBankName,
+          bank_stk: shopSTK,
+          bank_owner: shopOwnerName,
+          qr_code_url: qrCodeUrl,
+          slogan,
+          bio,
+          banner_url: bannerUrl,
+          hotline
+        }
+      ]);
+    } catch (e) {
+      console.warn('Cloud shop config sync active');
+    }
+
+    addToast(`⚙️ Đã lưu cấu hình địa chỉ, ngân hàng, QR & giao diện Shop thành công!`, 'success');
+  };
 
   const handleRequestWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +195,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-slate-900 border border-emerald-500/40 text-slate-100 rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
+      <div className="bg-slate-900 border border-emerald-500/40 text-slate-100 rounded-3xl w-full max-w-5xl h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
         
         {/* Header */}
         <div className="bg-slate-950 border-b border-emerald-500/30 px-6 py-4 flex items-center justify-between shrink-0">
@@ -207,6 +299,15 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
             }`}
           >
             <CreditCard className="w-4 h-4" /> 💰 Ví Doanh Thu & Rút Tiền
+          </button>
+
+          <button
+            onClick={() => setActiveTab('config')}
+            className={`py-3 px-4 border-b-2 transition cursor-pointer flex items-center gap-2 ${
+              activeTab === 'config' ? 'border-emerald-400 text-emerald-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sliders className="w-4 h-4 text-amber-400" /> ⚙️ Cấu Hình & Trang Cá Nhân Shop
           </button>
         </div>
 
@@ -381,6 +482,186 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
                 </button>
               </form>
             </div>
+          )}
+
+          {/* TAB 4: SHOP CONFIGURATION & BRANDING */}
+          {activeTab === 'config' && (
+            <form onSubmit={handleSaveShopConfig} className="space-y-6">
+              
+              {/* Section 1: Addresses & Maps */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <MapPin className="w-4 h-4" /> 1. CẤU HÌNH ĐỊA CHỈ KHO, ĐỊA CHỈ LẤY HÀNG & GOOGLE MAPS
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Địa chỉ kho hàng (Warehouse Address)</label>
+                    <input
+                      type="text"
+                      value={warehouseAddress}
+                      onChange={e => setWarehouseAddress(e.target.value)}
+                      required
+                      placeholder="VD: 123 Nguyễn Trãi, Quận 1, TP.HCM"
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Địa chỉ lấy hàng (Shipment Pickup Address)</label>
+                    <input
+                      type="text"
+                      value={pickupAddress}
+                      onChange={e => setPickupAddress(e.target.value)}
+                      required
+                      placeholder="VD: Kho Tổng TQ Store - 123 Nguyễn Trãi, Quận 1..."
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-blue-400 font-bold mb-1">Link Google Maps / Tọa độ GPS hiển thị</label>
+                    <input
+                      type="url"
+                      value={googleMapsUrl}
+                      onChange={e => setGoogleMapsUrl(e.target.value)}
+                      placeholder="https://maps.google.com/?q=..."
+                      className="w-full bg-slate-900 border border-slate-700 text-blue-300 font-mono rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Bank Account & Payment QR */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <QrCode className="w-4 h-4" /> 2. CẤU HÌNH TÀI KHOẢN NGÂN HÀNG & MÃ QR NHẬN TIỀN (VIETQR)
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Ngân hàng nhận chuyển khoản</label>
+                    <input
+                      type="text"
+                      value={shopBankName}
+                      onChange={e => setShopBankName(e.target.value)}
+                      required
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-100 font-bold rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Số tài khoản (STK)</label>
+                    <input
+                      type="text"
+                      value={shopSTK}
+                      onChange={e => setShopSTK(e.target.value)}
+                      required
+                      className="w-full bg-slate-900 border border-slate-700 text-amber-400 font-mono font-bold rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Tên chủ tài khoản</label>
+                    <input
+                      type="text"
+                      value={shopOwnerName}
+                      onChange={e => setShopOwnerName(e.target.value.toUpperCase())}
+                      required
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-100 font-bold rounded-xl px-3 py-2 text-xs uppercase"
+                    />
+                  </div>
+
+                  <div className="md:col-span-3">
+                    <label className="block text-emerald-400 font-bold mb-1">Link Ảnh QR Nhận Tiền Tự Động (VietQR Image URL)</label>
+                    <div className="flex gap-3 items-center">
+                      <input
+                        type="url"
+                        value={qrCodeUrl}
+                        onChange={e => setQrCodeUrl(e.target.value)}
+                        placeholder="https://api.vietqr.io/image/..."
+                        className="flex-1 bg-slate-900 border border-slate-700 text-emerald-300 font-mono rounded-xl px-3 py-2 text-xs"
+                      />
+                      {qrCodeUrl && (
+                        <div className="w-12 h-12 bg-white rounded-lg overflow-hidden border border-emerald-400 shrink-0 flex items-center justify-center p-0.5">
+                          <img src={qrCodeUrl} alt="QR Code" className="w-full h-full object-contain" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Profile & Branding */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                <h3 className="text-xs font-black text-purple-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-2">
+                  <Sparkles className="w-4 h-4" /> 3. THÔNG TIN & TRANG CÁ NHÂN SHOP (SLOGAN, GIỚI THIỆU, BANNER & HOTLINE)
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Khẩu hiệu cửa hàng (Slogan)</label>
+                    <input
+                      type="text"
+                      value={slogan}
+                      onChange={e => setSlogan(e.target.value)}
+                      placeholder="VD: Chuyên Trang Phục Thuê Luxury Top 1..."
+                      className="w-full bg-slate-900 border border-slate-700 text-amber-300 font-bold rounded-xl px-3 py-2 text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Hotline Zalo / Điện Thoại Hỗ Trợ Khách</label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                      <input
+                        type="tel"
+                        value={hotline}
+                        onChange={e => setHotline(e.target.value)}
+                        placeholder="0367818343"
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-100 font-mono font-bold rounded-xl pl-9 pr-3 py-2 text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-slate-300 font-bold mb-1">Link Ảnh Bìa Banner Cửa Hàng (Shop Cover Banner URL)</label>
+                    <div className="space-y-2">
+                      <input
+                        type="url"
+                        value={bannerUrl}
+                        onChange={e => setBannerUrl(e.target.value)}
+                        placeholder="https://images.unsplash.com/..."
+                        className="w-full bg-slate-900 border border-slate-700 text-purple-300 font-mono rounded-xl px-3 py-2 text-xs"
+                      />
+                      {bannerUrl && (
+                        <div className="h-24 bg-slate-900 rounded-xl overflow-hidden border border-slate-800">
+                          <img src={bannerUrl} alt="Banner Cover" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-slate-300 font-bold mb-1">Bài Giới Thiệu Cửa Hàng (Shop Bio & Intro)</label>
+                    <textarea
+                      value={bio}
+                      onChange={e => setBio(e.target.value)}
+                      rows={3}
+                      placeholder="Nhập giới thiệu quy mô cửa hàng, thế mạnh, chính sách cam kết chất lượng..."
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-2xl uppercase tracking-wider transition shadow-xl cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4 text-slate-950" /> XÁC NHẬN LƯU CẤU HÌNH & TRANG CÁ NHÂN SHOP
+              </button>
+            </form>
           )}
 
         </div>
