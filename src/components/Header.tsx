@@ -4,13 +4,14 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
   onOpenCartDrawer: () => void;
   onOpenOrderHistory: () => void;
   onOpenChatInbox: () => void;
+  onOpenWatchToEarnModal?: () => void;
   onOpenThemeCustomizer?: () => void;
   onOpenChangePassword?: () => void;
   onOpenChangeAvatar?: () => void;
@@ -37,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCartDrawer,
   onOpenOrderHistory,
   onOpenChatInbox,
+  onOpenWatchToEarnModal,
   onOpenThemeCustomizer,
   onOpenChangePassword,
   onOpenChangeAvatar,
@@ -134,6 +136,18 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Actions & Account */}
         <div className="flex items-center gap-2 sm:gap-3">
+          
+          {/* Watch Video to Earn Coins Button */}
+          {onOpenWatchToEarnModal && (
+            <button
+              onClick={onOpenWatchToEarnModal}
+              className="bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-pink-300 animate-pulse"
+              title="Xem Video YouTube Nhúng Kiếm Xu TQ"
+            >
+              <Tv className="w-4 h-4 text-amber-300" />
+              <span className="hidden sm:inline">📺 Xem Video Kiếm Xu</span>
+            </button>
+          )}
           
           {/* Shop Management Dashboard Button */}
           {user && (user.role === 'SHOP' || isImpersonating) && onOpenShopManagementDashboard && (

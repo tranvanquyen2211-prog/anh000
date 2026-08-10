@@ -36,7 +36,8 @@ import {
   Flame,
   Search,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Tv
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -96,6 +97,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'broadcast-announcement'
     | 'smart-recommender'
     | 'feature-visibility'
+    | 'watch-to-earn'
   >('users');
 
   // Users list state
@@ -181,6 +183,95 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
   // Module 14: Smart Recommender Keyword Match Simulator State
   const [testSearchKeyword, setTestSearchKeyword] = useState('váy cưới');
+
+  // Module 16: Watch to Earn Videos State
+  const [watchVideos, setWatchVideos] = useState<any[]>(() => {
+    const saved = localStorage.getItem('tq_watch_to_earn_videos');
+    return saved ? JSON.parse(saved) : [
+      {
+        id: 'vid_1',
+        youtubeId: 'dQw4w9WgXcQ',
+        title: '🔥 Video Giới Thiệu Hệ Thống TQ Store & Ưu Đãi Xu TQ Pay',
+        requiredSeconds: 15,
+        rewardCoins: 100,
+        status: 'active'
+      },
+      {
+        id: 'vid_2',
+        youtubeId: 'L_LUpnjgPso',
+        title: '🏖️ Xu Hướng Thời Trang Đi Biển & Váy Cưới Luxury 2026',
+        requiredSeconds: 20,
+        rewardCoins: 150,
+        status: 'active'
+      },
+      {
+        id: 'vid_3',
+        youtubeId: 'fJ9rUzIMcZQ',
+        title: '🧋 Khai Trương Chuỗi Trà Sữa & Spa Làm Đẹp Toàn Quốc',
+        requiredSeconds: 30,
+        rewardCoins: 200,
+        status: 'active'
+      }
+    ];
+  });
+
+  const [newVidUrl, setNewVidUrl] = useState('');
+  const [newVidTitle, setNewVidTitle] = useState('');
+  const [newVidSeconds, setNewVidSeconds] = useState<number>(30);
+  const [newVidReward, setNewVidReward] = useState<number>(100);
+
+  const extractYoutubeId = (urlOrId: string) => {
+    const clean = urlOrId.trim();
+    if (clean.includes('v=')) {
+      return clean.split('v=')[1].split('&')[0];
+    } else if (clean.includes('youtu.be/')) {
+      return clean.split('youtu.be/')[1].split('?')[0];
+    } else if (clean.includes('embed/')) {
+      return clean.split('embed/')[1].split('?')[0];
+    }
+    return clean;
+  };
+
+  const broadcastVideoUpdate = (updatedList: any[]) => {
+    try {
+      supabase.channel('public:watch_videos').send({
+        type: 'broadcast',
+        event: 'video_list_updated',
+        payload: { videos: updatedList }
+      });
+    } catch (e) {
+      console.warn('Realtime video sync active:', e);
+    }
+  };
+
+  const handleAddWatchVideo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVidUrl.trim() || !newVidTitle.trim()) {
+      addToast('Vui lòng nhập đầy đủ link YouTube và tiêu đề!', 'error');
+      return;
+    }
+
+    const ytId = extractYoutubeId(newVidUrl);
+    const newVid = {
+      id: `vid_${Date.now()}`,
+      youtubeId: ytId,
+      title: newVidTitle.trim(),
+      requiredSeconds: Number(newVidSeconds) || 30,
+      rewardCoins: Number(newVidReward) || 100,
+      status: 'active'
+    };
+
+    const updated = [newVid, ...watchVideos];
+    setWatchVideos(updated);
+    localStorage.setItem('tq_watch_to_earn_videos', JSON.stringify(updated));
+    broadcastVideoUpdate(updated);
+
+    setNewVidUrl('');
+    setNewVidTitle('');
+    setNewVidSeconds(30);
+    setNewVidReward(100);
+    addToast('🎉 Đã thêm Video nhúng YouTube Kiếm Xu mới & Đồng bộ Realtime thành công!', 'success');
+  };
 
   useEffect(() => {
     const fetchCloudProfiles = async () => {
@@ -716,6 +807,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               }`}
             >
               <Eye className="w-4 h-4 text-emerald-400 animate-pulse" /> 15. 👁️ Ẩn/Hiện Chức Năng Trang Chính
+            </button>
+
+            <button
+              onClick={() => setAdminTab('watch-to-earn')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'watch-to-earn' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Tv className="w-4 h-4 text-pink-400 animate-pulse" /> 16. 📺 Video YouTube Kiếm Xu
             </button>
           </aside>
 
@@ -1769,6 +1869,172 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                     </div>
 
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 16: QUẢN LÝ VIDEO YOUTUBE KIẾM XU (WATCH-TO-EARN) */}
+            {adminTab === 'watch-to-earn' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <div className="bg-slate-900 border border-pink-400/40 p-6 rounded-3xl shadow-2xl space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                      <h3 className="text-base font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                        📺 MODULE 16: QUẢN LÝ VIDEO YOUTUBE KIẾM XU (WATCH-TO-EARN)
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Cấu hình các Video YouTube nhúng trực tiếp, thiết lập thời lượng xem tối thiểu và phần thưởng TQ Coins cho người dùng!
+                      </p>
+                    </div>
+
+                    <div className="bg-amber-400/20 text-amber-300 px-3.5 py-1.5 rounded-2xl border border-amber-400/40 text-xs font-black flex items-center gap-1.5">
+                      <Tv className="w-4 h-4 text-amber-400" /> Tổng {watchVideos.length} Video
+                    </div>
+                  </div>
+
+                  {/* Form Create Video */}
+                  <form onSubmit={handleAddWatchVideo} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                    <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      ➕ THÊM VIDEO YOUTUBE NHÚNG KIẾM XU MỚI:
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <label className="block text-slate-300 font-bold mb-1">Link YouTube hoặc Video ID (*):</label>
+                        <input
+                          type="text"
+                          value={newVidUrl}
+                          onChange={e => setNewVidUrl(e.target.value)}
+                          placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ hoặc dQw4w9WgXcQ"
+                          className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-amber-400 font-mono"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-bold mb-1">Tiêu Đề Video (*):</label>
+                        <input
+                          type="text"
+                          value={newVidTitle}
+                          onChange={e => setNewVidTitle(e.target.value)}
+                          placeholder="Nhập tên/tiêu đề thu hút người dùng..."
+                          className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-amber-400"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-bold mb-1">Thời Lượng Xem Tối Thiểu (Giây):</label>
+                        <input
+                          type="number"
+                          value={newVidSeconds}
+                          onChange={e => setNewVidSeconds(Number(e.target.value))}
+                          min="5"
+                          max="600"
+                          className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-amber-400 font-mono"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-bold mb-1">Phần Thưởng TQ Coins (+Xu):</label>
+                        <input
+                          type="number"
+                          value={newVidReward}
+                          onChange={e => setNewVidReward(Number(e.target.value))}
+                          min="10"
+                          max="10000"
+                          className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-amber-400 font-mono"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="bg-gradient-to-r from-amber-400 via-orange to-amber-500 hover:from-amber-500 hover:to-orange text-slate-950 font-black px-6 py-2.5 rounded-xl transition shadow-lg text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                    >
+                      🚀 THÊM VIDEO KIẾM XU NGAY
+                    </button>
+                  </form>
+
+                  {/* List Videos Table */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                      📋 DANH SÁCH VIDEO ĐANG PHÁT HÀNH:
+                    </h4>
+
+                    <div className="overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 uppercase font-black">
+                            <th className="p-3">Thumbnail & Tiêu Đề</th>
+                            <th className="p-3">YouTube ID</th>
+                            <th className="p-3">Thời Gian Xem</th>
+                            <th className="p-3">Thưởng (+Xu)</th>
+                            <th className="p-3">Trạng Thái</th>
+                            <th className="p-3 text-right">Thao Tác</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60 font-medium">
+                          {watchVideos.map((vid: any) => {
+                            const thumb = `https://img.youtube.com/vi/${vid.youtubeId}/hqdefault.jpg`;
+
+                            return (
+                              <tr key={vid.id} className="hover:bg-slate-950/50 transition">
+                                <td className="p-3 flex items-center gap-3">
+                                  <img src={thumb} alt={vid.title} className="w-16 h-10 object-cover rounded-lg border border-slate-800 shrink-0" />
+                                  <span className="font-bold text-slate-100 line-clamp-1 max-w-xs">{vid.title}</span>
+                                </td>
+                                <td className="p-3 font-mono text-amber-400">{vid.youtubeId}</td>
+                                <td className="p-3 font-mono text-slate-300">{vid.requiredSeconds} giây</td>
+                                <td className="p-3 font-mono text-emerald-400 font-bold">+{vid.rewardCoins} Xu</td>
+                                <td className="p-3">
+                                  {vid.status === 'active' ? (
+                                    <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/40">
+                                      HOẠT ĐỘNG
+                                    </span>
+                                  ) : (
+                                    <span className="bg-slate-800 text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                      ĐÃ TẮT
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="p-3 text-right space-x-2">
+                                  <button
+                                    onClick={() => {
+                                      const updated = watchVideos.map(v => v.id === vid.id ? { ...v, status: v.status === 'active' ? 'paused' : 'active' } : v);
+                                      setWatchVideos(updated);
+                                      localStorage.setItem('tq_watch_to_earn_videos', JSON.stringify(updated));
+                                      broadcastVideoUpdate(updated);
+                                      addToast('Đã cập nhật trạng thái video!', 'info');
+                                    }}
+                                    className="bg-slate-800 hover:bg-slate-700 text-amber-300 text-[10px] font-bold px-2.5 py-1 rounded-lg transition cursor-pointer"
+                                  >
+                                    {vid.status === 'active' ? 'Tắt' : 'Bật'}
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      const updated = watchVideos.filter(v => v.id !== vid.id);
+                                      setWatchVideos(updated);
+                                      localStorage.setItem('tq_watch_to_earn_videos', JSON.stringify(updated));
+                                      broadcastVideoUpdate(updated);
+                                      addToast('Đã xóa video!', 'success');
+                                    }}
+                                    className="bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition cursor-pointer"
+                                  >
+                                    Xóa
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             )}
