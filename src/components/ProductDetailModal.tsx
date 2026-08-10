@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Product } from '../types';
 import { useCart } from '../context/CartContext';
+import { supabase } from '../lib/supabase';
 import {
   X,
   ShoppingCart,
@@ -13,7 +14,9 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
-  PackageCheck
+  PackageCheck,
+  Star,
+  UserCheck
 } from 'lucide-react';
 
 interface ProductDetailModalProps {
@@ -33,6 +36,44 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [reviews, setReviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!product) return;
+
+    // Load product reviews
+    const loadReviews = async () => {
+      const localReviews = JSON.parse(localStorage.getItem(`tq_product_reviews_${product.id}`) || '[]');
+      
+      try {
+        const { data, error } = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('product_id', product.id)
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          const formatted = data.map((r: any) => ({
+            id: r.id,
+            user_name: r.user_name || 'Khách Hàng',
+            rating: r.rating || 5,
+            comment: r.comment,
+            created_at: r.created_at
+          }));
+
+          const map = new Map();
+          [...localReviews, ...formatted].forEach(r => map.set(r.id, r));
+          setReviews(Array.from(map.values()));
+        } else {
+          setReviews(localReviews);
+        }
+      } catch (e) {
+        setReviews(localReviews);
+      }
+    };
+
+    loadReviews();
+  }, [product?.id]);
 
   if (!product) return null;
 
@@ -65,6 +106,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     setActiveImageIndex(prev => (prev === galleryImages.length - 1 ? 0 : prev + 1));
   };
 
+  const averageRating = reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + (r.rating || 5), 0) / reviews.length).toFixed(1)
+    : '5.0';
+
   return (
     <div className="fixed inset-0 z-50 bg-navy-dark/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
       <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full relative border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 my-auto max-h-[92vh] flex flex-col">
@@ -77,7 +122,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8 space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
             {/* LEFT COLUMN: Gallery & Thumbnails */}
@@ -183,7 +228,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     <PackageCheck className="w-4 h-4 text-emerald-600" /> Kho: <strong className="text-navy">{product.stock || 50}</strong> sản phẩm
                   </span>
                   <span>•</span>
-                  <span>Đã bán: <strong className="text-navy">{product.salesCount || 12}</strong> lượt</span>
+                  <span className="flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> Đã bán: <strong className="text-navy">{(product.salesCount || 12).toLocaleString('vi-VN')}</strong> lượt
+                  </span>
                 </div>
 
                 {/* Description */}
@@ -251,6 +298,62 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
 
           </div>
+
+          {/* REVIEWS SECTION */}
+          <div className="border-t border-gray-200 pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-navy uppercase tracking-wide flex items-center gap-2">
+                  <Star className="w-5 h-5 text-amber-400 fill-amber-400" /> ĐÁNH GIÁ TỪ KHÁCH HÀNG ({reviews.length})
+                </h3>
+                <p className="text-xs text-gray-500 font-medium">
+                  Đánh giá trung bình: <strong className="text-amber-500">{averageRating} / 5.0 ⭐</strong>
+                </p>
+              </div>
+              <span className="bg-amber-100 text-amber-800 font-bold px-3 py-1 rounded-full text-xs border border-amber-300">
+                100% Đánh Giá Xác Thực
+              </span>
+            </div>
+
+            {reviews.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {reviews.map((r, idx) => (
+                  <div key={r.id || idx} className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-6 h-6 bg-navy text-amber-400 rounded-full flex items-center justify-center font-bold text-[10px]">
+                          {r.user_name ? r.user_name.charAt(0) : 'U'}
+                        </div>
+                        <span className="font-bold text-navy">{r.user_name}</span>
+                        <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-1.5 py-0.2 rounded inline-flex items-center gap-0.5">
+                          <UserCheck className="w-2.5 h-2.5" /> Đã mua hàng
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-gray-400">
+                        {r.created_at ? new Date(r.created_at).toLocaleDateString('vi-VN') : 'Mới đây'}
+                      </span>
+                    </div>
+
+                    <div className="flex gap-0.5 text-amber-400">
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <Star
+                          key={s}
+                          className={`w-3.5 h-3.5 ${s <= (r.rating || 5) ? 'fill-amber-400' : 'text-gray-300'}`}
+                        />
+                      ))}
+                    </div>
+
+                    <p className="text-xs text-gray-700 leading-snug italic">"{r.comment}"</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-2xl p-6 text-center text-gray-400 text-xs border border-gray-200">
+                Chưa có đánh giá nào cho sản phẩm này. Hãy là người đầu tiên trải nghiệm và đánh giá!
+              </div>
+            )}
+          </div>
+
         </div>
 
       </div>

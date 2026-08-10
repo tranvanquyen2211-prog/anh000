@@ -25,19 +25,22 @@ import {
   Unlock,
   Trash2,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 
 interface SuperAdminDashboardProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenThemeCustomizer: () => void;
+  onOpenFakeReviewModal?: () => void;
 }
 
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   isOpen,
   onClose,
-  onOpenThemeCustomizer
+  onOpenThemeCustomizer,
+  onOpenFakeReviewModal
 }) => {
   const { user, impersonateShop } = useAuth();
   const { theme, updateTheme } = useTheme();
@@ -376,16 +379,6 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     } catch (e) {}
 
     addToast('⭐ Đã duyệt đánh giá và cộng Xu hoàn cho khách!', 'success');
-  };
-
-  const handleAddFakeReview = () => {
-    const comment = prompt('Nhập nội dung đánh giá ảo:', 'Sản phẩm tuyệt vời, giao nhanh!');
-    if (!comment) return;
-    const fake = { id: `fake_${Date.now()}`, userName: 'Khách Ảo Verified Zalo', zaloPhone: '0988777666', productName: 'Sản phẩm Hot', shopName: 'TQ Retail Shop', rating: 5, comment, cashbackAmount: 0, date: new Date().toLocaleDateString('vi-VN'), status: 'approved' };
-    const updated = [fake, ...reviewsList];
-    setReviewsList(updated);
-    localStorage.setItem('tq_reviews', JSON.stringify(updated));
-    addToast('🤖 Đã thêm đánh giá ảo thành công!', 'success');
   };
 
   const handleAddQuickBtn = () => {
@@ -1008,14 +1001,35 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               </div>
             )}
 
-            {/* MODULE 11: FAKE REVIEWS */}
+            {/* MODULE 11: AI SYNTHETIC REVIEWS & EDIT SALES COUNT */}
             {adminTab === 'fake-reviews' && (
-              <div className="space-y-6">
-                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xs font-black text-purple-400 uppercase">🤖 ĐÁNH GIÁ ẢO & SỬA LƯỢT MUA BÁN</h3>
-                    <button onClick={handleAddFakeReview} className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-1.5 rounded-xl cursor-pointer">⭐ + Tạo Đánh Giá Ảo (Verified Zalo)</button>
+              <div className="space-y-6 max-w-xl">
+                <div className="bg-slate-950 p-6 rounded-2xl border border-purple-500/40 space-y-4 shadow-xl">
+                  <div className="flex items-center gap-3 border-b border-slate-800 pb-3">
+                    <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center text-purple-400 font-bold border border-purple-500/30">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-black text-purple-400 uppercase tracking-wider">
+                        🤖 HỆ THỐNG AI SINH ĐÁNH GIÁ ẢO & SỬA LƯỢT MUA BÁN
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-medium">Tự động sinh đánh giá thực tế như người dùng thật theo tên sản phẩm & danh mục mà không làm tăng tài khoản rác!</p>
+                    </div>
                   </div>
+
+                  <div className="space-y-3 text-xs text-slate-300">
+                    <p>• <strong>Sinh Đánh Giá Chuẩn AI:</strong> Tự động chọn tên người mua thực tế và bài viết phù hợp với 👗 Thuê đồ, 🛍️ Bán đồ, 🧋 F&B, 💄 Spa.</p>
+                    <p>• <strong>Điều Chỉnh Lượt Mua:</strong> Cập nhật trực tiếp số lượt bán (`salesCount`) để hiển thị công khai trên giao diện web.</p>
+                  </div>
+
+                  {onOpenFakeReviewModal && (
+                    <button
+                      onClick={() => { onClose(); onOpenFakeReviewModal(); }}
+                      className="w-full bg-gradient-to-r from-purple-500 via-purple-600 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-black py-3.5 rounded-xl uppercase tracking-wider transition shadow-lg cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4 text-purple-200" /> 🚀 KÍCH HOẠT CÔNG CỤ AI SINH ĐÁNH GIÁ ẢO & SỬA LƯỢT MUA
+                    </button>
+                  )}
                 </div>
               </div>
             )}

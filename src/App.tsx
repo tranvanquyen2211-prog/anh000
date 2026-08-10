@@ -10,6 +10,7 @@ import { CategoryFilters } from './components/CategoryFilters';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { EditProductSalesModal } from './components/EditProductSalesModal';
+import { AdminFakeReviewModal } from './components/AdminFakeReviewModal';
 import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -53,6 +54,7 @@ function MainApp() {
   const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isShopManagementOpen, setIsShopManagementOpen] = useState(false);
+  const [isFakeReviewOpen, setIsFakeReviewOpen] = useState(false);
 
   // Selected product state
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
@@ -263,6 +265,16 @@ function MainApp() {
         onSalesCountUpdated={handleSalesCountUpdated}
       />
 
+      <AdminFakeReviewModal
+        isOpen={isFakeReviewOpen}
+        onClose={() => setIsFakeReviewOpen(false)}
+        products={products}
+        onReviewsGenerated={() => {
+          // Trigger refresh
+          setProducts(prev => [...prev]);
+        }}
+      />
+
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       
       <CartDrawer
@@ -290,6 +302,7 @@ function MainApp() {
         isOpen={isSuperAdminDashboardOpen}
         onClose={() => setIsSuperAdminDashboardOpen(false)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
+        onOpenFakeReviewModal={() => setIsFakeReviewOpen(true)}
       />
 
       <ChangePasswordModal
