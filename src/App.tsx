@@ -7,6 +7,7 @@ import { ToastContainer } from './components/Toast';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 import { CategoryFilters } from './components/CategoryFilters';
+import { LocationFilter } from './components/LocationFilter';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { ShopStorefrontModal } from './components/ShopStorefrontModal';
@@ -26,6 +27,7 @@ import { ShopManagementDashboard } from './components/ShopManagementDashboard';
 import { LiveChatWidget } from './components/LiveChatWidget';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
+import { detectProvinceFromShopInfo } from './data/vietnamLocations';
 import type { Product, ShopType } from './types';
 import { supabase } from './lib/supabase';
 
@@ -42,6 +44,8 @@ function MainApp() {
   });
 
   const [selectedCategory, setSelectedCategory] = useState<ShopType | 'ALL'>('ALL');
+  const [selectedProvince, setSelectedProvince] = useState<string>('ALL');
+  const [selectedDistrict, setSelectedDistrict] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'shop' | 'orders' | 'chat'>('shop');
 
@@ -158,7 +162,7 @@ function MainApp() {
 
     fetchCloudProducts();
 
-    // Supabase Realtime Subscriptions for Realtime Notifications & Products
+    // Supabase Realtime Subscriptions for Realtime Notifications, Products & Shop Address Config Sync
     const productChannel = supabase
       .channel('public:products')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'products' }, (payload) => {
@@ -236,10 +240,21 @@ function MainApp() {
       })
       .subscribe();
 
+    // Listen to shop config / address / google maps update broadcast
+    const shopConfigChannel = supabase
+      .channel('public:shop_configs')
+      .on('broadcast', { event: 'shop_address_updated' }, (payload) => {
+        if (payload?.payload?.shopName) {
+          setProducts(prev => [...prev]); // Trigger re-render to update location filtering & badges live
+        }
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(productChannel);
       supabase.removeChannel(orderChannel);
       supabase.removeChannel(announcementChannel);
+      supabase.removeChannel(shopConfigChannel);
     };
   }, []);
 
@@ -277,7 +292,21 @@ function MainApp() {
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       (p.details && p.details.toLowerCase().includes(searchQuery.toLowerCase())) ||
       p.shopName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCat && matchQuery;
+    
+    // Location Filter Check based on Shop Config & Google Maps Link
+    const shopConfig = JSON.parse(localStorage.getItem(`tq_shop_config_${p.shopName}`) || '{}');
+    const shopProvince = detectProvinceFromShopInfo(
+      p.shopName,
+      shopConfig.warehouseAddress || shopConfig.pickupAddress,
+      shopConfig.googleMapsUrl
+    );
+
+    const matchProvince = selectedProvince === 'ALL' || shopProvince === selectedProvince;
+    
+    const addressStr = `${shopConfig.warehouseAddress || ''} ${shopConfig.pickupAddress || ''}`.toLowerCase();
+    const matchDistrict = selectedDistrict === 'ALL' || addressStr.includes(selectedDistrict.toLowerCase());
+
+    return matchCat && matchQuery && matchProvince && matchDistrict;
   });
 
   return (
@@ -315,14 +344,22 @@ function MainApp() {
           onSelectCategory={setSelectedCategory}
         />
 
+        {/* Vietnam Province & District Location Filter Bar */}
+        <LocationFilter
+          selectedProvince={selectedProvince}
+          onSelectProvince={setSelectedProvince}
+          selectedDistrict={selectedDistrict}
+          onSelectDistrict={setSelectedDistrict}
+        />
+
         <section className="space-y-4 pt-2">
           <div className="flex items-center justify-between border-b border-gray-200 pb-3">
             <div>
               <h2 className="text-xl md:text-2xl font-black text-navy tracking-wide uppercase">
-                SẢN PHẨM & DỊCH VỤ CÁC GIAN HÀNG
+                SẢN PHẨM & DỊCH VỤ CÁC GIAN HÀNG {selectedProvince !== 'ALL' ? `- ${selectedProvince.toUpperCase()}` : ''}
               </h2>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Supabase Realtime Marketplace • Thuê Đồ, Shop Bán Đồ, F&B, Spa
+                Supabase Realtime Marketplace • Lọc theo vị trí Google Maps & Kho hàng
               </p>
             </div>
             <span className="text-xs font-extrabold bg-navy/10 text-navy px-3.5 py-1.5 rounded-full border border-navy/20">
@@ -344,14 +381,14 @@ function MainApp() {
             </div>
           ) : (
             <div className="py-16 text-center text-gray-400 bg-white rounded-3xl border border-gray-200 p-8 space-y-2">
-              <div className="text-4xl mb-2">🔍</div>
-              <h4 className="font-extrabold text-sm text-navy">Không tìm thấy sản phẩm phù hợp</h4>
-              <p className="text-xs text-gray-500">Thử thay đổi từ khóa tìm kiếm hoặc chọn danh mục khác.</p>
+              <div className="text-4xl mb-2">📍</div>
+              <h4 className="font-extrabold text-sm text-navy">Không có gian hàng hoặc sản phẩm nào ở {selectedProvince}</h4>
+              <p className="text-xs text-gray-500">Thử chọn Tỉnh/Thành khác hoặc xóa bộ lọc khu vực.</p>
               <button
-                onClick={() => { setSelectedCategory('ALL'); setSearchQuery(''); }}
+                onClick={() => { setSelectedProvince('ALL'); setSelectedDistrict('ALL'); setSelectedCategory('ALL'); setSearchQuery(''); }}
                 className="mt-3 bg-navy text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-navy-dark transition"
               >
-                Xem tất cả sản phẩm
+                Xem tất cả sản phẩm toàn quốc
               </button>
             </div>
           )}

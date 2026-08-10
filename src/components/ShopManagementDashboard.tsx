@@ -6,23 +6,22 @@ import { supabase } from '../lib/supabase';
 import type { Product } from '../types';
 import {
   Store,
-  X,
+  DollarSign,
   Package,
   ShoppingBag,
-  DollarSign,
-  PlusCircle,
-  Trash2,
   CreditCard,
   Sliders,
+  PlusCircle,
+  X,
+  Calendar,
+  AlertTriangle,
+  ShieldAlert,
+  Trash2,
   MapPin,
   QrCode,
-  Phone,
-  Save,
   Sparkles,
-  AlertTriangle,
-  Calendar,
-  ShieldAlert,
-  Percent
+  Phone,
+  CheckCircle2
 } from 'lucide-react';
 
 interface ShopManagementDashboardProps {
@@ -46,27 +45,31 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
 
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'earnings' | 'config'>('products');
 
-  // Withdrawal state
-  const [bankName, setBankName] = useState('Vietcombank');
-  const [accountNumber, setAccountNumber] = useState(user?.phone || '0367818343');
-  const [accountName, setAccountName] = useState(user?.name || 'TÊN CHỦ TÀI KHOẢN');
+  // Shop Config State
+  const [warehouseAddress, setWarehouseAddress] = useState('');
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('');
+  const [shopBankName, setShopBankName] = useState('Vietcombank');
+  const [shopSTK, setShopSTK] = useState('');
+  const [shopOwnerName, setShopOwnerName] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [slogan, setSlogan] = useState('');
+  const [bio, setBio] = useState('');
+  const [bannerUrl, setBannerUrl] = useState('');
+  const [hotline, setHotline] = useState('');
+
+  // Withdrawal State
   const [withdrawAmount, setWithdrawAmount] = useState<number | ''>('');
+  const [bankName, setBankName] = useState('Vietcombank');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
   const [isRequestingWithdraw, setIsRequestingWithdraw] = useState(false);
 
-  // Shop config state
-  const [warehouseAddress, setWarehouseAddress] = useState('123 Đường Nguyễn Trãi, Phường Bến Thành, Quận 1, TP.HCM');
-  const [pickupAddress, setPickupAddress] = useState('Kho Tổng TQ Store - 123 Nguyễn Trãi, Quận 1, TP.HCM');
-  const [googleMapsUrl, setGoogleMapsUrl] = useState('https://maps.google.com/?q=10.776889,106.700806');
-  
-  const [shopBankName, setShopBankName] = useState('Vietcombank (VCB)');
-  const [shopSTK, setShopSTK] = useState(user?.phone || '0367818343');
-  const [shopOwnerName, setShopOwnerName] = useState(user?.name || 'TRAN VAN QUYEN');
-  const [qrCodeUrl, setQrCodeUrl] = useState('https://api.vietqr.io/image/970436-0367818343-compact.png?amount=0&accountName=TRAN%20VAN%20QUYEN');
-
-  const [slogan, setSlogan] = useState('Chuyên Trang Phục Cho Thuê & Bán Đồ Luxury Top 1 Việt Nam');
-  const [bio, setBio] = useState('TQ Store Gian Hàng Uy Tín - Cam kết hàng chính hãng 100%, giặt sấy tiệt trùng công nghệ cao, giao hàng hỏa tốc trong 2 giờ.');
-  const [bannerUrl, setBannerUrl] = useState('https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80');
-  const [hotline, setHotline] = useState('0367818343');
+  // Saved Withdrawals list
+  const [savedWithdrawals, setSavedWithdrawals] = useState<any[]>(() => {
+    const saved = localStorage.getItem('tq_withdrawals');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   useEffect(() => {
     if (user?.name) {
@@ -74,61 +77,71 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
       if (savedConfig) {
         try {
           const parsed = JSON.parse(savedConfig);
-          if (parsed.warehouseAddress) setWarehouseAddress(parsed.warehouseAddress);
-          if (parsed.pickupAddress) setPickupAddress(parsed.pickupAddress);
-          if (parsed.googleMapsUrl) setGoogleMapsUrl(parsed.googleMapsUrl);
-          if (parsed.shopBankName) setShopBankName(parsed.shopBankName);
-          if (parsed.shopSTK) setShopSTK(parsed.shopSTK);
-          if (parsed.shopOwnerName) setShopOwnerName(parsed.shopOwnerName);
-          if (parsed.qrCodeUrl) setQrCodeUrl(parsed.qrCodeUrl);
-          if (parsed.slogan) setSlogan(parsed.slogan);
-          if (parsed.bio) setBio(parsed.bio);
-          if (parsed.bannerUrl) setBannerUrl(parsed.bannerUrl);
-          if (parsed.hotline) setHotline(parsed.hotline);
+          setWarehouseAddress(parsed.warehouseAddress || '');
+          setPickupAddress(parsed.pickupAddress || '');
+          setGoogleMapsUrl(parsed.googleMapsUrl || '');
+          setShopBankName(parsed.shopBankName || 'Vietcombank');
+          setShopSTK(parsed.shopSTK || '');
+          setShopOwnerName(parsed.shopOwnerName || '');
+          setQrCodeUrl(parsed.qrCodeUrl || '');
+          setSlogan(parsed.slogan || '');
+          setBio(parsed.bio || '');
+          setBannerUrl(parsed.bannerUrl || '');
+          setHotline(parsed.hotline || user.phone || '');
+          setAccountNumber(parsed.shopSTK || '');
+          setAccountName(parsed.shopOwnerName || '');
         } catch (e) {}
+      } else {
+        setWarehouseAddress('Kho Hàng Tổng TQ Marketplace');
+        setPickupAddress('Địa chỉ lấy hàng TQ Store');
+        setSlogan('Gian Hàng Uy Tín Top 1 TQ Store');
+        setHotline(user.phone || '0367818343');
       }
     }
-  }, [user]);
+  }, [user?.name]);
 
   if (!isOpen || !user) return null;
 
-  // Filter products belonging to this shop
+  // Filter products published by this shop
   const shopProducts = products.filter(
-    p => p.shopName.toLowerCase() === (user.name || '').toLowerCase() || p.shopName.includes(user.name || '')
+    p => p.shopName.toLowerCase() === user.name.toLowerCase() || p.shopName.includes(user.name)
   );
 
-  // --- REVENUE & PER-ORDER PLATFORM FEE CALCULATIONS ---
-  const shopOrders = orders.filter(o => o.items && o.items.length > 0);
+  // Filter orders related to this shop
+  const shopOrders = orders.filter(o =>
+    o.items?.some(i => (i as any).shopName?.toLowerCase() === user.name.toLowerCase()) ||
+    (o as any).shop_name?.toLowerCase() === user.name.toLowerCase() ||
+    (o as any).shopName?.toLowerCase() === user.name.toLowerCase()
+  );
+
+  // Calculate gross revenue
   const grossRevenue = shopOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
-  
-  // Calculate total platform fee by summing per-order recorded platform fees at each point in time
+
+  // Calculate dynamic platform fee per-order
   const totalPlatformFeeAmount = shopOrders.reduce((sum, o) => {
     if (o.platform_fee_amount !== undefined) return sum + o.platform_fee_amount;
     const feeRate = o.platform_fee_rate !== undefined ? o.platform_fee_rate : 5;
     return sum + Math.round((o.total_price || 0) * (feeRate / 100));
   }, 0);
-  
-  // Existing withdrawals list for this shop
-  const savedWithdrawals: any[] = JSON.parse(localStorage.getItem('tq_withdrawals') || '[]');
-  const myShopWithdrawals = savedWithdrawals.filter(
-    w => w.shopName?.toLowerCase() === user.name?.toLowerCase() && w.status !== 'rejected'
-  );
-  const totalWithdrawn = myShopWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
 
-  // Eligible withdrawable balance = Gross Revenue - Sum of Per-Order Platform Fees - Total Withdrawn
-  const eligibleWithdrawableBalance = Math.max(0, grossRevenue - totalPlatformFeeAmount - totalWithdrawn);
+  // Calculate total amount already withdrawn
+  const totalWithdrawnAmount = savedWithdrawals
+    .filter(w => w.shopName === user.name && w.status !== 'rejected')
+    .reduce((sum, w) => sum + (w.amount || 0), 0);
 
-  // --- DATE & FREQUENCY RESTRICTION RULES ---
+  // Formula: Eligible Withdrawable Balance = Gross Revenue - Total Per-Order Platform Fees - Total Withdrawn
+  const netEarningsBeforeWithdraw = grossRevenue - totalPlatformFeeAmount;
+  const eligibleWithdrawableBalance = Math.max(0, netEarningsBeforeWithdraw - totalWithdrawnAmount);
+
+  // Withdrawal window restriction: 14th and 25th of every month
   const today = new Date();
-  const currentDay = today.getDate();
-  const todayString = today.toLocaleDateString('vi-VN');
-
-  // Rule 1: Withdrawal only allowed on the 14th and 25th of the month
+  const currentDay = today.getDate(); // 1-31
   const isWithdrawalDay = currentDay === 14 || currentDay === 25;
 
-  // Rule 2: Maximum 1 withdrawal request per day
+  // Max 1 withdrawal per day restriction
+  const todayString = today.toLocaleDateString('vi-VN');
   const hasAlreadyWithdrawnToday = savedWithdrawals.some(
-    w => w.shopName?.toLowerCase() === user.name?.toLowerCase() && w.date === todayString
+    w => w.shopName === user.name && w.date === todayString
   );
 
   const canCreateWithdrawal = isWithdrawalDay && !hasAlreadyWithdrawnToday && eligibleWithdrawableBalance > 0;
@@ -173,11 +186,22 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
           hotline
         }
       ]);
+
+      // Broadcast Realtime Event so buyers' location filter updates live!
+      await supabase.channel('public:shop_configs').send({
+        type: 'broadcast',
+        event: 'shop_address_updated',
+        payload: {
+          shopName: user.name,
+          warehouseAddress,
+          googleMapsUrl
+        }
+      });
     } catch (e) {
       console.warn('Cloud shop config sync active');
     }
 
-    addToast(`⚙️ Đã lưu cấu hình địa chỉ, ngân hàng, QR & giao diện Shop thành công!`, 'success');
+    addToast(`⚙️ Đã lưu địa chỉ kho, ngân hàng, QR & tự động đồng bộ vị trí khách hàng!`, 'success');
   };
 
   const handleRequestWithdrawal = async (e: React.FormEvent) => {
@@ -199,7 +223,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
     }
 
     if (Number(withdrawAmount) > eligibleWithdrawableBalance) {
-      addToast(`❌ Số tiền rút vượt quá số dư hợp lệ có thể rút (${eligibleWithdrawableBalance.toLocaleString('vi-VN')} đ sau khi trừ phí sàn từng đơn)!`, 'error');
+      addToast(`❌ Số tiền rút vượt quá số dư hợp lệ có thể rút (${eligibleWithdrawableBalance.toLocaleString('vi-VN')} đ)!`, 'error');
       return;
     }
 
@@ -217,6 +241,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
     };
 
     const updatedWithdrawals = [withdrawReq, ...savedWithdrawals];
+    setSavedWithdrawals(updatedWithdrawals);
     localStorage.setItem('tq_withdrawals', JSON.stringify(updatedWithdrawals));
 
     try {
@@ -481,7 +506,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
               <div className="bg-slate-950 p-5 rounded-2xl border border-amber-500/30 space-y-3">
                 <div className="flex justify-between items-center border-b border-slate-800 pb-2">
                   <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
-                    <Percent className="w-4 h-4 text-rose-400" /> BẢNG TỔNG HỢP PHÍ SÀN TÍNH THEO TỪNG ĐƠN HÀNG REALTIME
+                    <Sliders className="w-4 h-4 text-rose-400" /> BẢNG TỔNG HỢP PHÍ SÀN TÍNH THEO TỪNG ĐƠN HÀNG REALTIME
                   </h3>
                   <span className="text-[10px] text-emerald-400 font-bold">✓ REALTIME SYNCED WITH SUPABASE</span>
                 </div>
@@ -613,18 +638,18 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
               {/* Section 1: Addresses & Maps */}
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
                 <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-2">
-                  <MapPin className="w-4 h-4" /> 1. CẤU HÌNH ĐỊA CHỈ KHO, ĐỊA CHỈ LẤY HÀNG & GOOGLE MAPS
+                  <MapPin className="w-4 h-4" /> 1. CẤU HÌNH ĐỊA CHỈ KHO, ĐỊA CHỈ LẤY HÀNG & GOOGLE MAPS (TỰ ĐỘNG ĐỒNG BỘ ĐỊA LÝ)
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">Địa chỉ kho hàng (Warehouse Address)</label>
+                    <label className="block text-slate-300 font-bold mb-1">Địa chỉ kho hàng (Warehouse Address - Tên Tỉnh/Huyện)</label>
                     <input
                       type="text"
                       value={warehouseAddress}
                       onChange={e => setWarehouseAddress(e.target.value)}
                       required
-                      placeholder="VD: 123 Nguyễn Trãi, Quận 1, TP.HCM"
+                      placeholder="VD: 123 Nguyễn Trãi, Ba Đình, Hà Nội"
                       className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3 py-2 text-xs"
                     />
                   </div>
@@ -636,7 +661,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
                       value={pickupAddress}
                       onChange={e => setPickupAddress(e.target.value)}
                       required
-                      placeholder="VD: Kho Tổng TQ Store - 123 Nguyễn Trãi, Quận 1..."
+                      placeholder="VD: Kho Tổng TQ Store - 123 Nguyễn Trãi, Ba Đình, Hà Nội"
                       className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl px-3 py-2 text-xs"
                     />
                   </div>
@@ -647,7 +672,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
                       type="url"
                       value={googleMapsUrl}
                       onChange={e => setGoogleMapsUrl(e.target.value)}
-                      placeholder="https://maps.google.com/?q=..."
+                      placeholder="https://maps.google.com/?q=Hanoi..."
                       className="w-full bg-slate-900 border border-slate-700 text-blue-300 font-mono rounded-xl px-3 py-2 text-xs"
                     />
                   </div>
@@ -781,7 +806,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
                 type="submit"
                 className="w-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black py-3.5 rounded-2xl uppercase tracking-wider transition shadow-xl cursor-pointer flex items-center justify-center gap-2"
               >
-                <Save className="w-4 h-4 text-slate-950" /> XÁC NHẬN LƯU CẤU HÌNH & TRANG CÁ NHÂN SHOP
+                <CheckCircle2 className="w-4 h-4 text-slate-950" /> XÁC NHẬN LƯU CẤU HÌNH & TỰ ĐỘNG ĐỒNG BỘ VỊ TRÍ TOÀN SÀN
               </button>
             </form>
           )}

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import type { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { ShoppingBag, MessageSquare, Star, ChevronLeft, ChevronRight, Eye, Edit3 } from 'lucide-react';
+import { detectProvinceFromShopInfo } from '../data/vietnamLocations';
+import { ShoppingBag, MessageSquare, Star, ChevronLeft, ChevronRight, Eye, Edit3, MapPin } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -49,6 +50,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       onOpenProductDetail(product);
     }
   };
+
+  // Get Shop Config to parse current location
+  const shopConfig = JSON.parse(localStorage.getItem(`tq_shop_config_${product.shopName}`) || '{}');
+  const shopLocationName = detectProvinceFromShopInfo(
+    product.shopName,
+    shopConfig.warehouseAddress || shopConfig.pickupAddress,
+    shopConfig.googleMapsUrl
+  );
 
   return (
     <div
@@ -123,11 +132,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
         </div>
 
-        {/* Shop Name & Title */}
+        {/* Shop Name & Location Tag */}
         <div>
-          <span className="text-[10px] text-gray-400 font-extrabold tracking-tight uppercase truncate block">
-            {product.shopName}
-          </span>
+          <div className="flex items-center justify-between text-[10px] text-gray-400 font-extrabold tracking-tight uppercase">
+            <span className="truncate max-w-[110px]">{product.shopName}</span>
+            <span className="bg-orange/10 text-orange border border-orange/20 px-1.5 py-0.2 rounded flex items-center gap-0.5 shrink-0">
+              <MapPin className="w-2.5 h-2.5" /> {shopLocationName}
+            </span>
+          </div>
+          
           <h3 className="font-extrabold text-xs text-navy line-clamp-2 min-h-[32px] mt-0.5 leading-snug group-hover:text-orange transition-colors">
             {product.title}
           </h3>
