@@ -3,13 +3,14 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
   onOpenCartDrawer: () => void;
   onOpenOrderHistory: () => void;
   onOpenThemeCustomizer?: () => void;
+  onOpenChangePassword?: () => void;
   selectedCategory: ShopType | 'ALL';
   onSelectCategory: (cat: ShopType | 'ALL') => void;
   searchQuery: string;
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCartDrawer,
   onOpenOrderHistory,
   onOpenThemeCustomizer,
+  onOpenChangePassword,
   selectedCategory,
   onSelectCategory,
   searchQuery,
@@ -122,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>{(user.coins || 0).toLocaleString('vi-VN')} Xu</span>
               </div>
 
-              {/* User Avatar */}
+              {/* User Avatar & Menu */}
               <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-xl shadow-xs">
                 <img
                   src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0F2C59&color=fff`}
@@ -136,9 +138,20 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 </div>
 
+                {/* Change Password Button */}
+                {onOpenChangePassword && (
+                  <button
+                    onClick={onOpenChangePassword}
+                    className="text-gray-500 hover:text-amber-600 p-1 ml-1 transition cursor-pointer"
+                    title="Đổi mật khẩu tài khoản"
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                  </button>
+                )}
+
                 <button
                   onClick={logout}
-                  className="text-gray-400 hover:text-rose-600 p-1 ml-1 transition"
+                  className="text-gray-400 hover:text-rose-600 p-1 transition cursor-pointer"
                   title="Đăng xuất"
                 >
                   <LogOut className="w-3.5 h-3.5" />

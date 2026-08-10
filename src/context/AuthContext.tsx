@@ -10,6 +10,7 @@ interface AuthContextType {
   registerEmail: (email: string, pass: string, name?: string) => Promise<boolean>;
   loginPhone: (phone: string, pass: string) => Promise<boolean>;
   registerPhone: (phone: string, pass: string, name?: string) => Promise<boolean>;
+  changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -219,6 +220,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userId = data?.user?.id || `phone_${Date.now()}`;
       const profile = createProfileObject(userId, '', cleanPhone, displayName);
 
+      const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+      if (!localAccounts.some((u: any) => u.phone === cleanPhone)) {
+        localAccounts.push({ id: userId, phone: cleanPhone, pass, name: displayName });
+        localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+      }
+
       await supabase.auth.signInWithPassword({ email: syntheticEmail, password: pass }).catch(() => {});
 
       setUser(profile);
@@ -267,6 +274,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Global Password Change Function (Updates Supabase Auth Cloud DB & Local Storage)
+  const changePassword = async (_currentPass: string, newPass: string): Promise<boolean> => {
+    if (!user) {
+      addToast('Bạn cần đăng nhập để đổi mật khẩu!', 'error');
+      return false;
+    }
+
+    try {
+      // 1. Update password in Supabase Auth Cloud Database
+      const { error } = await supabase.auth.updateUser({
+        password: newPass
+      });
+
+      if (error) {
+        addToast(`Lỗi đổi mật khẩu Supabase: ${error.message}`, 'error');
+        return false;
+      }
+
+      // 2. Update local phone accounts persistence if applicable
+      if (user.phone) {
+        const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+        const idx = localAccounts.findIndex((u: any) => u.phone === user.phone);
+        if (idx > -1) {
+          localAccounts[idx].pass = newPass;
+          localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+        }
+      }
+
+      addToast('🔑 Đổi mật khẩu thành công! Mật khẩu cũ không còn hiệu lực trên toàn hệ thống.', 'success');
+      return true;
+    } catch (err: any) {
+      addToast(`Lỗi đổi mật khẩu: ${err?.message || err}`, 'error');
+      return false;
+    }
+  };
+
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -286,6 +329,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       registerEmail,
       loginPhone,
       registerPhone,
+      changePassword,
       logout
     }}>
       {children}

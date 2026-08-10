@@ -13,6 +13,7 @@ import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { OrderHistoryModal } from './components/OrderHistoryModal';
 import { AdminThemeCustomizer } from './components/AdminThemeCustomizer';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { LiveChatWidget } from './components/LiveChatWidget';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
@@ -31,6 +32,7 @@ function MainApp() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
   const [isAdminThemeOpen, setIsAdminThemeOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   // Chat product context
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
@@ -81,6 +83,7 @@ function MainApp() {
         onOpenCartDrawer={() => setIsCartOpen(true)}
         onOpenOrderHistory={() => setIsOrderHistoryOpen(true)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
+        onOpenChangePassword={() => setIsChangePasswordOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         searchQuery={searchQuery}
@@ -167,6 +170,11 @@ function MainApp() {
       <AdminThemeCustomizer
         isOpen={isAdminThemeOpen}
         onClose={() => setIsAdminThemeOpen(false)}
+      />
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
       />
     </div>
   );
