@@ -16,6 +16,8 @@ import { AdminThemeCustomizer } from './components/AdminThemeCustomizer';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { AddProductModal } from './components/AddProductModal';
+import { ShopManagementDashboard } from './components/ShopManagementDashboard';
+import { UserInboxModal } from './components/UserInboxModal';
 import { LiveChatWidget } from './components/LiveChatWidget';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
@@ -41,6 +43,8 @@ function MainApp() {
   const [isSuperAdminDashboardOpen, setIsSuperAdminDashboardOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [isShopManagementOpen, setIsShopManagementOpen] = useState(false);
+  const [isUserInboxOpen, setIsUserInboxOpen] = useState(false);
 
   // Chat product context
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
@@ -118,6 +122,21 @@ function MainApp() {
     setProducts(prev => [newProd, ...prev.filter(item => item.id !== newProd.id)]);
   };
 
+  const handleDeleteProduct = async (prodId: string | number) => {
+    setProducts(prev => prev.filter(p => p.id !== prodId));
+    
+    // Update local persistence
+    const savedCustoms = JSON.parse(localStorage.getItem('tq_custom_products') || '[]');
+    const updatedCustoms = savedCustoms.filter((p: any) => p.id !== prodId);
+    localStorage.setItem('tq_custom_products', JSON.stringify(updatedCustoms));
+
+    try {
+      await supabase.from('products').delete().eq('id', prodId);
+    } catch (e) {
+      console.warn('Cloud delete product active');
+    }
+  };
+
   const filteredProducts = products.filter(p => {
     const matchCat = selectedCategory === 'ALL' || p.shopType === selectedCategory;
     const matchQuery = searchQuery.trim() === '' || 
@@ -139,6 +158,8 @@ function MainApp() {
         onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
         onOpenAddProductModal={() => setIsAddProductOpen(true)}
+        onOpenShopManagementDashboard={() => setIsShopManagementOpen(true)}
+        onOpenUserInboxModal={() => setIsUserInboxOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         searchQuery={searchQuery}
@@ -242,6 +263,19 @@ function MainApp() {
         isOpen={isAddProductOpen}
         onClose={() => setIsAddProductOpen(false)}
         onProductAdded={handleProductAdded}
+      />
+
+      <ShopManagementDashboard
+        isOpen={isShopManagementOpen}
+        onClose={() => setIsShopManagementOpen(false)}
+        onOpenAddProductModal={() => { setIsShopManagementOpen(false); setIsAddProductOpen(true); }}
+        products={products}
+        onDeleteProduct={handleDeleteProduct}
+      />
+
+      <UserInboxModal
+        isOpen={isUserInboxOpen}
+        onClose={() => setIsUserInboxOpen(false)}
       />
     </div>
   );

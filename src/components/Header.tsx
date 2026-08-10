@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, MessageSquare } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -13,6 +13,8 @@ interface HeaderProps {
   onOpenChangePassword?: () => void;
   onOpenSuperAdminDashboard?: () => void;
   onOpenAddProductModal?: () => void;
+  onOpenShopManagementDashboard?: () => void;
+  onOpenUserInboxModal?: () => void;
   selectedCategory: ShopType | 'ALL';
   onSelectCategory: (cat: ShopType | 'ALL') => void;
   searchQuery: string;
@@ -29,6 +31,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenChangePassword,
   onOpenSuperAdminDashboard,
   onOpenAddProductModal,
+  onOpenShopManagementDashboard,
+  onOpenUserInboxModal,
   selectedCategory,
   onSelectCategory,
   searchQuery,
@@ -108,14 +112,26 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Actions & Account */}
         <div className="flex items-center gap-2 sm:gap-3">
           
+          {/* Shop Management Dashboard Button */}
+          {user && (user.role === 'SHOP' || isImpersonating) && onOpenShopManagementDashboard && (
+            <button
+              onClick={onOpenShopManagementDashboard}
+              className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-300"
+              title="Mở Bảng Quản Lý Cửa Hàng"
+            >
+              <Store className="w-4 h-4 text-emerald-200" />
+              <span className="hidden sm:inline">📊 Quản Lý Cửa Hàng</span>
+            </button>
+          )}
+
           {/* Shop Product Post Button for Shop accounts */}
           {user && (user.role === 'SHOP' || isImpersonating) && onOpenAddProductModal && (
             <button
               onClick={onOpenAddProductModal}
-              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer animate-pulse border border-emerald-400"
+              className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer animate-pulse border border-amber-300"
               title="Đăng sản phẩm mới lên Cửa Hàng"
             >
-              <PlusCircle className="w-4 h-4 text-emerald-200" />
+              <PlusCircle className="w-4 h-4 text-slate-950" />
               <span className="hidden sm:inline">ĐĂNG SP GIAN HÀNG</span>
             </button>
           )}
@@ -172,6 +188,20 @@ export const Header: React.FC<HeaderProps> = ({
                 <Coins className="w-3.5 h-3.5 text-yellow-100" />
                 <span>{(user.coins || 0).toLocaleString('vi-VN')} Xu</span>
               </div>
+
+              {/* Global User Inbox Button */}
+              {onOpenUserInboxModal && (
+                <button
+                  onClick={onOpenUserInboxModal}
+                  className="bg-navy hover:bg-navy-dark text-amber-300 p-2 rounded-xl transition cursor-pointer relative shadow-xs"
+                  title="Hộp Thư Tài Khoản (Inbox)"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="absolute -top-1 -right-1 bg-amber-500 text-slate-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                    !
+                  </span>
+                </button>
+              )}
 
               {/* User Avatar & Menu */}
               <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-xl shadow-xs">
