@@ -3,7 +3,19 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import type { Product, ShopType } from '../types';
-import { X, PlusCircle, Image as ImageIcon, Tag, DollarSign, Store, FileText, CheckCircle2, Plus, Trash2 } from 'lucide-react';
+import {
+  X,
+  PlusCircle,
+  Image as ImageIcon,
+  Tag,
+  DollarSign,
+  Store,
+  FileText,
+  CheckCircle2,
+  Plus,
+  Trash2,
+  Sparkles
+} from 'lucide-react';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -19,16 +31,34 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   const { user } = useAuth();
   const { addToast } = useToast();
 
+  const [shopType, setShopType] = useState<ShopType>('RENTAL');
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState<number | ''>('');
-  const [shopType, setShopType] = useState<ShopType>('RENTAL');
   const [badge, setBadge] = useState('HOT SALE');
-  const [details, setDetails] = useState('');
-  const [stock, setStock] = useState(50);
+  const [description, setDescription] = useState('');
+  const [stock] = useState(50);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Up to 7 Image URLs
   const [imageUrls, setImageUrls] = useState<string[]>(['']);
+
+  // --- Dynamic Category-Specific Spec Fields ---
+  // 👗 RENTAL (Cho thuê đồ)
+  const [rentalDeposit, setRentalDeposit] = useState<number | ''>(500000);
+  const [clothingSize, setClothingSize] = useState('S, M, L (Freesize)');
+  const [condition, setCondition] = useState('Mới 98% (Giặt sấy tiệt trùng)');
+
+  // 🛍️ RETAIL (Shop bán đồ)
+  const [brand, setBrand] = useState('TQ Designer');
+  const [material, setMaterial] = useState('Lụa cao cấp / Cotton mượt');
+
+  // 🧋 FNB (Đồ ăn & Uống)
+  const [fnbOptions, setFnbOptions] = useState('Đá 50%, Đường 70%, Có Topping Trân Châu');
+  const [prepTime, setPrepTime] = useState('15 - 25 Phút (Giao hỏa tốc)');
+
+  // 💄 BEAUTY (Làm đẹp & Spa)
+  const [duration, setDuration] = useState('60 Phút / Liệu trình');
+  const [beautyGuarantee, setBeautyGuarantee] = useState('Dược mỹ phẩm nhập khẩu, KTV lành nghề');
 
   if (!isOpen || !user) return null;
 
@@ -69,6 +99,18 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     const defaultImg = validImages[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80';
     const finalImagesList = validImages.length > 0 ? validImages : [defaultImg];
 
+    // Build full detailed text combining user description and specs
+    let fullDetails = description.trim() || 'Sản phẩm mới phân phối bởi gian hàng TQ Store.';
+    if (shopType === 'RENTAL') {
+      fullDetails += ` [Cọc: ${Number(rentalDeposit).toLocaleString('vi-VN')}đ | Size: ${clothingSize} | Độ mới: ${condition}]`;
+    } else if (shopType === 'RETAIL') {
+      fullDetails += ` [Hãng: ${brand} | Chất liệu: ${material}]`;
+    } else if (shopType === 'FNB') {
+      fullDetails += ` [Tùy chọn: ${fnbOptions} | Chuẩn bị: ${prepTime}]`;
+    } else if (shopType === 'BEAUTY') {
+      fullDetails += ` [Thời lượng: ${duration} | Cam kết: ${beautyGuarantee}]`;
+    }
+
     const newProd: Product = {
       id: `prod_${Date.now()}`,
       title: title.trim(),
@@ -77,9 +119,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       shopType,
       shopName: user.name || 'TQ Store Gian Hàng',
       img: defaultImg,
-      images: finalImagesList.slice(0, 7), // Maximum 7 images
+      images: finalImagesList.slice(0, 7),
       badge: badge.trim() || 'NEW',
-      details: details.trim() || 'Sản phẩm mới chính hãng phân phối bởi gian hàng TQ Store.',
+      details: fullDetails,
       stock: Number(stock) || 50,
       salesCount: 1
     };
@@ -113,10 +155,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     setTitle('');
     setPrice('');
     setImageUrls(['']);
-    setDetails('');
+    setDescription('');
     onClose();
 
-    addToast(`🎉 ĐÃ ĐĂNG SẢN PHẨM MỚI (${finalImagesList.length} ẢNH) THÀNH CÔNG: [${newProd.title}]!`, 'success');
+    addToast(`🎉 ĐÃ ĐĂNG SẢN PHẨM MỚI (${finalImagesList.length} ẢNH) THÀNH CÔNG!`, 'success');
   };
 
   return (
@@ -134,7 +176,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-sm">
             <PlusCircle className="w-7 h-7" />
           </div>
-          <h3 className="text-2xl font-black text-navy uppercase tracking-wide">ĐĂNG SP GIAN HÀNG (TỐI ĐA 7 ẢNH)</h3>
+          <h3 className="text-2xl font-black text-navy uppercase tracking-wide">ĐĂNG SẢN PHẨM GIAN HÀNG TỰ ĐỘNG</h3>
           <p className="text-xs text-gray-500 font-medium mt-0.5">
             Cửa hàng: <strong className="text-emerald-700">{user.name}</strong> ({user.phone || user.email})
           </p>
@@ -142,9 +184,28 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* Product Title */}
+          {/* STEP 1: Select Category first */}
+          <div className="bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 space-y-2">
+            <label className="block text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-400" /> 1. CHỌN DANH MỤC GIAN HÀNG ĐỂ ĐỔI FORM ĐĂNG
+            </label>
+            <select
+              value={shopType}
+              onChange={e => setShopType(e.target.value as ShopType)}
+              className="w-full bg-slate-950 border border-amber-400/40 text-amber-300 rounded-xl px-4 py-2.5 text-xs font-black focus:outline-none cursor-pointer"
+            >
+              <option value="RENTAL">👗 Dịch Vụ Cho Thuê Đồ & Trang Phục (RENTAL)</option>
+              <option value="RETAIL">🛍️ Shop Bán Đồ Thời Trang & Hàng Sản Phẩm (RETAIL)</option>
+              <option value="FNB">🧋 Quán Đồ Ăn & Nước Uống (F&B)</option>
+              <option value="BEAUTY">💄 Dịch Vụ Làm Đẹp, Spa & Thẩm Mỹ (BEAUTY)</option>
+            </select>
+          </div>
+
+          {/* STEP 2: Common Basic Inputs */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Tên Sản Phẩm / Dịch Vụ Mới</label>
+            <label className="block text-xs font-bold text-gray-700 mb-1">
+              {shopType === 'RENTAL' ? 'Tên Trang Phục Cho Thuê' : shopType === 'RETAIL' ? 'Tên Sản Phẩm Bán' : shopType === 'FNB' ? 'Tên Món Ăn / Thức Uống' : 'Tên Gói Dịch Vụ Spa'}
+            </label>
             <div className="relative">
               <Store className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
               <input
@@ -152,16 +213,23 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 required
-                placeholder="VD: Đầm Dạ Hội Kim Tuyến Cổ V..."
+                placeholder={
+                  shopType === 'RENTAL' ? 'VD: Đầm Dạ Hội Kim Tuyến Cổ V Đỏ Rượu...' :
+                  shopType === 'RETAIL' ? 'VD: Áo Sơ Mi Nam TQ Smart Oxford Silk...' :
+                  shopType === 'FNB' ? 'VD: Trà Sữa Ô Long Nướng Kem Trứng...' :
+                  'VD: Gói Spa Massage Thảo Dược Toàn Thân 60Phút...'
+                }
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-gray-800 focus:outline-none focus:border-navy focus:bg-white transition"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {/* Price */}
+            {/* Price Input Labels */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Giá Bán / Giá Thuê (VNĐ)</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">
+                {shopType === 'RENTAL' ? 'Giá Thuê / Ngày (VNĐ)' : shopType === 'RETAIL' ? 'Giá Bán Niêm Yết (VNĐ)' : shopType === 'FNB' ? 'Giá Món (VNĐ)' : 'Giá Gói Liệu Trình (VNĐ)'}
+              </label>
               <div className="relative">
                 <DollarSign className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                 <input
@@ -175,49 +243,132 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               </div>
             </div>
 
-            {/* Shop Category */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Danh Mục Gian Hàng</label>
-              <select
-                value={shopType}
-                onChange={e => setShopType(e.target.value as ShopType)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold text-navy focus:outline-none focus:border-navy focus:bg-white cursor-pointer"
-              >
-                <option value="RENTAL">👗 Cho Thuê Đồ</option>
-                <option value="RETAIL">🛍️ Shop Bán Đồ</option>
-                <option value="FNB">🧋 Đồ Ăn & Đồ Uống</option>
-                <option value="BEAUTY">💄 Làm Đẹp & Spa</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
             {/* Badge */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Nhãn Thẻ Nổi Bật (Badge)</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1">Nhãn Thẻ (Badge)</label>
               <div className="relative">
                 <Tag className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
                 <input
                   type="text"
                   value={badge}
                   onChange={e => setBadge(e.target.value)}
-                  placeholder="VD: HOT, GIẢM 20%, NEW..."
+                  placeholder="VD: HOT, SALE 20%, VERIFIED..."
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-xs text-orange font-bold focus:outline-none focus:border-navy focus:bg-white transition"
                 />
               </div>
             </div>
+          </div>
 
-            {/* Stock */}
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1">Số Lượng Kho</label>
-              <input
-                type="number"
-                value={stock}
-                onChange={e => setStock(Number(e.target.value))}
-                required
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-800 font-bold focus:outline-none focus:border-navy focus:bg-white transition"
-              />
-            </div>
+          {/* STEP 3: Dynamic Category-Specific Spec Fields Container */}
+          <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 space-y-3">
+            <h4 className="text-xs font-black text-amber-900 uppercase flex items-center gap-1.5">
+              ⚡ THÔNG SỐ ĐẶC THÙ CHO DANH MỤC [{shopType}]
+            </h4>
+
+            {/* 1. RENTAL SPECS */}
+            {shopType === 'RENTAL' && (
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1">Tiền Cọc (VNĐ)</label>
+                  <input
+                    type="number"
+                    value={rentalDeposit}
+                    onChange={e => setRentalDeposit(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full bg-white border border-amber-300 rounded-lg px-2 py-1.5 text-xs font-bold text-emerald-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1">Size Trang Phục</label>
+                  <input
+                    type="text"
+                    value={clothingSize}
+                    onChange={e => setClothingSize(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-lg px-2 py-1.5 text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1">Độ Mới / Tình Trạng</label>
+                  <input
+                    type="text"
+                    value={condition}
+                    onChange={e => setCondition(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-lg px-2 py-1.5 text-xs font-bold"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 2. RETAIL SPECS */}
+            {shopType === 'RETAIL' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1">Thương Hiệu / Hãng Sản Xuất</label>
+                  <input
+                    type="text"
+                    value={brand}
+                    onChange={e => setBrand(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1">Chất Liệu Sản Phẩm</label>
+                  <input
+                    type="text"
+                    value={material}
+                    onChange={e => setMaterial(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs font-bold"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 3. FNB SPECS */}
+            {shopType === 'FNB' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1">Tùy Chọn Món (Đường / Đá / Topping)</label>
+                  <input
+                    type="text"
+                    value={fnbOptions}
+                    onChange={e => setFnbOptions(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1">Thời Gian Giao Hàng Dự Kiến</label>
+                  <input
+                    type="text"
+                    value={prepTime}
+                    onChange={e => setPrepTime(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs font-bold text-emerald-700"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 4. BEAUTY SPECS */}
+            {shopType === 'BEAUTY' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1">Thời Lượng Liệu Trình</label>
+                  <input
+                    type="text"
+                    value={duration}
+                    onChange={e => setDuration(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-700 mb-1">Cam Kết Chất Lượng Spa</label>
+                  <input
+                    type="text"
+                    value={beautyGuarantee}
+                    onChange={e => setBeautyGuarantee(e.target.value)}
+                    className="w-full bg-white border border-amber-300 rounded-lg px-3 py-1.5 text-xs font-bold text-emerald-700"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Multiple Image URLs (Up to 7 Images) */}
@@ -237,7 +388,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               )}
             </div>
 
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+            <div className="space-y-2 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
               {imageUrls.map((url, idx) => (
                 <div key={idx} className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-gray-400 w-12 shrink-0">Ảnh {idx + 1}:</span>
@@ -266,17 +417,19 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             </div>
           </div>
 
-          {/* Details Description */}
+          {/* Dedicated Description Section */}
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1">Mô Tả Chi Tiết / Quy Định Thuê</label>
+            <label className="block text-xs font-black text-navy uppercase mb-1">
+              📝 MÔ TẢ CHI TIẾT SẢN PHẨM / DỊCH VỤ
+            </label>
             <div className="relative">
               <FileText className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
               <textarea
-                value={details}
-                onChange={e => setDetails(e.target.value)}
+                value={description}
+                onChange={e => setDescription(e.target.value)}
                 rows={3}
-                placeholder="Mô tả phong cách, chất liệu, size trang phục hoặc quy định bảo quản..."
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-xs text-gray-800 focus:outline-none focus:border-navy focus:bg-white transition resize-none"
+                placeholder="Nhập mô tả chi tiết sản phẩm, xuất xứ, điểm nổi bật, quy định đặt cọc hoặc hướng dẫn bảo quản..."
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-9 pr-4 py-2 text-xs text-gray-800 focus:outline-none focus:border-navy focus:bg-white transition resize-none font-medium leading-relaxed"
               />
             </div>
           </div>
@@ -287,7 +440,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
-            {isSubmitting ? 'Đang Đăng Sản Phẩm...' : 'XÁC NHẬN ĐĂNG SP GIAN HÀNG (LƯU TỐI ĐA 7 ẢNH)'}
+            {isSubmitting ? 'Đang Đăng Sản Phẩm...' : `XÁC NHẬN ĐĂNG SP DANH MỤC [${shopType}]`}
           </button>
         </form>
 
