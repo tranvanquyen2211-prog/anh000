@@ -34,6 +34,8 @@ export interface Order {
   status: 'pending' | 'completed' | 'cancelled';
   created_at: string;
   items?: OrderItem[];
+  platform_fee_rate?: number;
+  platform_fee_amount?: number;
 }
 
 export interface OrderItem {

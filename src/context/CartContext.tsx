@@ -54,7 +54,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addToCart = (product: Product) => {
     if (!user) {
-      addToast('Vui lòng đăng nhập hoặc đăng nhập Khách để thêm sản phẩm!', 'info');
+      addToast('Vui lòng đăng nhập hoặc đăng ký để thêm sản phẩm!', 'info');
       return;
     }
 
@@ -139,17 +139,26 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
+    // --- Order-Level Platform Fee Calculation at this Point in Time ---
+    const feeOverrides = JSON.parse(localStorage.getItem('tq_shop_fee_overrides') || '{}');
+    const firstShopName = selectedCartItems[0]?.shopName;
+    const feeRate = feeOverrides[firstShopName] !== undefined ? feeOverrides[firstShopName] : 5;
+    const feeAmount = Math.round(subtotalPrice * (feeRate / 100));
+
     const orderId = `ORD-${Date.now()}`;
     const newOrder: Order = {
       id: orderId,
       user_id: user.id,
       user_email: user.email,
+      user_phone: user.phone,
       user_name: user.name,
       total_price: subtotalPrice,
       payment_method: paymentMethod,
       shipping_address: address,
       status: 'completed',
       created_at: new Date().toISOString(),
+      platform_fee_rate: feeRate,
+      platform_fee_amount: feeAmount,
       items: selectedCartItems.map(item => ({
         product_id: item.id,
         product_name: item.title,
@@ -160,15 +169,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     try {
+      // 1. Insert order with per-order fee details into Supabase cloud table `orders`
       const { error: orderError } = await supabase.from('orders').insert([
         {
           id: orderId,
           user_id: user.id,
           user_email: user.email,
+          user_phone: user.phone,
+          user_name: user.name,
           total_price: subtotalPrice,
           payment_method: paymentMethod,
           shipping_address: address,
-          status: 'completed'
+          status: 'completed',
+          platform_fee_rate: feeRate,
+          platform_fee_amount: feeAmount
         }
       ]);
 
@@ -181,6 +195,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }));
         await supabase.from('order_items').insert(orderItemsPayload);
       }
+
+      // 2. Broadcast Realtime Channel Event so Shop and Admin Dashboards update immediately
+      await supabase.channel('public:orders').send({
+        type: 'broadcast',
+        event: 'new_order_placed',
+        payload: newOrder
+      });
     } catch (err) {
       console.warn('Supabase DB placement fallback active:', err);
     }
@@ -191,7 +212,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCart(prev => prev.filter(i => i.selected === false));
 
-    addToast(`🎉 Đặt hàng thành công! Mã đơn #${orderId}. Tổng tiền: ${subtotalPrice.toLocaleString('vi-VN')} VNĐ.`, 'success');
+    addToast(`🎉 Đặt hàng thành công! Đơn #${orderId} (Phí sàn ${feeRate}%: ${feeAmount.toLocaleString('vi-VN')}đ) đã được đồng bộ toàn hệ thống.`, 'success');
     return true;
   };
 

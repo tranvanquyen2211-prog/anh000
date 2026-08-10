@@ -21,7 +21,8 @@ import {
   Sparkles,
   AlertTriangle,
   Calendar,
-  ShieldAlert
+  ShieldAlert,
+  Percent
 } from 'lucide-react';
 
 interface ShopManagementDashboardProps {
@@ -96,13 +97,16 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
     p => p.shopName.toLowerCase() === (user.name || '').toLowerCase() || p.shopName.includes(user.name || '')
   );
 
-  // --- REVENUE & WITHDRAWAL CALCULATIONS ---
+  // --- REVENUE & PER-ORDER PLATFORM FEE CALCULATIONS ---
   const shopOrders = orders.filter(o => o.items && o.items.length > 0);
   const grossRevenue = shopOrders.reduce((sum, o) => sum + (o.total_price || 0), 0);
   
-  // Platform fee rate (Default 5%)
-  const platformFeeRate = 5;
-  const platformFeeAmount = Math.round(grossRevenue * (platformFeeRate / 100));
+  // Calculate total platform fee by summing per-order recorded platform fees at each point in time
+  const totalPlatformFeeAmount = shopOrders.reduce((sum, o) => {
+    if (o.platform_fee_amount !== undefined) return sum + o.platform_fee_amount;
+    const feeRate = o.platform_fee_rate !== undefined ? o.platform_fee_rate : 5;
+    return sum + Math.round((o.total_price || 0) * (feeRate / 100));
+  }, 0);
   
   // Existing withdrawals list for this shop
   const savedWithdrawals: any[] = JSON.parse(localStorage.getItem('tq_withdrawals') || '[]');
@@ -111,8 +115,8 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   );
   const totalWithdrawn = myShopWithdrawals.reduce((sum, w) => sum + (w.amount || 0), 0);
 
-  // Eligible withdrawable balance (Số dư hợp lệ có thể rút) = Gross Revenue - Platform Fee - Total Withdrawn
-  const eligibleWithdrawableBalance = Math.max(0, grossRevenue - platformFeeAmount - totalWithdrawn);
+  // Eligible withdrawable balance = Gross Revenue - Sum of Per-Order Platform Fees - Total Withdrawn
+  const eligibleWithdrawableBalance = Math.max(0, grossRevenue - totalPlatformFeeAmount - totalWithdrawn);
 
   // --- DATE & FREQUENCY RESTRICTION RULES ---
   const today = new Date();
@@ -195,7 +199,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
     }
 
     if (Number(withdrawAmount) > eligibleWithdrawableBalance) {
-      addToast(`❌ Số tiền rút vượt quá số dư hợp lệ có thể rút (${eligibleWithdrawableBalance.toLocaleString('vi-VN')} đ sau khi trừ ${platformFeeRate}% phí sàn)!`, 'error');
+      addToast(`❌ Số tiền rút vượt quá số dư hợp lệ có thể rút (${eligibleWithdrawableBalance.toLocaleString('vi-VN')} đ sau khi trừ phí sàn từng đơn)!`, 'error');
       return;
     }
 
@@ -289,7 +293,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] text-slate-400 font-bold uppercase block">Số Dư Hợp Lệ Rút (-5%)</span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase block">Số Dư Hợp Lệ Rút</span>
               <h4 className="text-sm font-black text-amber-400 font-mono">{eligibleWithdrawableBalance.toLocaleString('vi-VN')} đ</h4>
             </div>
           </div>
@@ -341,7 +345,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
               activeTab === 'earnings' ? 'border-emerald-400 text-emerald-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <CreditCard className="w-4 h-4" /> 💰 Ví Doanh Thu & Rút Tiền (Ngày 14 & 25)
+            <CreditCard className="w-4 h-4" /> 💰 Ví Doanh Thu & Phí Sàn Từng Đơn (Ngày 14 & 25)
           </button>
 
           <button
@@ -414,68 +418,83 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
             </div>
           )}
 
-          {/* TAB 2: SHOP ORDERS */}
+          {/* TAB 2: SHOP ORDERS WITH PER-ORDER PLATFORM FEES */}
           {activeTab === 'orders' && (
             <div className="space-y-4">
               <h3 className="text-xs font-black text-amber-400 uppercase">
-                DANH SÁCH ĐƠN HÀNG KHÁCH ĐẶT CỬA HÀNG ({shopOrders.length})
+                DANH SÁCH ĐƠN HÀNG CỬA HÀNG & PHÍ SÀN TÍNH THEO TỪNG ĐƠN ({shopOrders.length})
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-slate-950 text-slate-400 text-[10px] uppercase border-b border-slate-800">
                       <th className="p-3">Mã Đơn Hàng</th>
+                      <th className="p-3">Thời gian</th>
                       <th className="p-3">Khách Hàng</th>
-                      <th className="p-3">SĐT Liên Hệ</th>
-                      <th className="p-3 text-right">Tổng Tiền</th>
-                      <th className="p-3 text-center">Thanh Toán</th>
+                      <th className="p-3 text-right">Tổng Tiền Gộp</th>
+                      <th className="p-3 text-center">Phí Sàn Tùy Thời Điểm</th>
+                      <th className="p-3 text-right">Tiền Thực Nhận Shop</th>
                       <th className="p-3 text-center">Trạng Thái</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60">
-                    {shopOrders.map(o => (
-                      <tr key={o.id} className="hover:bg-slate-950/50">
-                        <td className="p-3 font-mono font-bold text-amber-400">#{o.id}</td>
-                        <td className="p-3 font-bold text-slate-100">{o.user_name || 'Khách Hàng TQ'}</td>
-                        <td className="p-3 font-mono text-slate-300">{o.user_phone || '09xxxxxxxx'}</td>
-                        <td className="p-3 text-right font-black text-emerald-400 font-mono">
-                          {o.total_price.toLocaleString('vi-VN')} đ
-                        </td>
-                        <td className="p-3 text-center uppercase font-bold text-blue-400 text-[10px]">
-                          {o.payment_method === 'wallet' ? '💳 VÍ TQ PAY' : '💵 TIỀN MẶT'}
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold text-[9px]">
-                            ✓ Hoàn Thành
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {shopOrders.map(o => {
+                      const feeRate = o.platform_fee_rate !== undefined ? o.platform_fee_rate : 5;
+                      const feeAmt = o.platform_fee_amount !== undefined ? o.platform_fee_amount : Math.round(o.total_price * (feeRate / 100));
+                      const netReceived = o.total_price - feeAmt;
+
+                      return (
+                        <tr key={o.id} className="hover:bg-slate-950/50">
+                          <td className="p-3 font-mono font-bold text-amber-400">#{o.id}</td>
+                          <td className="p-3 font-mono text-slate-400 text-[10px]">{new Date(o.created_at).toLocaleString('vi-VN')}</td>
+                          <td className="p-3 font-bold text-slate-100">{o.user_name || 'Khách Hàng TQ'}</td>
+                          <td className="p-3 text-right font-black text-blue-400 font-mono">
+                            {o.total_price.toLocaleString('vi-VN')} đ
+                          </td>
+                          <td className="p-3 text-center font-bold text-rose-400 text-[10px]">
+                            <span className="bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/40">
+                              -{feeRate}% ({feeAmt.toLocaleString('vi-VN')}đ)
+                            </span>
+                          </td>
+                          <td className="p-3 text-right font-black text-emerald-400 font-mono">
+                            +{netReceived.toLocaleString('vi-VN')} đ
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold text-[9px]">
+                              ✓ Hoàn Thành
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
           )}
 
-          {/* TAB 3: EARNINGS & WITHDRAWAL MECHANISM */}
+          {/* TAB 3: EARNINGS & PER-ORDER FEE BREAKDOWN */}
           {activeTab === 'earnings' && (
             <div className="space-y-6 max-w-2xl">
               
               {/* Financial Calculation Breakdown Card */}
               <div className="bg-slate-950 p-5 rounded-2xl border border-amber-500/30 space-y-3">
-                <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" /> BẢNG TÍNH DOANH THU & SỐ DƯ HỢP LỆ CÓ THỂ RÚT
-                </h3>
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                    <Percent className="w-4 h-4 text-rose-400" /> BẢNG TỔNG HỢP PHÍ SÀN TÍNH THEO TỪNG ĐƠN HÀNG REALTIME
+                  </h3>
+                  <span className="text-[10px] text-emerald-400 font-bold">✓ REALTIME SYNCED WITH SUPABASE</span>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                    <span className="text-slate-400 text-[10px] block font-bold">1. Doanh Thu Gộp:</span>
+                    <span className="text-slate-400 text-[10px] block font-bold">1. Tổng Doanh Thu Gộp:</span>
                     <h4 className="text-base font-black text-blue-400 font-mono mt-0.5">{grossRevenue.toLocaleString('vi-VN')} đ</h4>
                   </div>
 
                   <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                    <span className="text-slate-400 text-[10px] block font-bold">2. Phí Sàn TQ Store ({platformFeeRate}%):</span>
-                    <h4 className="text-base font-black text-rose-400 font-mono mt-0.5">-{platformFeeAmount.toLocaleString('vi-VN')} đ</h4>
+                    <span className="text-slate-400 text-[10px] block font-bold">2. Tổng Phí Sàn (Từng đơn):</span>
+                    <h4 className="text-base font-black text-rose-400 font-mono mt-0.5">-{totalPlatformFeeAmount.toLocaleString('vi-VN')} đ</h4>
                   </div>
 
                   <div className="bg-slate-900 p-3 rounded-xl border border-emerald-500/40">
@@ -497,9 +516,9 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
                 </div>
 
                 <div className="text-[11px] space-y-1 text-slate-300 pl-7">
-                  <p>• <strong>Lịch rút tiền:</strong> Hệ thống chỉ mở cổng chấp nhận lệnh rút tiền vào đúng **Ngày 14** và **Ngày 25** hàng tháng. (Hôm nay: **Ngày {currentDay}** - {isWithdrawalDay ? '✅ CỔNG ĐANG MỞ' : '🔒 CỔNG ĐANG ĐÓNG'})</p>
+                  <p>• <strong>Phí sàn theo từng đơn:</strong> Phí sàn được chốt và ghi nhận riêng biệt trên từng đơn hàng tại thời điểm phát sinh đơn.</p>
+                  <p>• <strong>Lịch rút tiền:</strong> Cổng chấp nhận lệnh rút mở vào đúng **Ngày 14** và **Ngày 25** hàng tháng. (Hôm nay: **Ngày {currentDay}** - {isWithdrawalDay ? '✅ CỔNG ĐANG MỞ' : '🔒 CỔNG ĐANG ĐÓNG'})</p>
                   <p>• <strong>Tần suất rút:</strong> Mỗi ngày gian hàng chỉ được tạo tối đa **1 lệnh rút tiền**.</p>
-                  <p>• <strong>Công thức số dư hợp lệ:</strong> `Số dư thực rút = Tổng doanh thu - 5% phí sàn - Tiền đã rút`.</p>
                 </div>
               </div>
 
