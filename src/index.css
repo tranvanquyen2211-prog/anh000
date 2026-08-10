@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0F2C59;
+  --color-navy-dark: #0A1E3F;
+  --color-navy-light: #1A3B6E;
+  --color-orange: #FF6B00;
+  --color-orange-hover: #E65100;
+  --color-gold: #FFD700;
+  --color-gold-dark: #B8860B;
+  --font-sans: 'Montserrat', sans-serif;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  overflow-x: hidden;
+}
+
+.bg-pattern {
+  background-image: radial-gradient(#1B2E4B 0.75px, transparent 0.75px);
+  background-size: 12px 12px;
+  opacity: 0.15;
+}
+
+.product-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 28px -8px rgba(15, 44, 89, 0.15);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 1);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 1);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 1);
+}
