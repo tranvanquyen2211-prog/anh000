@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { ToastContainer } from './components/Toast';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
@@ -11,6 +12,7 @@ import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { OrderHistoryModal } from './components/OrderHistoryModal';
+import { AdminThemeCustomizer } from './components/AdminThemeCustomizer';
 import { LiveChatWidget } from './components/LiveChatWidget';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
@@ -28,6 +30,7 @@ function MainApp() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
+  const [isAdminThemeOpen, setIsAdminThemeOpen] = useState(false);
 
   // Chat product context
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
@@ -70,13 +73,14 @@ function MainApp() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
+    <div className="min-h-screen flex flex-col transition-colors duration-300">
       <ToastContainer />
 
       <Header
         onOpenAuthModal={() => setIsAuthOpen(true)}
         onOpenCartDrawer={() => setIsCartOpen(true)}
         onOpenOrderHistory={() => setIsOrderHistoryOpen(true)}
+        onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         searchQuery={searchQuery}
@@ -158,6 +162,11 @@ function MainApp() {
         isOpen={isOrderHistoryOpen}
         onClose={() => setIsOrderHistoryOpen(false)}
       />
+
+      <AdminThemeCustomizer
+        isOpen={isAdminThemeOpen}
+        onClose={() => setIsAdminThemeOpen(false)}
+      />
     </div>
   );
 }
@@ -167,7 +176,9 @@ export default function App() {
     <ToastProvider>
       <AuthProvider>
         <CartProvider>
-          <MainApp />
+          <ThemeProvider>
+            <MainApp />
+          </ThemeProvider>
         </CartProvider>
       </AuthProvider>
     </ToastProvider>

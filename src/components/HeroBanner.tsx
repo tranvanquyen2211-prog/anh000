@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, ShieldCheck, ArrowRight } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
 
 interface HeroBannerProps {
@@ -7,6 +8,8 @@ interface HeroBannerProps {
 }
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({ onSelectCategory }) => {
+  const { theme } = useTheme();
+
   return (
     <div className="space-y-6">
       {/* Main Banner Hero */}
@@ -17,10 +20,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onSelectCategory }) => {
             <Sparkles className="w-3.5 h-3.5" /> Khám phá Bộ sưu tập Đa mô hình
           </div>
           <h1 className="text-3xl md:text-5xl font-black leading-tight tracking-tight">
-            ƯU ĐÃI LÊN ĐẾN <span className="text-orange">50%</span>
+            {theme.heroTitle || 'ƯU ĐÃI LÊN ĐẾN'} <span className="text-orange">{theme.heroDiscount || '50%'}</span>
           </h1>
           <p className="text-xs md:text-sm text-gray-300 font-medium leading-relaxed">
-            Thuê đồ thời trang, Mua sắm quần áo, Đặt đồ ăn & Uống F&B, Đặt lịch Spa Làm Đẹp thời gian thực trên cùng một nền tảng.
+            {theme.heroSubtitle || 'Thuê đồ thời trang, Mua sắm quần áo, Đặt đồ ăn & Uống F&B, Đặt lịch Spa Làm Đẹp thời gian thực trên cùng một nền tảng.'}
           </p>
           <div className="pt-2 flex flex-wrap justify-center md:justify-start gap-3">
             <button
@@ -36,8 +39,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onSelectCategory }) => {
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-orange to-amber-400 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
             <img
-              src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80"
-              alt="TQ Store Banner"
+              src={theme.heroImgUrl || 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80'}
+              alt="Banner"
               className="relative w-full max-w-md h-60 md:h-64 object-cover rounded-2xl shadow-2xl border-2 border-white/20"
             />
           </div>
@@ -52,7 +55,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onSelectCategory }) => {
           </div>
           <div>
             <h3 className="font-extrabold text-sm sm:text-base flex items-center gap-2">
-              ƯU ĐÃI VÍ CÁ NHÂN TQ PAY: GIẢM THÊM 2% CHO MỌI ĐƠN HÀNG
+              {theme.promoBarText || `ƯU ĐÃI VÍ CÁ NHÂN TQ PAY: GIẢM THÊM ${theme.walletDiscountRate || 2}% CHO MỌI ĐƠN HÀNG`}
               <span className="bg-white text-emerald-900 text-[9px] uppercase font-black px-2 py-0.5 rounded-full shadow-xs">Hot</span>
             </h3>
             <p className="text-xs text-emerald-100 mt-0.5">

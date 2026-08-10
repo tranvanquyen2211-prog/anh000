@@ -71,3 +71,19 @@ export interface ToastMessage {
   type: 'success' | 'error' | 'info';
   message: string;
 }
+
+export interface ThemeConfig {
+  siteName: string;
+  tagline: string;
+  logoText: string;
+  primaryColor: string;
+  accentColor: string;
+  themeMode: 'light' | 'dark' | 'glass';
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDiscount: string;
+  heroImgUrl: string;
+  promoBarText: string;
+  walletDiscountRate: number;
+  coinCashbackRate: number;
+}

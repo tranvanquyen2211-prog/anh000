@@ -1,13 +1,15 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
   onOpenCartDrawer: () => void;
   onOpenOrderHistory: () => void;
+  onOpenThemeCustomizer?: () => void;
   selectedCategory: ShopType | 'ALL';
   onSelectCategory: (cat: ShopType | 'ALL') => void;
   searchQuery: string;
@@ -20,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuthModal,
   onOpenCartDrawer,
   onOpenOrderHistory,
+  onOpenThemeCustomizer,
   selectedCategory,
   onSelectCategory,
   searchQuery,
@@ -29,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { user, logout } = useAuth();
   const { totalItemsCount } = useCart();
+  const { theme } = useTheme();
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100">
@@ -39,14 +43,14 @@ export const Header: React.FC<HeaderProps> = ({
           className="flex items-center gap-2.5 cursor-pointer group shrink-0"
         >
           <div className="w-10 h-10 bg-navy rounded-xl flex items-center justify-center text-amber-400 font-extrabold text-xl shadow-md group-hover:scale-105 transition-transform">
-            TQ
+            {theme.logoText || 'TQ'}
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1">
-              <span className="text-2xl font-black tracking-wider text-navy">TQ Store</span>
+              <span className="text-2xl font-black tracking-wider text-navy">{theme.siteName || 'TQ Store'}</span>
               <span className="w-2.5 h-2.5 bg-orange rounded-full group-hover:scale-125 transition-transform"></span>
             </div>
-            <span className="text-[10px] text-gray-500 font-semibold tracking-wide">Realtime Marketplace Platform</span>
+            <span className="text-[10px] text-gray-500 font-semibold tracking-wide">{theme.tagline || 'Realtime Marketplace Platform'}</span>
           </div>
         </div>
 
@@ -77,6 +81,18 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Actions & Account */}
         <div className="flex items-center gap-3">
+          {/* Admin UI Customizer Button for Super Admin */}
+          {user && user.role === 'SUPER_ADMIN' && onOpenThemeCustomizer && (
+            <button
+              onClick={onOpenThemeCustomizer}
+              className="bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer animate-pulse border border-amber-300"
+              title="Chỉnh sửa giao diện trang web"
+            >
+              <Palette className="w-4 h-4" />
+              <span>Giao Diện Admin</span>
+            </button>
+          )}
+
           {!user ? (
             <div className="flex items-center gap-2">
               <button
@@ -116,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-bold text-navy max-w-[100px] truncate">{user.name}</span>
                   <span className="text-[9px] font-extrabold text-orange uppercase">
-                    {user.isGuest ? 'Khách (Ẩn danh)' : user.role}
+                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : (user.isGuest ? 'Khách (Ẩn danh)' : user.role)}
                   </span>
                 </div>
 
