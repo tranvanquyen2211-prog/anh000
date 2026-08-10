@@ -25,6 +25,7 @@ export interface Order {
   id: string;
   user_id?: string;
   user_email?: string;
+  user_phone?: string;
   user_name?: string;
   total_price: number;
   payment_method: 'wallet' | 'cash' | 'transfer';
@@ -49,6 +50,7 @@ export interface ChatMessage {
   id: string;
   user_id?: string;
   user_email?: string;
+  user_phone?: string;
   user_name: string;
   content: string;
   created_at: string;
@@ -58,6 +60,7 @@ export interface ChatMessage {
 export interface UserProfile {
   id: string;
   email?: string;
+  phone?: string;
   name: string;
   role: 'USER' | 'SHOP' | 'STAFF' | 'SUPER_ADMIN';
   isGuest?: boolean;

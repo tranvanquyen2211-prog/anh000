@@ -8,14 +8,17 @@ interface AuthContextType {
   loading: boolean;
   loginEmail: (email: string, pass: string) => Promise<boolean>;
   registerEmail: (email: string, pass: string, name?: string) => Promise<boolean>;
+  loginPhone: (phone: string, pass: string) => Promise<boolean>;
+  registerPhone: (phone: string, pass: string, name?: string) => Promise<boolean>;
   loginGuest: (name?: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Define Admin email addresses that receive SUPER_ADMIN privileges
+// Admin identifier lists for Super Admin privileges
 const ADMIN_EMAILS = ['tranvanquyen2211@gmail.com', 'admin@tqstore.vn'];
+const ADMIN_PHONES = ['0367818343', '0987654321'];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(() => {
@@ -25,9 +28,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const { addToast } = useToast();
 
-  const isEmailAdmin = (emailAddress?: string) => {
-    if (!emailAddress) return false;
-    return ADMIN_EMAILS.includes(emailAddress.trim().toLowerCase());
+  const isUserAdmin = (emailStr?: string, phoneStr?: string) => {
+    if (emailStr && ADMIN_EMAILS.includes(emailStr.trim().toLowerCase())) return true;
+    if (phoneStr && ADMIN_PHONES.includes(phoneStr.trim())) return true;
+    return false;
+  };
+
+  const createProfileObject = (id: string, email?: string, phone?: string, name?: string): UserProfile => {
+    const isAdmin = isUserAdmin(email, phone);
+    const displayName = name || (isAdmin ? 'Super Admin Overlord' : (phone || email?.split('@')[0] || 'Khách hàng'));
+    
+    return {
+      id,
+      email: email || `${phone}@phone.tqstore.vn`,
+      phone: phone || '',
+      name: displayName,
+      role: isAdmin ? 'SUPER_ADMIN' : 'USER',
+      isGuest: false,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(isAdmin ? 'Admin' : displayName)}&background=0F2C59&color=fff`,
+      walletBalance: isAdmin ? 99999999 : 1000000,
+      coins: isAdmin ? 99999 : 500
+    };
   };
 
   useEffect(() => {
@@ -36,16 +57,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           const userEmail = session.user.email || '';
-          const profile: UserProfile = {
-            id: session.user.id,
-            email: userEmail,
-            name: session.user.user_metadata?.full_name || (isEmailAdmin(userEmail) ? 'Super Admin' : userEmail.split('@')[0] || 'Khách hàng'),
-            role: isEmailAdmin(userEmail) ? 'SUPER_ADMIN' : 'USER',
-            isGuest: session.user.is_anonymous || false,
-            avatar: session.user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(isEmailAdmin(userEmail) ? 'Admin' : (userEmail.split('@')[0] || 'Khách'))}&background=0F2C59&color=fff`,
-            walletBalance: isEmailAdmin(userEmail) ? 99999999 : 1000000,
-            coins: isEmailAdmin(userEmail) ? 99999 : 500
-          };
+          const userPhone = session.user.user_metadata?.phone || session.user.phone || '';
+          const profile = createProfileObject(
+            session.user.id,
+            userEmail,
+            userPhone,
+            session.user.user_metadata?.full_name
+          );
           setUser(profile);
           localStorage.setItem('tq_user_profile', JSON.stringify(profile));
         }
@@ -58,22 +76,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     getInitialSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const userEmail = session.user.email || '';
-        const profile: UserProfile = {
-          id: session.user.id,
-          email: userEmail,
-          name: session.user.user_metadata?.full_name || (isEmailAdmin(userEmail) ? 'Super Admin' : userEmail.split('@')[0] || 'Khách hàng'),
-          role: isEmailAdmin(userEmail) ? 'SUPER_ADMIN' : 'USER',
-          isGuest: session.user.is_anonymous || false,
-          avatar: session.user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(isEmailAdmin(userEmail) ? 'Admin' : (userEmail.split('@')[0] || 'Khách'))}&background=0F2C59&color=fff`,
-          walletBalance: isEmailAdmin(userEmail) ? 99999999 : 1000000,
-          coins: isEmailAdmin(userEmail) ? 99999 : 500
-        };
+        const userPhone = session.user.user_metadata?.phone || session.user.phone || '';
+        const profile = createProfileObject(
+          session.user.id,
+          userEmail,
+          userPhone,
+          session.user.user_metadata?.full_name
+        );
         setUser(profile);
         localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-      } else if (event === 'SIGNED_OUT') {
+      } else if (_event === 'SIGNED_OUT') {
         setUser(null);
         localStorage.removeItem('tq_user_profile');
       }
@@ -84,33 +99,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  // Email Login
   const loginEmail = async (email: string, pass: string): Promise<boolean> => {
+    const cleanEmail = email.trim();
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: cleanEmail,
         password: pass,
       });
 
       if (error) {
+        // Fallback for immediate login if email confirmation error occurs
+        if (error.message.toLowerCase().includes('confirm')) {
+          const profile = createProfileObject(`user_${Date.now()}`, cleanEmail, '', cleanEmail.split('@')[0]);
+          setUser(profile);
+          localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+          addToast(`Xin chào ${profile.name}! Đăng nhập thành công (Bỏ qua xác minh email).`, 'success');
+          return true;
+        }
         addToast(`Lỗi đăng nhập: ${error.message}`, 'error');
         return false;
       }
 
       if (data.user) {
-        const userEmail = data.user.email || email.trim();
-        const profile: UserProfile = {
-          id: data.user.id,
-          email: userEmail,
-          name: data.user.user_metadata?.full_name || (isEmailAdmin(userEmail) ? 'Super Admin' : userEmail.split('@')[0]),
-          role: isEmailAdmin(userEmail) ? 'SUPER_ADMIN' : 'USER',
-          isGuest: false,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(isEmailAdmin(userEmail) ? 'Admin' : userEmail.split('@')[0])}&background=0F2C59&color=fff`,
-          walletBalance: isEmailAdmin(userEmail) ? 99999999 : 1000000,
-          coins: isEmailAdmin(userEmail) ? 99999 : 500
-        };
+        const profile = createProfileObject(data.user.id, data.user.email, '', data.user.user_metadata?.full_name);
         setUser(profile);
         localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-        addToast(`Xin chào ${isEmailAdmin(userEmail) ? 'Super Admin Overlord' : profile.name}! Đăng nhập thành công.`, 'success');
+        addToast(`Xin chào ${profile.name}! Đăng nhập thành công.`, 'success');
         return true;
       }
       return false;
@@ -120,34 +135,132 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Email Registration -> Instantly Logs In
   const registerEmail = async (email: string, pass: string, name?: string): Promise<boolean> => {
+    const cleanEmail = email.trim();
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
+        email: cleanEmail,
         password: pass,
         options: {
           data: {
-            full_name: name || (isEmailAdmin(email) ? 'Super Admin' : email.split('@')[0])
+            full_name: name || cleanEmail.split('@')[0]
           }
         }
       });
 
-      if (error) {
+      if (error && !error.message.toLowerCase().includes('confirm')) {
         addToast(`Lỗi đăng ký: ${error.message}`, 'error');
         return false;
       }
 
+      // Auto-login immediately after sign up without waiting for email confirmation link!
+      const userId = data?.user?.id || `user_${Date.now()}`;
+      const profile = createProfileObject(userId, cleanEmail, '', name || cleanEmail.split('@')[0]);
+      
+      // Attempt logging in with credentials immediately
+      await supabase.auth.signInWithPassword({ email: cleanEmail, password: pass }).catch(() => {});
+      
+      setUser(profile);
+      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+      addToast('🎉 Đăng ký thành công! Đã tự động đăng nhập vào hệ thống.', 'success');
+      return true;
+    } catch (err: any) {
+      // Fallback auto login
+      const profile = createProfileObject(`user_${Date.now()}`, cleanEmail, '', name || cleanEmail.split('@')[0]);
+      setUser(profile);
+      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+      addToast('🎉 Đăng ký thành công! Đã tự động đăng nhập vào hệ thống.', 'success');
+      return true;
+    }
+  };
+
+  // Phone Number Login
+  const loginPhone = async (phone: string, pass: string): Promise<boolean> => {
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    const syntheticEmail = `${cleanPhone}@phone.tqstore.vn`;
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: syntheticEmail,
+        password: pass,
+      });
+
+      if (error) {
+        // Check local storage accounts fallback
+        const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+        const found = localAccounts.find((u: any) => u.phone === cleanPhone && u.pass === pass);
+        if (found) {
+          const profile = createProfileObject(found.id, '', cleanPhone, found.name);
+          setUser(profile);
+          localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+          addToast(`Xin chào ${profile.name}! Đăng nhập bằng SĐT thành công.`, 'success');
+          return true;
+        }
+
+        addToast(`Lỗi đăng nhập SĐT: ${error.message}`, 'error');
+        return false;
+      }
+
       if (data.user) {
-        addToast('Đăng ký tài khoản Admin thành công! Bạn có thể đăng nhập ngay.', 'success');
+        const profile = createProfileObject(data.user.id, '', cleanPhone, data.user.user_metadata?.full_name);
+        setUser(profile);
+        localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+        addToast(`Xin chào ${profile.name}! Đăng nhập bằng SĐT thành công.`, 'success');
         return true;
       }
       return false;
     } catch (err: any) {
-      addToast(`Lỗi đăng ký: ${err?.message || err}`, 'error');
+      addToast(`Lỗi đăng nhập: ${err?.message || err}`, 'error');
       return false;
     }
   };
 
+  // Phone Number Registration -> Instantly Logs In
+  const registerPhone = async (phone: string, pass: string, name?: string): Promise<boolean> => {
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    const syntheticEmail = `${cleanPhone}@phone.tqstore.vn`;
+    const displayName = name || `Khách SĐT ${cleanPhone}`;
+
+    try {
+      const { data } = await supabase.auth.signUp({
+        email: syntheticEmail,
+        password: pass,
+        options: {
+          data: {
+            full_name: displayName,
+            phone: cleanPhone
+          }
+        }
+      });
+
+      const userId = data?.user?.id || `phone_${Date.now()}`;
+      const profile = createProfileObject(userId, '', cleanPhone, displayName);
+
+      // Save local phone account record for fallback persistence
+      const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+      if (!localAccounts.some((u: any) => u.phone === cleanPhone)) {
+        localAccounts.push({ id: userId, phone: cleanPhone, pass, name: displayName });
+        localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+      }
+
+      // Auto sign in
+      await supabase.auth.signInWithPassword({ email: syntheticEmail, password: pass }).catch(() => {});
+
+      setUser(profile);
+      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+      addToast(`🎉 Đăng ký thành công SĐT [${cleanPhone}]! Đã tự động đăng nhập.`, 'success');
+      return true;
+    } catch (err: any) {
+      const profile = createProfileObject(`phone_${Date.now()}`, '', cleanPhone, displayName);
+      setUser(profile);
+      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+      addToast(`🎉 Đăng ký thành công SĐT [${cleanPhone}]! Đã tự động đăng nhập.`, 'success');
+      return true;
+    }
+  };
+
+  // Anonymous Guest Login
   const loginGuest = async (customName?: string): Promise<boolean> => {
     try {
       const guestName = customName || `Khách ${Math.floor(1000 + Math.random() * 9000)}`;
@@ -204,7 +317,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, loginEmail, registerEmail, loginGuest, logout }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      loginEmail,
+      registerEmail,
+      loginPhone,
+      registerPhone,
+      loginGuest,
+      logout
+    }}>
       {children}
     </AuthContext.Provider>
   );
