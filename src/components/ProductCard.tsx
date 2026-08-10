@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import type { Product } from '../types';
 import { useCart } from '../context/CartContext';
-import { ShoppingBag, MessageSquare, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingBag, MessageSquare, Star, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
   onOpenChatWithProduct: (product: Product) => void;
+  onOpenProductDetail?: (product: Product) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenChatWithProduct }) => {
+export const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  onOpenChatWithProduct,
+  onOpenProductDetail
+}) => {
   const { addToCart } = useCart();
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
@@ -35,8 +40,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenChatWit
     setCurrentImgIndex(prev => (prev - 1 + imagesList.length) % imagesList.length);
   };
 
+  const handleCardClick = () => {
+    if (onOpenProductDetail) {
+      onOpenProductDetail(product);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between product-card relative group">
+    <div
+      onClick={handleCardClick}
+      className="bg-white rounded-2xl p-3.5 border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between product-card relative group cursor-pointer"
+    >
       {/* Shop Category Badge */}
       <span className={`absolute top-4 left-4 text-[9px] font-black px-2.5 py-0.5 rounded-full shadow-xs z-10 uppercase tracking-wider ${getBadgeStyle(product.shopType)}`}>
         {product.badge || product.shopType}
@@ -55,24 +69,31 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenChatWit
             className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
 
+          {/* Quick View Hover Overlay */}
+          <div className="absolute inset-0 bg-navy/20 backdrop-blur-[1px] opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+            <span className="bg-white/95 text-navy font-black text-[10px] px-3 py-1.5 rounded-full shadow-md flex items-center gap-1 uppercase tracking-wider">
+              <Eye className="w-3.5 h-3.5 text-orange" /> Xem chi tiết
+            </span>
+          </div>
+
           {/* Gallery Navigation Arrows */}
           {imagesList.length > 1 && (
             <>
               <button
                 onClick={prevImg}
-                className="absolute left-1 top-1/2 -translate-y-1/2 bg-navy/70 hover:bg-navy text-white p-1 rounded-full opacity-0 group-hover/img:opacity-100 transition cursor-pointer"
+                className="absolute left-1 top-1/2 -translate-y-1/2 bg-navy/70 hover:bg-navy text-white p-1 rounded-full opacity-0 group-hover/img:opacity-100 transition cursor-pointer z-10"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={nextImg}
-                className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy/70 hover:bg-navy text-white p-1 rounded-full opacity-0 group-hover/img:opacity-100 transition cursor-pointer"
+                className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy/70 hover:bg-navy text-white p-1 rounded-full opacity-0 group-hover/img:opacity-100 transition cursor-pointer z-10"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
 
               {/* Dots Indicator */}
-              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-full">
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-full z-10">
                 {imagesList.map((_, idx) => (
                   <span
                     key={idx}
@@ -92,7 +113,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenChatWit
           <span className="text-[10px] text-gray-400 font-extrabold tracking-tight uppercase truncate block">
             {product.shopName}
           </span>
-          <h3 className="font-extrabold text-xs text-navy line-clamp-2 min-h-[32px] mt-0.5 leading-snug">
+          <h3 className="font-extrabold text-xs text-navy line-clamp-2 min-h-[32px] mt-0.5 leading-snug group-hover:text-orange transition-colors">
             {product.title}
           </h3>
         </div>
@@ -121,14 +142,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenChatWit
       {/* Action Buttons */}
       <div className="space-y-1.5 mt-3.5 pt-2 border-t border-gray-100">
         <button
-          onClick={() => addToCart(product)}
+          onClick={(e) => { e.stopPropagation(); addToCart(product); }}
           className="w-full bg-navy hover:bg-navy-dark text-white text-xs font-extrabold py-2 rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
         >
           <ShoppingBag className="w-3.5 h-3.5 text-amber-400" /> Thêm vào giỏ
         </button>
 
         <button
-          onClick={() => onOpenChatWithProduct(product)}
+          onClick={(e) => { e.stopPropagation(); onOpenChatWithProduct(product); }}
           className="w-full bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-extrabold py-1.5 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
         >
           <MessageSquare className="w-3 h-3" /> Hỏi Shop Realtime

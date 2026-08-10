@@ -8,6 +8,7 @@ import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
 import { CategoryFilters } from './components/CategoryFilters';
 import { ProductCard } from './components/ProductCard';
+import { ProductDetailModal } from './components/ProductDetailModal';
 import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -46,7 +47,8 @@ function MainApp() {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isShopManagementOpen, setIsShopManagementOpen] = useState(false);
 
-  // Chat product context
+  // Selected product state for Detail view and Chat context
+  const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
 
   useEffect(() => {
@@ -183,7 +185,7 @@ function MainApp() {
                 SẢN PHẨM & DỊCH VỤ CÁC GIAN HÀNG
               </h2>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Supabase Realtime Marketplace • Thuê Đồ, Shop Bán Đồ, F&B, Spa
+                Supabase Realtime Marketplace • Bấm vào bất kỳ sản phẩm nào để xem chi tiết
               </p>
             </div>
             <span className="text-xs font-extrabold bg-navy/10 text-navy px-3.5 py-1.5 rounded-full border border-navy/20">
@@ -198,6 +200,7 @@ function MainApp() {
                   key={product.id}
                   product={product}
                   onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+                  onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
                 />
               ))}
             </div>
@@ -224,6 +227,13 @@ function MainApp() {
       />
 
       <Footer />
+
+      <ProductDetailModal
+        product={selectedProductForDetail}
+        onClose={() => setSelectedProductForDetail(null)}
+        onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+        onProceedToCheckout={() => setIsCartOpen(true)}
+      />
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       

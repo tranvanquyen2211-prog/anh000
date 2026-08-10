@@ -1,0 +1,259 @@
+import React, { useState } from 'react';
+import type { Product } from '../types';
+import { useCart } from '../context/CartContext';
+import {
+  X,
+  ShoppingCart,
+  Zap,
+  MessageCircle,
+  Store,
+  ShieldCheck,
+  Truck,
+  RotateCcw,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight,
+  PackageCheck
+} from 'lucide-react';
+
+interface ProductDetailModalProps {
+  product: Product | null;
+  onClose: () => void;
+  onOpenChatWithProduct: (prod: Product) => void;
+  onProceedToCheckout?: () => void;
+}
+
+export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
+  product,
+  onClose,
+  onOpenChatWithProduct,
+  onProceedToCheckout
+}) => {
+  const { addToCart } = useCart();
+
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+
+  if (!product) return null;
+
+  // Gather up to 7 images or fallback to main image
+  const galleryImages = product.images && product.images.length > 0
+    ? product.images
+    : [product.img];
+
+  const currentImage = galleryImages[activeImageIndex] || product.img;
+
+  const handleAddToCart = () => {
+    for (let i = 0; i < quantity; i++) {
+      addToCart(product);
+    }
+  };
+
+  const handleBuyNow = () => {
+    handleAddToCart();
+    onClose();
+    if (onProceedToCheckout) {
+      onProceedToCheckout();
+    }
+  };
+
+  const handlePrevImage = () => {
+    setActiveImageIndex(prev => (prev === 0 ? galleryImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setActiveImageIndex(prev => (prev === galleryImages.length - 1 ? 0 : prev + 1));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-navy-dark/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full relative border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 my-auto max-h-[92vh] flex flex-col">
+        
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 bg-white/80 hover:bg-white text-navy p-2 transition rounded-full shadow-md backdrop-blur-sm cursor-pointer border border-gray-200"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 sm:p-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            {/* LEFT COLUMN: Gallery & Thumbnails */}
+            <div className="space-y-4">
+              <div className="relative aspect-square bg-gray-50 rounded-2xl overflow-hidden border border-gray-200 group shadow-sm">
+                <img
+                  src={currentImage}
+                  alt={product.title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+
+                {/* Badge Tag */}
+                <span className="absolute top-3 left-3 bg-gradient-to-r from-orange to-amber-500 text-white font-extrabold text-xs px-3 py-1 rounded-full shadow-md uppercase tracking-wider">
+                  {product.badge || (product.shopType === 'RENTAL' ? '👗 CHO THUÊ' : product.shopType === 'FNB' ? '🧋 ĐỒ ĂN' : product.shopType === 'BEAUTY' ? '💄 SPA' : '🛍️ BÁN ĐỒ')}
+                </span>
+
+                {/* Arrow navigation for multi-images */}
+                {galleryImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={handlePrevImage}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-navy p-2 rounded-full shadow-md backdrop-blur-sm transition cursor-pointer"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={handleNextImage}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-navy p-2 rounded-full shadow-md backdrop-blur-sm transition cursor-pointer"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Thumbnails Row (up to 7 images) */}
+              {galleryImages.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                  {galleryImages.map((imgUrl, idx) => (
+                    <img
+                      key={idx}
+                      src={imgUrl}
+                      alt={`Thumb ${idx}`}
+                      onClick={() => setActiveImageIndex(idx)}
+                      className={`w-14 h-14 rounded-xl object-cover cursor-pointer border-2 transition-all ${
+                        activeImageIndex === idx
+                          ? 'border-orange scale-105 shadow-md'
+                          : 'border-gray-200 opacity-70 hover:opacity-100'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Trust Badges */}
+              <div className="grid grid-cols-3 gap-2 text-[10px] text-gray-600 font-bold bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>100% Chính Hãng</span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <Truck className="w-4 h-4 text-blue-600" />
+                  <span>Giao Hỏa Tốc 2H</span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  <RotateCcw className="w-4 h-4 text-purple-600" />
+                  <span>Đổi Trả Dễ Dàng</span>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: Product Info & Actions */}
+            <div className="space-y-5 flex flex-col justify-between">
+              <div className="space-y-4">
+                
+                {/* Shop Badge & Title */}
+                <div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-1">
+                    <Store className="w-4 h-4 text-amber-500" />
+                    <span>Gian Hàng: <strong className="text-navy">{product.shopName}</strong></span>
+                  </div>
+                  <h1 className="text-xl sm:text-2xl font-black text-navy leading-tight">
+                    {product.title}
+                  </h1>
+                </div>
+
+                {/* Price Display */}
+                <div className="bg-gradient-to-r from-orange/10 via-amber-50 to-orange/5 p-4 rounded-2xl border border-orange/20 flex items-baseline gap-3">
+                  <span className="text-2xl sm:text-3xl font-black text-orange font-mono">
+                    {product.price.toLocaleString('vi-VN')} VNĐ
+                  </span>
+                  <span className="text-xs text-gray-400 font-semibold line-through">
+                    {(product.price * 1.25).toLocaleString('vi-VN')} VNĐ
+                  </span>
+                  <span className="bg-orange text-white text-[10px] font-black px-2 py-0.5 rounded ml-auto">
+                    GIẢM 20%
+                  </span>
+                </div>
+
+                {/* Stock & Sales Info */}
+                <div className="flex items-center gap-4 text-xs font-bold text-gray-600 border-b border-gray-100 pb-3">
+                  <span className="flex items-center gap-1">
+                    <PackageCheck className="w-4 h-4 text-emerald-600" /> Kho: <strong className="text-navy">{product.stock || 50}</strong> sản phẩm
+                  </span>
+                  <span>•</span>
+                  <span>Đã bán: <strong className="text-navy">{product.salesCount || 12}</strong> lượt</span>
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <h3 className="text-xs font-black text-navy uppercase tracking-wider flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Mô Tả Chi Tiết Sản Phẩm / Dịch Vụ
+                  </h3>
+                  <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 p-3.5 rounded-2xl border border-gray-100 font-medium whitespace-pre-line">
+                    {product.details || `Sản phẩm cao cấp từ thương hiệu ${product.shopName}. Đảm bảo chất lượng tiêu chuẩn 100%, giặt sấy đóng gói vô trùng cẩn thận trước khi giao tới tay khách hàng.`}
+                  </p>
+                </div>
+
+                {/* Quantity Control */}
+                <div className="flex items-center gap-3 pt-2">
+                  <span className="text-xs font-bold text-navy">Số Lượng:</span>
+                  <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+                    <button
+                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                      className="px-3 py-1.5 font-black text-navy hover:bg-gray-200 transition cursor-pointer"
+                    >
+                      -
+                    </button>
+                    <span className="px-4 py-1.5 text-xs font-black text-navy font-mono">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => setQuantity(prev => prev + 1)}
+                      className="px-3 py-1.5 font-black text-navy hover:bg-gray-200 transition cursor-pointer"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={handleAddToCart}
+                    className="bg-navy hover:bg-navy-dark text-amber-400 font-black py-3.5 rounded-2xl text-xs uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2 cursor-pointer border border-amber-400/40"
+                  >
+                    <ShoppingCart className="w-4 h-4 text-amber-400" /> THÊM VÀO GIỎ HÀNG
+                  </button>
+
+                  <button
+                    onClick={handleBuyNow}
+                    className="bg-gradient-to-r from-orange to-amber-500 hover:from-orange-dark hover:to-amber-600 text-white font-black py-3.5 rounded-2xl text-xs uppercase tracking-wider transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Zap className="w-4 h-4 text-white" /> MUA NGAY
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenChatWithProduct(product);
+                  }}
+                  className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-black py-3 rounded-2xl text-xs uppercase tracking-wider transition border border-emerald-200 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4 text-emerald-600" /> CHAT VỚI SHOP VỀ SẢN PHẨM NÀY
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
