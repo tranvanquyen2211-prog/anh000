@@ -126,9 +126,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       salesCount: 1
     };
 
+    // Save to local custom products persistence
+    const localCustoms = JSON.parse(localStorage.getItem('tq_custom_products') || '[]');
+    localStorage.setItem('tq_custom_products', JSON.stringify([newProd, ...localCustoms]));
+
     try {
-      // Synchronize to Supabase Cloud Database table `products`
-      await supabase.from('products').insert([
+      // 1. Synchronize to Supabase Cloud Database table `products`
+      await supabase.from('products').upsert([
         {
           id: newProd.id,
           title: newProd.title,
@@ -144,6 +148,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           sales_count: 1
         }
       ]);
+
+      // 2. Broadcast Realtime Channel Event so all active users see the product instantly
+      await supabase.channel('public:products').send({
+        type: 'broadcast',
+        event: 'new_product_posted',
+        payload: newProd
+      });
     } catch (err) {
       console.warn('Cloud product insert active');
     }
@@ -158,7 +169,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     setDescription('');
     onClose();
 
-    addToast(`🎉 ĐÃ ĐĂNG SẢN PHẨM MỚI (${finalImagesList.length} ẢNH) THÀNH CÔNG!`, 'success');
+    addToast(`🎉 ĐÃ ĐĂNG SẢN PHẨM & ĐỒNG BỘ ĐÁM MÂY SUPABASE REALTIME THÀNH CÔNG!`, 'success');
   };
 
   return (
@@ -440,7 +451,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
-            {isSubmitting ? 'Đang Đăng Sản Phẩm...' : `XÁC NHẬN ĐĂNG SP DANH MỤC [${shopType}]`}
+            {isSubmitting ? 'Đang Đăng Sản Phẩm...' : `XÁC NHẬN ĐĂNG SP & ĐỒNG BỘ ĐÁM MÂY [${shopType}]`}
           </button>
         </form>
 

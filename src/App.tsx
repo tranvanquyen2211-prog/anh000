@@ -23,7 +23,11 @@ import type { Product, ShopType } from './types';
 import { supabase } from './lib/supabase';
 
 function MainApp() {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>(() => {
+    const savedCustoms = JSON.parse(localStorage.getItem('tq_custom_products') || '[]');
+    return [...savedCustoms, ...INITIAL_PRODUCTS];
+  });
+
   const [selectedCategory, setSelectedCategory] = useState<ShopType | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'shop' | 'orders' | 'chat'>('shop');
@@ -42,7 +46,7 @@ function MainApp() {
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchCloudProducts = async () => {
       try {
         const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
@@ -54,23 +58,64 @@ function MainApp() {
             shopType: p.shop_type || p.shopType || 'RETAIL',
             shopName: p.shop_name || p.shopName || 'TQ Store',
             img: p.img || p.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
+            images: p.images,
             badge: p.badge,
             details: p.details,
             stock: p.stock || 50,
             salesCount: p.sales_count || p.salesCount || 10
           }));
-          setProducts(formatted);
+
+          setProducts(prev => {
+            const map = new Map();
+            [...formatted, ...prev].forEach(item => map.set(item.id, item));
+            return Array.from(map.values());
+          });
         }
       } catch (err) {
-        console.warn('Using resilient initial products state:', err);
+        console.warn('Using resilient cloud products state:', err);
       }
     };
 
-    fetchProducts();
+    fetchCloudProducts();
+
+    // Supabase Realtime Subscription for Live Product Sync Across Browsers
+    const productChannel = supabase
+      .channel('public:products')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'products' }, (payload) => {
+        if (payload.new) {
+          const p = payload.new;
+          const formatted: Product = {
+            id: p.id,
+            title: p.title || p.name,
+            name: p.name || p.title,
+            price: p.price,
+            shopType: p.shop_type || p.shopType || 'RETAIL',
+            shopName: p.shop_name || p.shopName || 'TQ Store',
+            img: p.img || p.image_url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80',
+            images: p.images,
+            badge: p.badge,
+            details: p.details,
+            stock: p.stock || 50,
+            salesCount: p.sales_count || 10
+          };
+          setProducts(prev => [formatted, ...prev.filter(item => item.id !== formatted.id)]);
+        }
+      })
+      .on('broadcast', { event: 'new_product_posted' }, (payload) => {
+        if (payload?.payload) {
+          const formatted: Product = payload.payload;
+          setProducts(prev => [formatted, ...prev.filter(item => item.id !== formatted.id)]);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(productChannel);
+    };
   }, []);
 
   const handleProductAdded = (newProd: Product) => {
-    setProducts(prev => [newProd, ...prev]);
+    setProducts(prev => [newProd, ...prev.filter(item => item.id !== newProd.id)]);
   };
 
   const filteredProducts = products.filter(p => {
