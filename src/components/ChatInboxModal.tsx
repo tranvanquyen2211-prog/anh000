@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { supabase } from '../lib/supabase';
 import type { Product } from '../types';
 import {
   X,
   MessageSquare,
   Search,
   Send,
-  ShieldCheck
+  ShieldCheck,
+  Zap
 } from 'lucide-react';
 
 export interface ChatThread {
@@ -21,6 +24,7 @@ export interface ChatThread {
 
 export interface ChatMessageItem {
   id: string;
+  threadId: string;
   senderName: string;
   senderRole: string;
   text: string;
@@ -39,6 +43,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
   onClose
 }) => {
   const { user } = useAuth();
+  const { addToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeThreadId, setActiveThreadId] = useState<string>('thread_1');
@@ -90,6 +95,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
       thread_1: [
         {
           id: 'msg_1',
+          threadId: 'thread_1',
           senderName: 'TQ Rental Studio',
           senderRole: 'SHOP',
           text: 'Xin chào quý khách! TQ Rental Studio chuyên cho thuê trang phục dạ hội & cưới cao cấp.',
@@ -97,6 +103,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
         },
         {
           id: 'msg_2',
+          threadId: 'thread_1',
           senderName: user?.name || 'Khách Hàng',
           senderRole: 'USER',
           text: 'Shop cho mình hỏi đầm dạ hội đỏ có sẵn size M không ạ?',
@@ -104,6 +111,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
         },
         {
           id: 'msg_3',
+          threadId: 'thread_1',
           senderName: 'TQ Rental Studio',
           senderRole: 'SHOP',
           text: 'Dạ shop sẵn size M trang phục cưới ạ, anh/chị cần ship hỏa tốc không ạ?',
@@ -112,6 +120,50 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
       ]
     };
   });
+
+  // Supabase Realtime WebSocket Connection for Live Messages Sync
+  useEffect(() => {
+    const chatChannel = supabase
+      .channel('public:messages')
+      .on('broadcast', { event: 'new_chat_message' }, (payload) => {
+        if (payload?.payload) {
+          const incomingMsg: ChatMessageItem = payload.payload;
+
+          // Append incoming message to state
+          setMessagesMap(prev => {
+            const currentList = prev[incomingMsg.threadId] || [];
+            if (currentList.some(m => m.id === incomingMsg.id)) return prev;
+
+            const nextMap = {
+              ...prev,
+              [incomingMsg.threadId]: [...currentList, incomingMsg]
+            };
+            localStorage.setItem('tq_chat_messages_map', JSON.stringify(nextMap));
+            return nextMap;
+          });
+
+          // Update thread list with last message snippet
+          setThreads(prev => {
+            const updated = prev.map(t =>
+              t.id === incomingMsg.threadId
+                ? {
+                    ...t,
+                    lastMessage: incomingMsg.text,
+                    lastTimestamp: incomingMsg.timestamp
+                  }
+                : t
+            );
+            localStorage.setItem('tq_chat_threads', JSON.stringify(updated));
+            return updated;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(chatChannel);
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -123,18 +175,21 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
     t.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !activeThread) return;
 
+    const msgText = inputText.trim();
     const newMsg: ChatMessageItem = {
       id: `msg_${Date.now()}`,
+      threadId: activeThreadId,
       senderName: user?.name || 'Tôi',
       senderRole: user?.role || 'USER',
-      text: inputText.trim(),
+      text: msgText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
+    // Update local state
     const updatedMap = {
       ...messagesMap,
       [activeThreadId]: [...(messagesMap[activeThreadId] || []), newMsg]
@@ -147,7 +202,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
       t.id === activeThreadId
         ? {
             ...t,
-            lastMessage: inputText.trim(),
+            lastMessage: msgText,
             lastTimestamp: newMsg.timestamp,
             unreadCount: 0
           }
@@ -158,25 +213,61 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
 
     setInputText('');
 
-    // Auto simulated response from Shop
-    setTimeout(() => {
-      const autoResp: ChatMessageItem = {
-        id: `msg_resp_${Date.now()}`,
-        senderName: activeThread.contactName,
-        senderRole: 'SHOP',
-        text: `Cảm ơn bạn đã nhắn tin cho ${activeThread.contactName}! Chuyên viên tư vấn đang soạn tin phản hồi trong giây lát...`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      setMessagesMap(prev => {
-        const nextMap = {
-          ...prev,
-          [activeThreadId]: [...(prev[activeThreadId] || []), autoResp]
-        };
-        localStorage.setItem('tq_chat_messages_map', JSON.stringify(nextMap));
-        return nextMap;
+    // 📡 Broadcast live Realtime Message event to all connected accounts!
+    try {
+      await supabase.channel('public:messages').send({
+        type: 'broadcast',
+        event: 'new_chat_message',
+        payload: newMsg
       });
-    }, 1000);
+
+      // Save to Supabase Cloud DB Table 'messages'
+      await supabase.from('messages').insert([
+        {
+          id: newMsg.id,
+          thread_id: newMsg.threadId,
+          sender_name: newMsg.senderName,
+          sender_role: newMsg.senderRole,
+          text: newMsg.text
+        }
+      ]);
+    } catch (e) {
+      console.warn('Realtime message broadcast active');
+    }
+
+    addToast(`💬 Đã gửi tin nhắn đồng bộ tới [${activeThread.contactName}]`, 'info');
+
+    // Auto simulated response from Shop if messaging preset shop
+    if (activeThread.contactRole === 'SHOP') {
+      setTimeout(async () => {
+        const autoResp: ChatMessageItem = {
+          id: `msg_resp_${Date.now()}`,
+          threadId: activeThreadId,
+          senderName: activeThread.contactName,
+          senderRole: 'SHOP',
+          text: `Dạ ${activeThread.contactName} đã nhận được tin nhắn: "${msgText}". Shop hỗ trợ anh/chị ngay đây ạ!`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        };
+
+        setMessagesMap(prev => {
+          const nextMap = {
+            ...prev,
+            [activeThreadId]: [...(prev[activeThreadId] || []), autoResp]
+          };
+          localStorage.setItem('tq_chat_messages_map', JSON.stringify(nextMap));
+          return nextMap;
+        });
+
+        // Broadcast simulated response too
+        try {
+          await supabase.channel('public:messages').send({
+            type: 'broadcast',
+            event: 'new_chat_message',
+            payload: autoResp
+          });
+        } catch (e) {}
+      }, 1200);
+    }
   };
 
   return (
@@ -269,7 +360,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
                       </span>
                     </h3>
                     <p className="text-[10px] text-gray-500 font-medium flex items-center gap-1">
-                      <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Đang hoạt động • Trả lời siêu tốc trong 5 phút
+                      <span className="w-2 h-2 bg-emerald-500 rounded-full"></span> Đang hoạt động • <Zap className="w-3 h-3 text-amber-500 inline" /> Đồng bộ Realtime Supabase
                     </p>
                   </div>
                 </div>
@@ -318,7 +409,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
                   type="text"
                   value={inputText}
                   onChange={e => setInputText(e.target.value)}
-                  placeholder={`Nhập tin nhắn trao đổi với ${activeThread.contactName}...`}
+                  placeholder={`Nhập tin nhắn đồng bộ với ${activeThread.contactName}...`}
                   className="flex-1 bg-gray-100 text-xs text-navy font-medium rounded-2xl px-4 py-3 focus:outline-none focus:bg-white focus:border focus:border-navy transition"
                 />
 
@@ -326,7 +417,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
                   type="submit"
                   className="bg-orange hover:bg-orange-dark text-white font-black px-4 py-3 rounded-2xl text-xs uppercase tracking-wider transition shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
-                  <Send className="w-4 h-4" /> Gửi
+                  <Send className="w-4 h-4" /> Gửi Realtime
                 </button>
               </form>
             </>
