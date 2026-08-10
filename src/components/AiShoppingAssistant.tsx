@@ -73,7 +73,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
     {
       id: 'msg_welcome',
       sender: 'ai',
-      text: '✨ Hế lô bạn nhé! Tớ là **AI Stylist Chibi Siêu Cute 🐰** - Trợ lý mua sắm giọng nói cá nhân hóa siêu đáng yêu!\n\nHãy bấm nút 🎙️ để nói chuyện trực tiếp với tớ, hoặc thử gõ *"Tìm cho tôi bộ quần áo đi biển dưới 500k"* để tớ tự động phối đồ và mở các mục đề xuất cho bạn nhé! 💕',
+      text: '✨ Hế lô bạn nhé! Tớ là **AI TiQi 🐰** - Trợ lý mua sắm giọng nói cá nhân hóa siêu đáng yêu!\n\nHãy bấm nút 🎙️ để nói chuyện trực tiếp với tớ, hoặc thử gõ *"Tìm cho tôi bộ quần áo đi biển dưới 500k"* để tớ tự động phối đồ và mở các mục đề xuất cho bạn nhé! 💕',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -135,7 +135,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
       recognition.maxAlternatives = 1;
 
       setIsListening(true);
-      addToast('🎙️ 🎤 AI Cute đang lắng nghe bạn nói... (Hãy nói yêu cầu của bạn!)', 'info');
+      addToast('🎙️ 🎤 AI TiQi đang lắng nghe bạn nói... (Hãy nói yêu cầu của bạn!)', 'info');
 
       recognition.onresult = (event: any) => {
         setIsListening(false);
@@ -150,7 +150,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
       recognition.onerror = (event: any) => {
         setIsListening(false);
         console.warn('Speech recognition error:', event.error);
-        addToast('⚠️ AI chưa nghe rõ giọng nói. Bạn thử bấm nói lại lần nữa nhé!', 'info');
+        addToast('⚠️ AI TiQi chưa nghe rõ giọng nói. Bạn thử bấm nói lại lần nữa nhé!', 'info');
       };
 
       recognition.onend = () => {
@@ -235,7 +235,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
       setIsOpen(prev => {
         const next = !prev;
         if (next && isSoundEnabled) {
-          speakAiResponse('Hế lô bạn nè! Tớ là AI Stylist Chibi siêu cute, cần tớ phối đồ hay tìm món gì không?');
+          speakAiResponse('Hế lô bạn nè! Tớ là AI TiQi siêu cute 🐰, cần tớ phối đồ hay tìm món gì không?');
         }
         return next;
       });
@@ -308,15 +308,15 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
 
       let responseText = '';
       if (q.includes('biển')) {
-        responseText = `🏖️ **Set Đồ Đi Biển Cá Nhân Hóa (Ngân sách ${maxBudget !== Infinity ? maxBudget.toLocaleString('vi-VN') + ' VNĐ' : 'Tối Ưu'})**\n\nAI Cute Stylist TQ đã lựa cho bạn các mẫu trang phục đi biển xinh xỉu, chất vải mềm mát & cực chuẩn trend biển năm nay! Bấm nút "🚀 TRUY CẬP NGAY" để xem sản phẩm chi tiết nhé:`;
+        responseText = `🏖️ **Set Đồ Đi Biển Cá Nhân Hóa (Ngân sách ${maxBudget !== Infinity ? maxBudget.toLocaleString('vi-VN') + ' VNĐ' : 'Tối Ưu'})**\n\nAI TiQi 🐰 đã lựa cho bạn các mẫu trang phục đi biển xinh xỉu, chất vải mềm mát & cực chuẩn trend biển năm nay! Bấm nút "🚀 TRUY CẬP NGAY" để xem sản phẩm chi tiết nhé:`;
       } else if (q.includes('cưới') || q.includes('dạ hội')) {
-        responseText = `👗 **Set Trang Phục Cưới & Dạ Hội Chibi Luxury**\n\nDưới đây là các thiết kế lộng lẫy và sang trọng nhất dành riêng cho bạn:`;
+        responseText = `👗 **Set Trang Phục Cưới & Dạ Hội Luxury**\n\nAI TiQi gợi ý các thiết kế lộng lẫy và sang trọng nhất dành riêng cho bạn:`;
       } else if (q.includes('trà sữa') || q.includes('ăn')) {
-        responseText = `🧋 **Món Ăn & Thức Uống Ngon Giao Hỏa Tốc 15Phút**\n\nAI Cute gợi ý các món ngon tuyệt vời từ các gian hàng uy tín:`;
+        responseText = `🧋 **Món Ăn & Thức Uống Ngon Giao Hỏa Tốc 15Phút**\n\nAI TiQi gợi ý các món ngon tuyệt vời từ các gian hàng uy tín:`;
       } else if (q.includes('spa') || q.includes('làm đẹp')) {
-        responseText = `💄 **Gói Spa & Chăm Sóc Da Chuyên Sâu**\n\nCác gói liệu trình làm đẹp chuẩn 5 sao được nhiều chị em yêu thích nhất:`;
+        responseText = `💄 **Gói Spa & Chăm Sóc Da Chuyên Sâu**\n\nCác gói liệu trình làm đẹp chuẩn 5 sao được AI TiQi đề xuất:`;
       } else {
-        responseText = `✨ **Tớ đã tìm ra ${finalRecommendations.length} sản phẩm cực phù hợp theo yêu cầu của bạn nè:**`;
+        responseText = `✨ **AI TiQi 🐰 đã tìm ra ${finalRecommendations.length} sản phẩm cực phù hợp theo yêu cầu của bạn nè:**`;
       }
 
       const aiReplyMsg: AiChatMessage = {
@@ -350,7 +350,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
 
   return (
     <>
-      {/* 🤖 FLOATING DRAGGABLE CUTE AI CHIBI MASCOT WIDGET */}
+      {/* 🤖 FLOATING DRAGGABLE CUTE AI RABBIT (CON THỎ) MASCOT WIDGET */}
       <div
         style={{ left: `${position.x}px`, top: `${position.y}px` }}
         className="fixed z-50 select-none touch-none cursor-grab active:cursor-grabbing transition-shadow"
@@ -359,7 +359,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
         {showHint && !isOpen && (
           <div className="absolute -top-16 right-0 bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 text-white text-[11px] font-bold py-2 px-3.5 rounded-2xl shadow-2xl border border-pink-400/60 whitespace-nowrap animate-bounce flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-pink-300 shrink-0" />
-            <span>AI Cute: "Nói 🎙️ hoặc gõ 'Bộ đi biển dưới 500k' nè!"</span>
+            <span>AI TiQi: "Nói 🎙️ hoặc gõ 'Bộ đi biển dưới 500k' nè!"</span>
             <button
               onClick={(e) => { e.stopPropagation(); setShowHint(false); }}
               className="text-slate-400 hover:text-white p-0.5 ml-1"
@@ -369,35 +369,23 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
           </div>
         )}
 
-        {/* Floating Cute Mascot Avatar Trigger Button */}
+        {/* Floating Cute Rabbit Mascot Avatar Trigger Button */}
         <div
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
           onClick={handleAvatarClick}
           className="relative group"
         >
-          {/* Glowing Pastel Rainbow Aura Effect */}
-          <div className="absolute -inset-2 bg-gradient-to-r from-pink-500 via-purple-400 to-amber-400 rounded-full blur-lg opacity-80 group-hover:opacity-100 animate-pulse"></div>
+          {/* Glowing Pastel Pink & Gold Aura Effect */}
+          <div className="absolute -inset-2 bg-gradient-to-r from-pink-500 via-rose-400 to-amber-400 rounded-full blur-lg opacity-80 group-hover:opacity-100 animate-pulse"></div>
 
           <div className="relative w-16 h-16 bg-gradient-to-br from-pink-400 via-purple-600 to-indigo-900 text-white rounded-full border-2 border-pink-300 flex items-center justify-center shadow-2xl overflow-hidden hover:scale-110 transition-transform">
             
-            {/* CUTE CHIBI MASCOT FACE DESIGN */}
+            {/* CUTE RABBIT (CON THỎ) MASCOT EMBLEM DESIGN */}
             <div className="w-full h-full flex flex-col items-center justify-center relative p-1 bg-gradient-to-tr from-pink-500/30 to-purple-500/30">
-              {/* Anime Blinking Cute Eyes & Smile */}
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="w-2.5 h-2.5 bg-white rounded-full shadow-inner animate-pulse"></span>
-                <span className="w-2.5 h-2.5 bg-white rounded-full shadow-inner animate-pulse"></span>
-              </div>
-              
-              {/* Cute Pink Blushing Cheeks & Smile */}
-              <div className="flex items-center gap-3 text-[10px]">
-                <span className="text-pink-300 font-black">🌸</span>
-                <span className="font-extrabold text-amber-300 text-[10px]">‿</span>
-                <span className="text-pink-300 font-black">🌸</span>
-              </div>
-
+              <span className="text-3xl animate-bounce leading-none">🐰</span>
               <span className="text-[7px] font-black text-amber-300 uppercase tracking-tighter mt-0.5">
-                AI CUTE 🐰
+                AI TiQi
               </span>
             </div>
 
@@ -417,13 +405,13 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
             {/* Header */}
             <div className="bg-slate-950 border-b border-slate-800 px-5 py-3.5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="relative w-11 h-11 bg-gradient-to-r from-pink-400 via-purple-500 to-amber-400 rounded-2xl flex items-center justify-center text-slate-950 font-black shadow-md">
-                  <span className="text-xl">🐰</span>
+                <div className="relative w-11 h-11 bg-gradient-to-r from-pink-400 via-rose-400 to-amber-400 rounded-2xl flex items-center justify-center text-slate-950 font-black shadow-md">
+                  <span className="text-2xl animate-bounce">🐰</span>
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-950 rounded-full"></span>
                 </div>
                 <div>
                   <h3 className="text-sm font-black text-pink-300 uppercase tracking-wider flex items-center gap-1.5">
-                    ✨ AI STYLIST CHIBI CUTE - TRỢ LÝ GIỌNG NÓI MUA SẮM
+                    ✨ AI TiQi 🐰 - TRỢ LÝ GIỌNG NÓI MUA SẮM
                   </h3>
                   <p className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
                     <Heart className="w-3 h-3 text-pink-400 fill-pink-400" /> Nghe & Trả lời bằng Giọng nói • Tự động truy cập mục đề xuất
@@ -491,7 +479,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
                       <div className="mt-3.5 space-y-2.5 pt-2.5 border-t border-slate-800">
                         <div className="flex items-center justify-between">
                           <div className="text-[10px] font-black text-amber-400 uppercase tracking-wider flex items-center gap-1">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-400" /> SET ĐỒ & MỤC ĐỀ XUẤT TỪ AI:
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" /> SET ĐỒ & MỤC ĐỀ XUẤT TỪ AI TIQI:
                           </div>
                           
                           {/* 🚀 Instant Direct Access to First Recommended Item */}
@@ -608,7 +596,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
               {isAiThinking && (
                 <div className="flex items-center gap-2 text-pink-300 text-xs font-bold bg-slate-950 p-3 rounded-2xl w-fit border border-slate-800">
                   <RefreshCw className="w-4 h-4 animate-spin text-pink-400" />
-                  <span>AI Cute đang chọn lọc phong cách & giọng nói...</span>
+                  <span>AI TiQi đang chọn lọc phong cách & giọng nói...</span>
                 </div>
               )}
 
@@ -627,10 +615,10 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
                     ? 'bg-rose-600 text-white animate-pulse shadow-lg ring-2 ring-rose-400'
                     : 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:opacity-90 shadow-md'
                 }`}
-                title="Bấm để nói trực tiếp bằng Giọng Nói với AI Cute!"
+                title="Bấm để nói trực tiếp bằng Giọng Nói với AI TiQi!"
               >
                 {isListening ? <MicOff className="w-4 h-4 text-white animate-spin" /> : <Mic className="w-4 h-4 text-amber-300" />}
-                <span className="hidden sm:inline">{isListening ? 'ĐANG NGHE...' : 'NÓI VỚI AI'}</span>
+                <span className="hidden sm:inline">{isListening ? 'ĐANG NGHE...' : 'NÓI VỚI AI TIQI'}</span>
               </button>
 
               <input
