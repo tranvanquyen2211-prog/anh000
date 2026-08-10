@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -12,6 +12,7 @@ interface HeaderProps {
   onOpenThemeCustomizer?: () => void;
   onOpenChangePassword?: () => void;
   onOpenSuperAdminDashboard?: () => void;
+  onOpenAddProductModal?: () => void;
   selectedCategory: ShopType | 'ALL';
   onSelectCategory: (cat: ShopType | 'ALL') => void;
   searchQuery: string;
@@ -27,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenThemeCustomizer,
   onOpenChangePassword,
   onOpenSuperAdminDashboard,
+  onOpenAddProductModal,
   selectedCategory,
   onSelectCategory,
   searchQuery,
@@ -105,6 +107,19 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Actions & Account */}
         <div className="flex items-center gap-2 sm:gap-3">
+          
+          {/* Shop Product Post Button for Shop accounts */}
+          {user && (user.role === 'SHOP' || isImpersonating) && onOpenAddProductModal && (
+            <button
+              onClick={onOpenAddProductModal}
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer animate-pulse border border-emerald-400"
+              title="Đăng sản phẩm mới lên Cửa Hàng"
+            >
+              <PlusCircle className="w-4 h-4 text-emerald-200" />
+              <span className="hidden sm:inline">ĐĂNG SP GIAN HÀNG</span>
+            </button>
+          )}
+
           {/* Super Admin Dashboard Button */}
           {user && user.role === 'SUPER_ADMIN' && onOpenSuperAdminDashboard && (
             <button
@@ -168,7 +183,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-bold text-navy max-w-[90px] truncate">{user.name}</span>
                   <span className="text-[9px] font-extrabold text-orange uppercase">
-                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : user.role === 'SHOP' ? 'GIẢ LẬP SHOP' : user.role}
+                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : user.role === 'SHOP' ? 'CỬA HÀNG (SHOP)' : user.role}
                   </span>
                 </div>
 

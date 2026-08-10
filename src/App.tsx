@@ -15,6 +15,7 @@ import { OrderHistoryModal } from './components/OrderHistoryModal';
 import { AdminThemeCustomizer } from './components/AdminThemeCustomizer';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { AddProductModal } from './components/AddProductModal';
 import { LiveChatWidget } from './components/LiveChatWidget';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
@@ -35,6 +36,7 @@ function MainApp() {
   const [isAdminThemeOpen, setIsAdminThemeOpen] = useState(false);
   const [isSuperAdminDashboardOpen, setIsSuperAdminDashboardOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
 
   // Chat product context
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
@@ -42,7 +44,7 @@ function MainApp() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const { data, error } = await supabase.from('products').select('*');
+        const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
           const formatted: Product[] = data.map((p: any) => ({
             id: p.id,
@@ -67,6 +69,10 @@ function MainApp() {
     fetchProducts();
   }, []);
 
+  const handleProductAdded = (newProd: Product) => {
+    setProducts(prev => [newProd, ...prev]);
+  };
+
   const filteredProducts = products.filter(p => {
     const matchCat = selectedCategory === 'ALL' || p.shopType === selectedCategory;
     const matchQuery = searchQuery.trim() === '' || 
@@ -87,6 +93,7 @@ function MainApp() {
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
+        onOpenAddProductModal={() => setIsAddProductOpen(true)}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         searchQuery={searchQuery}
@@ -184,6 +191,12 @@ function MainApp() {
       <ChangePasswordModal
         isOpen={isChangePasswordOpen}
         onClose={() => setIsChangePasswordOpen(false)}
+      />
+
+      <AddProductModal
+        isOpen={isAddProductOpen}
+        onClose={() => setIsAddProductOpen(false)}
+        onProductAdded={handleProductAdded}
       />
     </div>
   );

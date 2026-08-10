@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Product } from '../types';
 import { useCart } from '../context/CartContext';
-import { ShoppingBag, MessageSquare, Star } from 'lucide-react';
+import { ShoppingBag, MessageSquare, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -10,6 +10,10 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenChatWithProduct }) => {
   const { addToCart } = useCart();
+  const [currentImgIndex, setCurrentImgIndex] = useState(0);
+
+  const imagesList = product.images && product.images.length > 0 ? product.images.slice(0, 7) : [product.img];
+  const activeImg = imagesList[currentImgIndex] || product.img;
 
   const getBadgeStyle = (type: string) => {
     switch (type) {
@@ -19,6 +23,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenChatWit
       case 'BEAUTY': return 'bg-rose-500 text-white';
       default: return 'bg-navy text-white';
     }
+  };
+
+  const nextImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImgIndex(prev => (prev + 1) % imagesList.length);
+  };
+
+  const prevImg = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImgIndex(prev => (prev - 1 + imagesList.length) % imagesList.length);
   };
 
   return (
@@ -33,13 +47,44 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onOpenChatWit
       </span>
 
       <div className="space-y-2.5">
-        {/* Product Image */}
-        <div className="bg-gray-50 rounded-xl overflow-hidden h-40 flex items-center justify-center relative border border-gray-100">
+        {/* Product Image & Multi-Image Gallery */}
+        <div className="bg-gray-50 rounded-xl overflow-hidden h-44 flex items-center justify-center relative border border-gray-100 group/img">
           <img
-            src={product.img}
+            src={activeImg}
             alt={product.title}
             className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
+
+          {/* Gallery Navigation Arrows */}
+          {imagesList.length > 1 && (
+            <>
+              <button
+                onClick={prevImg}
+                className="absolute left-1 top-1/2 -translate-y-1/2 bg-navy/70 hover:bg-navy text-white p-1 rounded-full opacity-0 group-hover/img:opacity-100 transition cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={nextImg}
+                className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy/70 hover:bg-navy text-white p-1 rounded-full opacity-0 group-hover/img:opacity-100 transition cursor-pointer"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Dots Indicator */}
+              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-full">
+                {imagesList.map((_, idx) => (
+                  <span
+                    key={idx}
+                    onClick={(e) => { e.stopPropagation(); setCurrentImgIndex(idx); }}
+                    className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
+                      currentImgIndex === idx ? 'bg-amber-400 w-3' : 'bg-white/60 hover:bg-white'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Shop Name & Title */}
