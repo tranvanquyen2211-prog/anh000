@@ -27,6 +27,7 @@ import { ChangeAvatarModal } from './components/ChangeAvatarModal';
 import { AddProductModal } from './components/AddProductModal';
 import { ShopManagementDashboard } from './components/ShopManagementDashboard';
 import { LiveChatWidget } from './components/LiveChatWidget';
+import { AiShoppingAssistant } from './components/AiShoppingAssistant';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
 import { detectProvinceFromShopInfo } from './data/vietnamLocations';
@@ -440,6 +441,12 @@ function MainApp() {
           onOpenAuthModal={() => setIsAuthOpen(true)}
         />
       )}
+
+      <AiShoppingAssistant
+        products={products}
+        onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
+        onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
+      />
 
       <Footer />
 
