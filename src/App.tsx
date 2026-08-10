@@ -9,6 +9,7 @@ import { HeroBanner } from './components/HeroBanner';
 import { CategoryFilters } from './components/CategoryFilters';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
+import { EditProductSalesModal } from './components/EditProductSalesModal';
 import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -28,7 +29,13 @@ import { supabase } from './lib/supabase';
 function MainApp() {
   const [products, setProducts] = useState<Product[]>(() => {
     const savedCustoms = JSON.parse(localStorage.getItem('tq_custom_products') || '[]');
-    return [...savedCustoms, ...INITIAL_PRODUCTS];
+    const overrides = JSON.parse(localStorage.getItem('tq_sales_count_overrides') || '{}');
+    
+    const combined = [...savedCustoms, ...INITIAL_PRODUCTS];
+    return combined.map(p => ({
+      ...p,
+      salesCount: overrides[p.id] !== undefined ? overrides[p.id] : (p.salesCount || 12)
+    }));
   });
 
   const [selectedCategory, setSelectedCategory] = useState<ShopType | 'ALL'>('ALL');
@@ -47,8 +54,9 @@ function MainApp() {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [isShopManagementOpen, setIsShopManagementOpen] = useState(false);
 
-  // Selected product state for Detail view and Chat context
+  // Selected product state
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
+  const [selectedProductForEditSales, setSelectedProductForEditSales] = useState<Product | null>(null);
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
 
   useEffect(() => {
@@ -56,6 +64,8 @@ function MainApp() {
       try {
         const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
+          const overrides = JSON.parse(localStorage.getItem('tq_sales_count_overrides') || '{}');
+          
           const formatted: Product[] = data.map((p: any) => ({
             id: p.id,
             title: p.title || p.name,
@@ -68,7 +78,7 @@ function MainApp() {
             badge: p.badge,
             details: p.details,
             stock: p.stock || 50,
-            salesCount: p.sales_count || p.salesCount || 10
+            salesCount: overrides[p.id] !== undefined ? overrides[p.id] : (p.sales_count || p.salesCount || 12)
           }));
 
           setProducts(prev => {
@@ -84,7 +94,7 @@ function MainApp() {
 
     fetchCloudProducts();
 
-    // Supabase Realtime Subscription for Live Product Sync Across Browsers
+    // Supabase Realtime Subscription for Live Product Sync & Admin Sales Updates
     const productChannel = supabase
       .channel('public:products')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'products' }, (payload) => {
@@ -102,9 +112,15 @@ function MainApp() {
             badge: p.badge,
             details: p.details,
             stock: p.stock || 50,
-            salesCount: p.sales_count || 10
+            salesCount: p.sales_count || 12
           };
           setProducts(prev => [formatted, ...prev.filter(item => item.id !== formatted.id)]);
+        }
+      })
+      .on('broadcast', { event: 'product_updated' }, (payload) => {
+        if (payload?.payload?.id && payload?.payload?.salesCount !== undefined) {
+          const { id, salesCount } = payload.payload;
+          handleSalesCountUpdated(id, salesCount);
         }
       })
       .on('broadcast', { event: 'new_product_posted' }, (payload) => {
@@ -122,6 +138,10 @@ function MainApp() {
 
   const handleProductAdded = (newProd: Product) => {
     setProducts(prev => [newProd, ...prev.filter(item => item.id !== newProd.id)]);
+  };
+
+  const handleSalesCountUpdated = (prodId: string | number, newSalesCount: number) => {
+    setProducts(prev => prev.map(p => p.id === prodId ? { ...p, salesCount: newSalesCount } : p));
   };
 
   const handleDeleteProduct = async (prodId: string | number) => {
@@ -185,7 +205,7 @@ function MainApp() {
                 SẢN PHẨM & DỊCH VỤ CÁC GIAN HÀNG
               </h2>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Supabase Realtime Marketplace • Bấm vào bất kỳ sản phẩm nào để xem chi tiết
+                Supabase Realtime Marketplace • Thuê Đồ, Shop Bán Đồ, F&B, Spa
               </p>
             </div>
             <span className="text-xs font-extrabold bg-navy/10 text-navy px-3.5 py-1.5 rounded-full border border-navy/20">
@@ -201,6 +221,7 @@ function MainApp() {
                   product={product}
                   onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
                   onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
+                  onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
                 />
               ))}
             </div>
@@ -233,6 +254,13 @@ function MainApp() {
         onClose={() => setSelectedProductForDetail(null)}
         onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
         onProceedToCheckout={() => setIsCartOpen(true)}
+      />
+
+      <EditProductSalesModal
+        isOpen={Boolean(selectedProductForEditSales)}
+        onClose={() => setSelectedProductForEditSales(null)}
+        product={selectedProductForEditSales}
+        onSalesCountUpdated={handleSalesCountUpdated}
       />
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />

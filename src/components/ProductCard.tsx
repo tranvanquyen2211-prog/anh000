@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
 import type { Product } from '../types';
 import { useCart } from '../context/CartContext';
-import { ShoppingBag, MessageSquare, Star, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { ShoppingBag, MessageSquare, Star, ChevronLeft, ChevronRight, Eye, Edit3 } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
   onOpenChatWithProduct: (product: Product) => void;
   onOpenProductDetail?: (product: Product) => void;
+  onOpenEditSalesCount?: (product: Product) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onOpenChatWithProduct,
-  onOpenProductDetail
+  onOpenProductDetail,
+  onOpenEditSalesCount
 }) => {
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
   const imagesList = product.images && product.images.length > 0 ? product.images.slice(0, 7) : [product.img];
@@ -55,6 +59,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <span className={`absolute top-4 left-4 text-[9px] font-black px-2.5 py-0.5 rounded-full shadow-xs z-10 uppercase tracking-wider ${getBadgeStyle(product.shopType)}`}>
         {product.badge || product.shopType}
       </span>
+
+      {/* Super Admin Quick Edit Sales Count Button */}
+      {user && user.role === 'SUPER_ADMIN' && onOpenEditSalesCount && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenEditSalesCount(product); }}
+          className="absolute top-4 right-16 bg-slate-900/90 hover:bg-slate-950 text-amber-300 text-[8px] font-black px-2 py-0.5 rounded-full shadow-md z-20 border border-amber-400 flex items-center gap-1 cursor-pointer"
+          title="Super Admin: Sửa tổng số lượt mua cho sản phẩm này"
+        >
+          <Edit3 className="w-2.5 h-2.5 text-amber-400" /> Sửa Lượt Mua
+        </button>
+      )}
 
       <span className="absolute top-4 right-4 bg-amber-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-xs z-10 flex items-center gap-0.5">
         🪙 3% Xu
@@ -131,11 +146,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </p>
         )}
 
-        {/* Rating */}
-        <div className="flex items-center gap-1 text-[10px] text-amber-400 font-extrabold">
-          <Star className="w-3 h-3 fill-amber-400" />
-          <span className="text-gray-700">5.0</span>
-          <span className="text-gray-400 text-[9px] font-normal">(Đã bán {product.salesCount || 12})</span>
+        {/* Rating & Sales Count */}
+        <div className="flex items-center justify-between text-[10px]">
+          <div className="flex items-center gap-1 text-amber-400 font-extrabold">
+            <Star className="w-3 h-3 fill-amber-400" />
+            <span className="text-gray-700">5.0</span>
+          </div>
+          <span className="text-navy font-extrabold bg-gray-100 px-2 py-0.5 rounded-full text-[9px] border border-gray-200">
+            Đã bán {(product.salesCount !== undefined ? product.salesCount : 12).toLocaleString('vi-VN')}
+          </span>
         </div>
       </div>
 
