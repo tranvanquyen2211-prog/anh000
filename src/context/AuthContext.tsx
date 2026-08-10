@@ -10,7 +10,6 @@ interface AuthContextType {
   registerEmail: (email: string, pass: string, name?: string) => Promise<boolean>;
   loginPhone: (phone: string, pass: string) => Promise<boolean>;
   registerPhone: (phone: string, pass: string, name?: string) => Promise<boolean>;
-  loginGuest: (name?: string) => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -109,7 +108,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        // Fallback for immediate login if email confirmation error occurs
         if (error.message.toLowerCase().includes('confirm')) {
           const profile = createProfileObject(`user_${Date.now()}`, cleanEmail, '', cleanEmail.split('@')[0]);
           setUser(profile);
@@ -135,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Global Email Registration with Rate Limit Resilient Fallback
+  // Global Email Registration
   const registerEmail = async (email: string, pass: string, name?: string): Promise<boolean> => {
     const cleanEmail = email.trim().toLowerCase();
     const displayName = name || cleanEmail.split('@')[0];
@@ -152,7 +150,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        // Resilient fallback if rate limit is hit
         if (error.message.toLowerCase().includes('rate limit') || error.message.toLowerCase().includes('exceeded')) {
           const profile = createProfileObject(`user_${Date.now()}`, cleanEmail, '', displayName);
           setUser(profile);
@@ -184,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Global Phone Number Registration with Rate Limit Resilient Fallback
+  // Global Phone Number Registration
   const registerPhone = async (phone: string, pass: string, name?: string): Promise<boolean> => {
     const cleanPhone = phone.trim().replace(/\s+/g, '');
     const syntheticEmail = `${cleanPhone}@phone.tqstore.vn`;
@@ -207,7 +204,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return await loginPhone(cleanPhone, pass);
         }
 
-        // Resilient fallback if rate limit is hit
         if (error.message.toLowerCase().includes('rate limit') || error.message.toLowerCase().includes('exceeded')) {
           const profile = createProfileObject(`phone_${Date.now()}`, '', cleanPhone, displayName);
           setUser(profile);
@@ -271,51 +267,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Anonymous Guest Login
-  const loginGuest = async (customName?: string): Promise<boolean> => {
-    try {
-      const guestName = customName || `Khách ${Math.floor(1000 + Math.random() * 9000)}`;
-      let guestId = `guest_${Date.now()}`;
-      
-      const { data, error } = await supabase.auth.signInAnonymously();
-      if (!error && data.user) {
-        guestId = data.user.id;
-      }
-
-      const profile: UserProfile = {
-        id: guestId,
-        email: `${guestId}@guest.tqstore.vn`,
-        name: guestName,
-        role: 'USER',
-        isGuest: true,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(guestName)}&background=FF6B00&color=fff`,
-        walletBalance: 500000,
-        coins: 100
-      };
-
-      setUser(profile);
-      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-      addToast(`Đã đăng nhập dưới danh nghĩa Khách hàng: ${guestName}`, 'info');
-      return true;
-    } catch (err) {
-      const guestName = customName || `Khách ${Math.floor(1000 + Math.random() * 9000)}`;
-      const profile: UserProfile = {
-        id: `guest_${Date.now()}`,
-        email: `guest_${Date.now()}@guest.tqstore.vn`,
-        name: guestName,
-        role: 'USER',
-        isGuest: true,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(guestName)}&background=FF6B00&color=fff`,
-        walletBalance: 500000,
-        coins: 100
-      };
-      setUser(profile);
-      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
-      addToast(`Đã đăng nhập dưới danh nghĩa Khách: ${guestName}`, 'info');
-      return true;
-    }
-  };
-
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -335,7 +286,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       registerEmail,
       loginPhone,
       registerPhone,
-      loginGuest,
       logout
     }}>
       {children}

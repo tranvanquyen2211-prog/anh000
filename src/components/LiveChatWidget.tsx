@@ -8,13 +8,15 @@ import { MessageSquare, X, Send, Sparkles, Bot, Minimize2 } from 'lucide-react';
 interface LiveChatWidgetProps {
   selectedProductContext?: Product | null;
   onClearProductContext?: () => void;
+  onOpenAuthModal?: () => void;
 }
 
 export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
   selectedProductContext,
-  onClearProductContext
+  onClearProductContext,
+  onOpenAuthModal
 }) => {
-  const { user, loginGuest } = useAuth();
+  const { user } = useAuth();
   const { addToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -125,22 +127,17 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
     const text = inputMessage.trim();
     if (!text) return;
 
-    let activeUser = user;
-    if (!activeUser) {
-      await loginGuest();
-      activeUser = {
-        id: `guest_${Date.now()}`,
-        name: 'Khách hàng',
-        role: 'USER',
-        isGuest: true
-      };
+    if (!user) {
+      addToast('Vui lòng Đăng nhập hoặc Đăng ký bằng SĐT/Email để nhắn tin trực tuyến!', 'info');
+      if (onOpenAuthModal) onOpenAuthModal();
+      return;
     }
 
     const newMsg: ChatMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      user_id: activeUser.id,
-      user_email: activeUser.email || 'guest@tqstore.vn',
-      user_name: activeUser.name,
+      user_id: user.id,
+      user_email: user.email || 'user@tqstore.vn',
+      user_name: user.name,
       content: text,
       created_at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       sender_type: 'customer'
@@ -156,9 +153,9 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
       await supabase.from('messages').insert([
         {
           id: newMsg.id,
-          user_id: activeUser.id,
-          user_email: activeUser.email || 'guest@tqstore.vn',
-          user_name: activeUser.name,
+          user_id: user.id,
+          user_email: user.email || 'user@tqstore.vn',
+          user_name: user.name,
           content: text,
           sender_type: 'customer'
         }
@@ -174,7 +171,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
     }
 
     setTimeout(() => {
-      let botReplyText = `Cảm ơn ${activeUser?.name}! TQ Store đã nhận tin nhắn thời gian thực của bạn. Nhân viên CSKH sẽ phản hồi ngay lập tức!`;
+      let botReplyText = `Cảm ơn ${user?.name}! TQ Store đã nhận tin nhắn thời gian thực của bạn. Nhân viên CSKH sẽ phản hồi ngay lập tức!`;
 
       if (text.toLowerCase().includes('giá') || text.toLowerCase().includes('tư vấn') || text.toLowerCase().includes('sản phẩm')) {
         botReplyText = `TQ Store hỗ trợ giao hàng tận nơi & giảm thêm 2% khi thanh toán bằng Ví TQ Pay. Bạn cần hỗ trợ thêm thông tin gì về sản phẩm này?`;
@@ -292,7 +289,7 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
               type="text"
               value={inputMessage}
               onChange={e => setInputMessage(e.target.value)}
-              placeholder={user ? "Nhập tin nhắn..." : "Nhập tin nhắn (tự động vào phiên Khách)..."}
+              placeholder={user ? "Nhập tin nhắn..." : "Đăng nhập SĐT/Email để nhắn tin..."}
               className="flex-1 bg-gray-100 border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-800 focus:outline-none focus:border-navy focus:bg-white transition"
             />
             <button

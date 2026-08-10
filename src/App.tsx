@@ -141,6 +141,7 @@ function MainApp() {
       <LiveChatWidget
         selectedProductContext={chatProductContext}
         onClearProductContext={() => setChatProductContext(null)}
+        onOpenAuthModal={() => setIsAuthOpen(true)}
       />
 
       <Footer />

@@ -99,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={onOpenAuthModal}
                 className="px-4 py-2 text-xs font-extrabold text-white bg-navy rounded-xl hover:bg-navy-dark transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
-                <User className="w-3.5 h-3.5" /> Đăng nhập / Khách
+                <User className="w-3.5 h-3.5" /> Đăng nhập / Đăng ký
               </button>
             </div>
           ) : (
@@ -132,7 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="flex flex-col text-left">
                   <span className="text-xs font-bold text-navy max-w-[100px] truncate">{user.name}</span>
                   <span className="text-[9px] font-extrabold text-orange uppercase">
-                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : (user.isGuest ? 'Khách (Ẩn danh)' : user.role)}
+                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : user.role}
                   </span>
                 </div>
 
