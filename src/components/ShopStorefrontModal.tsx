@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Product } from '../types';
 import { ProductCard } from './ProductCard';
+import { useToast } from '../context/ToastContext';
 import {
   X,
   Store,
@@ -10,7 +11,9 @@ import {
   Package,
   ShieldCheck,
   Star,
-  ExternalLink
+  ExternalLink,
+  Check,
+  Share2
 } from 'lucide-react';
 
 interface ShopStorefrontModalProps {
@@ -30,7 +33,9 @@ export const ShopStorefrontModal: React.FC<ShopStorefrontModalProps> = ({
   onOpenChatWithShop,
   onOpenProductDetail
 }) => {
+  const { addToast } = useToast();
   const [shopConfig, setShopConfig] = useState<any>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     if (shopName) {
@@ -53,10 +58,22 @@ export const ShopStorefrontModal: React.FC<ShopStorefrontModalProps> = ({
 
   if (!isOpen || !shopName) return null;
 
-  // Filter products published specifically by this shop
+  // Strict filter products published exclusively by this shop account
   const shopProducts = products.filter(
-    p => p.shopName.toLowerCase() === shopName.toLowerCase() || p.shopName.includes(shopName)
+    p => p.shopName.trim().toLowerCase() === shopName.trim().toLowerCase()
   );
+
+  const handleCopyShopUrl = () => {
+    const customLinks = JSON.parse(localStorage.getItem('tq_custom_links') || '[]');
+    const linkItem = customLinks.find((l: any) => l.shopName.trim().toLowerCase() === shopName.trim().toLowerCase());
+    
+    const shareUrl = linkItem?.fullUrl || `${window.location.origin}?shop=${encodeURIComponent(shopName)}`;
+
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedLink(true);
+    addToast(`🔗 Đã sao chép Link Web riêng cho Shop [${shopName}]: ${shareUrl}`, 'success');
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-navy-dark/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
@@ -93,7 +110,7 @@ export const ShopStorefrontModal: React.FC<ShopStorefrontModalProps> = ({
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl sm:text-2xl font-black text-white">{shopName}</h1>
                   <span className="bg-emerald-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> Gian Hàng Xác Thực
+                    <ShieldCheck className="w-3 h-3" /> Gian Hàng Độc Quyền
                   </span>
                 </div>
                 <p className="text-xs text-amber-300 font-bold line-clamp-1">
@@ -102,8 +119,16 @@ export const ShopStorefrontModal: React.FC<ShopStorefrontModalProps> = ({
               </div>
             </div>
 
-            {/* Quick Contact & Chat Buttons */}
+            {/* Quick Contact, Copy Link & Chat Buttons */}
             <div className="flex items-center gap-2">
+              <button
+                onClick={handleCopyShopUrl}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs px-3.5 py-2 rounded-xl transition shadow-lg flex items-center gap-1.5 cursor-pointer border border-blue-400"
+              >
+                {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Share2 className="w-4 h-4 text-blue-200" />}
+                {copiedLink ? 'Đã Sao Chép' : 'Sao Chép Link Web'}
+              </button>
+
               <button
                 onClick={() => { onClose(); onOpenChatWithShop(shopName); }}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2 rounded-xl transition shadow-lg flex items-center gap-1.5 cursor-pointer border border-emerald-300"
@@ -127,10 +152,10 @@ export const ShopStorefrontModal: React.FC<ShopStorefrontModalProps> = ({
         <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-600 shrink-0 font-medium">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-navy font-bold">
-              <Package className="w-4 h-4 text-amber-500" /> Số sản phẩm: <strong className="text-orange font-black">{shopProducts.length} mặt hàng</strong>
+              <Package className="w-4 h-4 text-amber-500" /> Số sản phẩm riêng shop: <strong className="text-orange font-black">{shopProducts.length} mặt hàng</strong>
             </span>
             <span className="flex items-center gap-1.5">
-              <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> Đánh giá: <strong className="text-navy">5.0 ⭐ (100% Uy Tín)</strong>
+              <Star className="w-4 h-4 text-amber-400 fill-amber-400" /> Đánh giá: <strong className="text-navy">5.0 ⭐ (Chỉ hiển thị sản phẩm Shop này)</strong>
             </span>
           </div>
 
@@ -152,15 +177,15 @@ export const ShopStorefrontModal: React.FC<ShopStorefrontModalProps> = ({
           )}
         </div>
 
-        {/* SHOP PRODUCTS CATALOG BODY */}
+        {/* SHOP PRODUCTS CATALOG BODY (ONLY PRODUCTS OF THIS SHOP ARE SHOWN) */}
         <div className="flex-1 p-6 overflow-y-auto custom-scrollbar space-y-4">
           <div className="flex justify-between items-center border-b border-gray-200 pb-3">
             <div>
               <h2 className="text-base font-black text-navy uppercase tracking-wide flex items-center gap-2">
-                <Store className="w-5 h-5 text-amber-500" /> TẤT CẢ SẢN PHẨM / DỊCH VỤ CỦA {shopName} ({shopProducts.length})
+                <Store className="w-5 h-5 text-amber-500" /> TẤT CẢ SẢN PHẨM / DỊCH VỤ DÀNH RIÊNG CHO SHOP {shopName} ({shopProducts.length})
               </h2>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Bấm vào sản phẩm để xem chi tiết thông số & hình ảnh
+                🔒 Chế độ xem độc quyền - Đã lọc bỏ toàn bộ sản phẩm & tài khoản của shop khác
               </p>
             </div>
           </div>
@@ -179,8 +204,8 @@ export const ShopStorefrontModal: React.FC<ShopStorefrontModalProps> = ({
           ) : (
             <div className="py-16 text-center text-gray-400 bg-gray-50 rounded-3xl border border-gray-200 p-8 space-y-2">
               <div className="text-4xl mb-2">🏪</div>
-              <h4 className="font-extrabold text-sm text-navy">Cửa hàng chưa có sản phẩm nào công khai</h4>
-              <p className="text-xs text-gray-500">Vui lòng quay lại sau hoặc liên hệ gian hàng qua hotline hỗ trợ.</p>
+              <h4 className="font-extrabold text-sm text-navy">Cửa hàng {shopName} chưa đăng tải sản phẩm nào</h4>
+              <p className="text-xs text-gray-500">Quay lại sau hoặc liên hệ với shop qua nút Chat/Hotline phía trên.</p>
             </div>
           )}
         </div>

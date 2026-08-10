@@ -130,6 +130,30 @@ function MainApp() {
   };
 
   useEffect(() => {
+    // 🌐 URL Parameter listener for unique Shop Web Links (e.g., ?shop=TQ%20Rental%20Studio or ?slug=vay-cuoi-luxury-hanoi)
+    const params = new URLSearchParams(window.location.search);
+    const shopParam = params.get('shop');
+    const slugParam = params.get('slug');
+
+    if (shopParam) {
+      setSelectedShopNameForStorefront(decodeURIComponent(shopParam));
+    } else if (slugParam) {
+      const customLinks = JSON.parse(localStorage.getItem('tq_custom_links') || '[]');
+      const found = customLinks.find((l: any) => l.slug.toLowerCase() === slugParam.toLowerCase());
+      if (found) {
+        setSelectedShopNameForStorefront(found.shopName);
+      }
+    } else {
+      const pathSlug = window.location.pathname.replace('/shop/', '').replace('/', '').trim();
+      if (pathSlug) {
+        const customLinks = JSON.parse(localStorage.getItem('tq_custom_links') || '[]');
+        const found = customLinks.find((l: any) => l.slug.toLowerCase() === pathSlug.toLowerCase());
+        if (found) {
+          setSelectedShopNameForStorefront(found.shopName);
+        }
+      }
+    }
+
     const fetchCloudProducts = async () => {
       try {
         const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
