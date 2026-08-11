@@ -99,7 +99,84 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 relative">
+      {/* 📱 SHOPEE MOBILE APP-LIKE TOP STICKY HEADER (MOBILE FIRST) */}
+      <div className="md:hidden bg-gradient-to-r from-[#ff5722] via-[#ee4d2d] to-[#f53d2d] text-white p-3 space-y-2 sticky top-0 z-50 shadow-md">
+        
+        {/* Top Row: Search Input + Camera + Chat + Bell + Cart */}
+        <div className="flex items-center gap-2">
+          
+          {/* Shopee Mobile Search Box */}
+          <div className="flex-1 bg-white rounded-lg flex items-center px-2.5 py-1.5 shadow-inner text-gray-800 border border-gray-200">
+            <Search className="w-4 h-4 text-gray-400 shrink-0 mr-1.5" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => onSearchChange(e.target.value)}
+              placeholder="Shopee Flash Sale 1k, Thử đồ AI, Gọi Taxi..."
+              className="w-full text-xs bg-transparent focus:outline-none placeholder:text-gray-400 font-medium"
+            />
+            <button className="text-gray-400 hover:text-[#ee4d2d] p-0.5 cursor-pointer shrink-0">
+              <Camera className="w-4 h-4 text-[#ee4d2d]" />
+            </button>
+          </div>
+
+          {/* Shopee Mobile Action Icons Bar */}
+          <div className="flex items-center gap-1.5 text-white shrink-0">
+            {/* Chat Inbox Button */}
+            <button
+              onClick={onOpenChatInbox}
+              className="relative p-1.5 hover:bg-white/10 rounded-full transition cursor-pointer"
+              title="Tin Nhắn Inbox"
+            >
+              <MessageSquare className="w-5 h-5 text-white" />
+              <span className="absolute -top-0.5 -right-0.5 bg-amber-300 text-slate-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-[#ee4d2d]">
+                4
+              </span>
+            </button>
+
+            {/* Notification Bell */}
+            <button
+              onClick={onToggleNotifications}
+              className="relative p-1.5 hover:bg-white/10 rounded-full transition cursor-pointer"
+              title="Thông báo"
+            >
+              <Bell className="w-5 h-5 text-white" />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-yellow-300 text-slate-950 text-[9px] font-black px-1 rounded-full border border-[#ee4d2d]">
+                  {unreadNotificationsCount}
+                </span>
+              )}
+            </button>
+
+            {/* Shopping Cart */}
+            <button
+              onClick={onOpenCartDrawer}
+              className="relative p-1.5 hover:bg-white/10 rounded-full transition cursor-pointer"
+              title="Giỏ hàng"
+            >
+              <ShoppingCart className="w-5 h-5 text-white" />
+              {totalItemsCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-white text-[#ee4d2d] text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow">
+                  {totalItemsCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Search Chips Bar (Shopee Taglines Bar) */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none text-[10px] font-bold pt-0.5 text-amber-100">
+          <span onClick={() => onSelectCategory('ALL')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">⚡ Flash Sale</span>
+          <span onClick={() => onSelectCategory('RENTAL')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">👗 Thuê Trang Phục 0đ</span>
+          <span onClick={() => onSelectCategory('RETAIL')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">🛍️ Shopee Mall</span>
+          <span onClick={() => onSelectCategory('FNB')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">🧋 ShopeeFood Giao 15p</span>
+          <span onClick={() => onSelectCategory('BEAUTY')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">💄 Spa Voucher 50%</span>
+        </div>
+
+      </div>
+
+      {/* Desktop Main Header */}
+      <div className="hidden md:flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 items-center justify-between gap-4 relative">
         {/* Brand Logo */}
         <div
           onClick={() => setActiveTab('shop')}
@@ -440,36 +517,64 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </nav>
 
-      {/* 📱 MOBILE ADAPTIVE BOTTOM NAVIGATION BAR (Auto-detects Mobile Devices) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800 text-slate-200 safe-pb flex items-center justify-around py-2 shadow-2xl">
+      {/* 📱 SHOPEE MOBILE BOTTOM NAVIGATION BAR (APP-LIKE DOCK) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-gray-200 text-gray-700 pb-1.5 pt-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] grid grid-cols-5 text-[10px] font-bold text-center">
+        
+        {/* Tab 1: Trang Chủ */}
         <button
           onClick={() => { setActiveTab('shop'); onSelectCategory('ALL'); }}
-          className={`flex flex-col items-center gap-0.5 text-[10px] font-bold ${
-            activeTab === 'shop' && selectedCategory === 'ALL' ? 'text-amber-400 font-extrabold' : 'text-slate-400'
+          className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+            activeTab === 'shop' && selectedCategory === 'ALL' ? 'text-[#ee4d2d] font-extrabold' : 'text-gray-500 hover:text-[#ee4d2d]'
           }`}
         >
-          <span className="text-base">🏠</span>
+          <div className="relative">
+            <span className="text-lg leading-none">🏠</span>
+            {activeTab === 'shop' && selectedCategory === 'ALL' && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#ee4d2d] rounded-full"></span>
+            )}
+          </div>
           <span>Trang Chủ</span>
         </button>
 
-        {onOpenWatchToEarnModal && (
-          <button
-            onClick={onOpenWatchToEarnModal}
-            className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-pink-400 relative cursor-pointer"
-          >
-            <Tv className="w-5 h-5 text-pink-400 animate-pulse" />
-            <span>Kiếm Xu</span>
-          </button>
-        )}
-
+        {/* Tab 2: Shopee Live / Kiếm Xu */}
         <button
-          onClick={onOpenCartDrawer}
-          className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-400 relative cursor-pointer"
+          onClick={onOpenWatchToEarnModal || (() => {})}
+          className="flex flex-col items-center justify-center gap-0.5 text-pink-600 cursor-pointer relative"
         >
           <div className="relative">
-            <ShoppingCart className="w-5 h-5 text-amber-300" />
+            <Tv className="w-5 h-5 text-pink-600 animate-pulse" />
+            <span className="absolute -top-1 -right-2 bg-[#ee4d2d] text-white text-[8px] font-black px-1 rounded-full animate-bounce">
+              +50 Xu
+            </span>
+          </div>
+          <span>Shopee Live</span>
+        </button>
+
+        {/* Tab 3: Thông Báo */}
+        <button
+          onClick={onToggleNotifications}
+          className="flex flex-col items-center justify-center gap-0.5 text-gray-500 cursor-pointer relative"
+        >
+          <div className="relative">
+            <Bell className="w-5 h-5 text-gray-600" />
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute -top-1 -right-1.5 bg-[#ee4d2d] text-white text-[8px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center">
+                {unreadNotificationsCount}
+              </span>
+            )}
+          </div>
+          <span>Thông Báo</span>
+        </button>
+
+        {/* Tab 4: Giỏ Hàng */}
+        <button
+          onClick={onOpenCartDrawer}
+          className="flex flex-col items-center justify-center gap-0.5 text-gray-500 cursor-pointer relative"
+        >
+          <div className="relative">
+            <ShoppingCart className="w-5 h-5 text-gray-600" />
             {totalItemsCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-orange text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1.5 bg-[#ee4d2d] text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow">
                 {totalItemsCount}
               </span>
             )}
@@ -477,20 +582,13 @@ export const Header: React.FC<HeaderProps> = ({
           <span>Giỏ Hàng</span>
         </button>
 
-        <button
-          onClick={onOpenChatInbox}
-          className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-emerald-400 cursor-pointer"
-        >
-          <MessageSquare className="w-5 h-5 text-emerald-400" />
-          <span>Tin Nhắn</span>
-        </button>
-
+        {/* Tab 5: Tôi / Tài Khoản */}
         <button
           onClick={user ? onOpenOrderHistory : onOpenAuthModal}
-          className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-slate-400 cursor-pointer"
+          className="flex flex-col items-center justify-center gap-0.5 text-gray-500 cursor-pointer"
         >
-          <User className="w-5 h-5 text-slate-300" />
-          <span>{user ? (user.name.split(' ')[0] || 'Tài khoản') : 'Đăng Nhập'}</span>
+          <User className="w-5 h-5 text-gray-600" />
+          <span>{user ? (user.name.split(' ')[0] || 'Tôi') : 'Tôi'}</span>
         </button>
       </div>
     </header>

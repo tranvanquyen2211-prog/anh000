@@ -34,6 +34,9 @@ import { UserCoinsHistoryModal } from './components/UserCoinsHistoryModal';
 import { WalletDepositWithdrawModal } from './components/WalletDepositWithdrawModal';
 import { AiMixMatchStudioModal } from './components/AiMixMatchStudioModal';
 import { ExportStatementModal } from './components/ExportStatementModal';
+import { ShopeeMobileIconGrid } from './components/ShopeeMobileIconGrid';
+import { ShopeeFlashSaleSection } from './components/ShopeeFlashSaleSection';
+import { ShopeeMallSection } from './components/ShopeeMallSection';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
 import { detectProvinceFromShopInfo } from './data/vietnamLocations';
@@ -385,6 +388,26 @@ function MainApp() {
         {(vis?.showHeroBanner !== false) && (
           <HeroBanner onSelectCategory={(cat) => { setSelectedCategory(cat); setActiveTab('shop'); }} />
         )}
+
+        {/* 📱 SHOPEE MOBILE ICON GRID MENU (Mobile First App UI) */}
+        <ShopeeMobileIconGrid
+          onSelectCategory={(cat) => setSelectedCategory(cat)}
+          onOpenAiMixMatchModal={() => setIsAiMixMatchModalOpen(true)}
+          onOpenWalletDepositWithdrawModal={() => setIsWalletModalOpen(true)}
+          onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
+        />
+
+        {/* ⚡ SHOPEE FLASH SALE COUNTDOWN SECTION */}
+        <ShopeeFlashSaleSection
+          products={products}
+          onOpenProductDetail={(p) => setSelectedProductForDetail(p)}
+        />
+
+        {/* 🛍️ SHOPEE MALL OFFICIAL STORE SECTION */}
+        <ShopeeMallSection
+          products={products}
+          onOpenProductDetail={(p) => setSelectedProductForDetail(p)}
+        />
 
         {(vis?.showCategoryFilters !== false) && (
           <CategoryFilters
