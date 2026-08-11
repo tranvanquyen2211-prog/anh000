@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
 
@@ -134,29 +134,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onSelectCategory }) => {
 
       </div>
 
-      {/* Wallet & Promo Bar */}
-      <section className="bg-gradient-to-r from-emerald-700 via-teal-700 to-amber-600 text-white rounded-2xl p-3.5 sm:p-4 shadow-md flex flex-col md:flex-row items-center justify-between gap-3 border border-emerald-500/30">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-inner">
-            💳
-          </div>
-          <div>
-            <h3 className="font-extrabold text-xs sm:text-sm flex items-center gap-2">
-              {theme.promoBarText || `ƯU ĐÃI VÍ CÁ NHÂN TQ PAY: GIẢM THÊM ${theme.walletDiscountRate || 2}% CHO MỌI ĐƠN HÀNG`}
-              <span className="bg-white text-emerald-900 text-[9px] uppercase font-black px-2 py-0.5 rounded-full shadow-xs">Hot</span>
-            </h3>
-            <p className="text-[11px] text-emerald-100 mt-0.5">
-              Supabase Realtime Synced • Tự động hoàn TQ Xu cho đánh giá khi thanh toán Ví TQ Pay!
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="bg-white/10 px-3 py-1.5 rounded-xl text-xs font-extrabold border border-white/20 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-300" />
-            <span>Shopee Standard Certified</span>
-          </div>
-        </div>
-      </section>
+      {/* Wallet & Promo Bar Removed to Maximize Screen Space */}
     </div>
   );
 };
