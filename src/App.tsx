@@ -66,6 +66,19 @@ function MainApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'shop' | 'orders' | 'chat'>('shop');
 
+  // 🔄 SYSTEM STORAGE & CLOUD DB REALTIME UI SYNCHRONIZATION
+  useEffect(() => {
+    // Persist system layout state & UI mode to Local Storage
+    const systemUIConfig = {
+      selectedCategory,
+      selectedProvince,
+      selectedDistrict,
+      updated_at: new Date().toISOString()
+    };
+    localStorage.setItem('tq_system_ui_config', JSON.stringify(systemUIConfig));
+    localStorage.setItem('tq_synced_products', JSON.stringify(products));
+  }, [selectedCategory, selectedProvince, selectedDistrict, products]);
+
   // Notifications State
   const [notifications, setNotifications] = useState<SystemNotification[]>(() => {
     const saved = localStorage.getItem('tq_notifications');
