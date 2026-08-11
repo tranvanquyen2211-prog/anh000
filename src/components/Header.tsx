@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -14,6 +14,7 @@ interface HeaderProps {
   onOpenWatchToEarnModal?: () => void;
   onOpenUserCoinsModal?: () => void;
   onOpenThemeCustomizer?: () => void;
+  onOpenAiDesignStudio?: () => void;
   onOpenChangePassword?: () => void;
   onOpenChangeAvatar?: () => void;
   onOpenSuperAdminDashboard?: () => void;
@@ -42,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenWatchToEarnModal,
   onOpenUserCoinsModal,
   onOpenThemeCustomizer,
+  onOpenAiDesignStudio,
   onOpenChangePassword,
   onOpenChangeAvatar,
   onOpenSuperAdminDashboard,
@@ -184,6 +186,18 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Crown className="w-4 h-4 text-slate-950" />
               <span className="hidden sm:inline">Bảng Quản Trị Admin</span>
+            </button>
+          )}
+
+          {/* AI Live Design Studio Button for Super Admin */}
+          {user && user.role === 'SUPER_ADMIN' && onOpenAiDesignStudio && (
+            <button
+              onClick={onOpenAiDesignStudio}
+              className="bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:from-purple-700 hover:to-amber-600 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-pink-400/40"
+              title="AI Trực Tuyến Hỗ Trợ Thiết Kế Web & Phát Sóng Realtime"
+            >
+              <Wand2 className="w-4 h-4 text-amber-300 animate-spin" />
+              <span className="hidden sm:inline">AI Thiết Kế Web</span>
             </button>
           )}
 

@@ -21,6 +21,7 @@ import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { OrderHistoryModal } from './components/OrderHistoryModal';
 import { AdminThemeCustomizer } from './components/AdminThemeCustomizer';
+import { AdminAiDesignStudio } from './components/AdminAiDesignStudio';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { ChangeAvatarModal } from './components/ChangeAvatarModal';
@@ -88,6 +89,7 @@ function MainApp() {
   const [isOrderHistoryOpen, setIsOrderHistoryOpen] = useState(false);
   const [isChatInboxOpen, setIsChatInboxOpen] = useState(false);
   const [isAdminThemeOpen, setIsAdminThemeOpen] = useState(false);
+  const [isAdminAiDesignStudioOpen, setIsAdminAiDesignStudioOpen] = useState(false);
   const [isSuperAdminDashboardOpen, setIsSuperAdminDashboardOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isChangeAvatarOpen, setIsChangeAvatarOpen] = useState(false);
@@ -344,6 +346,7 @@ function MainApp() {
         onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
         onOpenUserCoinsModal={() => setIsUserCoinsModalOpen(true)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
+        onOpenAiDesignStudio={() => setIsAdminAiDesignStudioOpen(true)}
         onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
         onOpenChangeAvatar={() => setIsChangeAvatarOpen(true)}
@@ -576,6 +579,11 @@ function MainApp() {
         isOpen={isUserCoinsModalOpen}
         onClose={() => setIsUserCoinsModalOpen(false)}
         onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
+      />
+
+      <AdminAiDesignStudio
+        isOpen={isAdminAiDesignStudioOpen}
+        onClose={() => setIsAdminAiDesignStudioOpen(false)}
       />
     </div>
   );
