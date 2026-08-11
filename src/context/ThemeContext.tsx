@@ -14,6 +14,10 @@ export const DEFAULT_FEATURE_VISIBILITY: FeatureVisibilityConfig = {
 };
 
 export const DEFAULT_MASTER_SWITCHES: SystemMasterSwitches = {
+  enableSystemMaintenance: false,
+  maintenanceTitle: '🚧 HỆ THỐNG ĐANG BẢO TRÌ & NÂNG CẤP ĐỊNH KỲ',
+  maintenanceMessage: 'Hệ thống TQ Marketplace đang tiến hành nâng cấp hạ tầng máy chủ đám mây Supabase Realtime và tối ưu hóa tốc độ. Vui lòng quay lại sau!',
+  maintenanceEndTime: '',
   enableWalletPayment: true,
   enableVietQRPayment: true,
   enableCODPayment: true,

@@ -50,7 +50,8 @@ import {
   Download,
   Store,
   Truck,
-  Package
+  Package,
+  Wrench
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -519,6 +520,12 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     document.body.removeChild(link);
     addToast('📄 Đã xuất toàn bộ Lịch sử mua hàng của Khách hàng ra file CSV thành công!', 'success');
   };
+
+  // System Maintenance Lock Form State
+  const masterSwitches = theme.masterSwitches || DEFAULT_MASTER_SWITCHES;
+  const [maintTitle, setMaintTitle] = useState(() => masterSwitches.maintenanceTitle || '🚧 HỆ THỐNG ĐANG BẢO TRÌ & NÂNG CẤP ĐỊNH KỲ');
+  const [maintMessage, setMaintMessage] = useState(() => masterSwitches.maintenanceMessage || 'Hệ thống TQ Marketplace đang tiến hành nâng cấp hạ tầng máy chủ đám mây Supabase Realtime và tối ưu hóa tốc độ. Vui lòng quay lại sau!');
+  const [maintDurationHours, setMaintDurationHours] = useState<number>(1);
 
   // Curated Featured Shops & Search Suggested Products State
   const [featuredShops, setFeaturedShops] = useState<string[]>(() => {
@@ -1798,6 +1805,104 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                       <span className="text-xs font-black text-emerald-400 flex items-center gap-1">
                         <Zap className="w-3.5 h-3.5 text-amber-400 animate-bounce" /> 100% REALTIME WEBSOCKET ACTIVE
                       </span>
+                    </div>
+                  </div>
+
+                  {/* System Maintenance Master Control Panel */}
+                  <div className="bg-slate-900 p-5 rounded-2xl border border-amber-500/50 space-y-4 shadow-xl">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3 flex-wrap gap-2">
+                      <div>
+                        <h4 className="text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                          <Wrench className="w-5 h-5 text-amber-400 animate-bounce" /> 🚨 KHÓA BẢO TRÌ & NÂNG CẤP TOÀN HỆ THỐNG (SYSTEM MAINTENANCE LOCK)
+                        </h4>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5">
+                          Khi bật, toàn bộ Khách hàng & Cửa hàng sẽ thấy màn hình Bảo trì kèm Đồng hồ đếm ngược. <strong className="text-amber-300">CHỈ TÀI KHOẢN SUPER ADMIN MỚI TRUY CẬP ĐƯỢC WEB!</strong>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {masterSwitches.enableSystemMaintenance ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = {
+                                ...masterSwitches,
+                                enableSystemMaintenance: false,
+                                maintenanceEndTime: ''
+                              };
+                              updateTheme({ masterSwitches: updated });
+                              addToast('🟢 Đã TẮT Chế độ Bảo trì - Hệ thống mở khóa hoạt động bình thường cho tất cả mọi người!', 'success');
+                            }}
+                            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs transition shadow cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Unlock className="w-4 h-4" /> 🟢 TẮT BẢO TRÌ - MỞ KHÓA TOÀN SÀN
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const targetEndTime = new Date(Date.now() + (maintDurationHours * 3600 * 1000)).toISOString();
+                              const updated = {
+                                ...masterSwitches,
+                                enableSystemMaintenance: true,
+                                maintenanceTitle: maintTitle,
+                                maintenanceMessage: maintMessage,
+                                maintenanceEndTime: targetEndTime
+                              };
+                              updateTheme({ masterSwitches: updated });
+                              addToast(`🚧 ĐÃ BẬT KHÓA BẢO TRÌ HỆ THỐNG! Thời gian đếm ngược ${maintDurationHours} giờ. Chỉ Admin mới dùng được web!`, 'error');
+                            }}
+                            className="bg-rose-600 hover:bg-rose-500 text-white font-black px-4 py-2 rounded-xl text-xs transition shadow cursor-pointer flex items-center gap-1.5 border border-rose-400"
+                          >
+                            <Lock className="w-4 h-4" /> 🔒 BẬT KHÓA BẢO TRÌ NGAY
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-slate-300 font-bold mb-1 text-xs">Tiêu Đề Thông Báo Bảo Trì</label>
+                        <input
+                          type="text"
+                          value={maintTitle}
+                          onChange={e => setMaintTitle(e.target.value)}
+                          placeholder="VD: 🚧 HỆ THỐNG ĐANG BẢO TRÌ & NÂNG CẤP ĐỊNH KỲ..."
+                          className="w-full bg-slate-950 border border-slate-700 text-amber-400 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-slate-300 font-bold mb-1 text-xs">Nội Dung Chi Tiết Thông Báo Nâng Cấp</label>
+                        <input
+                          type="text"
+                          value={maintMessage}
+                          onChange={e => setMaintMessage(e.target.value)}
+                          placeholder="VD: Hệ thống đang tiến hành nâng cấp hạ tầng máy chủ đám mây..."
+                          className="w-full bg-slate-950 border border-slate-700 text-slate-200 font-medium rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-bold mb-1 text-xs">Thời Gian Đếm Ngược Bảo Trì Dự Kiến</label>
+                        <select
+                          value={maintDurationHours}
+                          onChange={e => setMaintDurationHours(Number(e.target.value))}
+                          className="w-full bg-slate-950 border border-slate-700 text-amber-300 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400"
+                        >
+                          <option value={0.5}>⏱️ 30 phút (Nâng cấp nhanh)</option>
+                          <option value={1}>⏱️ 1 giờ (Bảo trì định kỳ)</option>
+                          <option value={2}>⏱️ 2 giờ (Bảo trì lớn)</option>
+                          <option value={4}>⏱️ 4 giờ (Nâng cấp máy chủ)</option>
+                          <option value={12}>⏱️ 12 giờ (Nâng cấp toàn diện)</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:col-span-2 flex items-end">
+                        <p className="text-[11px] text-slate-400 font-medium bg-slate-950 p-2.5 rounded-xl border border-slate-800 w-full">
+                          💡 <strong className="text-amber-300">Cơ chế hoạt động:</strong> Sau khi hết thời gian đếm ngược (hoặc khi Super Admin bấm Tắt bảo trì), hệ thống sẽ <strong className="text-emerald-400">TỰ ĐỘNG MỞ KHÓA</strong> cho tất cả khách hàng mà không cần bấm gì thêm. Khi đang Bật bảo trì, chỉ tài khoản Admin mới đăng nhập & dùng web bình thường.
+                        </p>
+                      </div>
                     </div>
                   </div>
 

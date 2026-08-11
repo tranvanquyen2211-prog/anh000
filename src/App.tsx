@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { ToastProvider } from './context/ToastContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ThemeProvider, useTheme, DEFAULT_MASTER_SWITCHES } from './context/ThemeContext';
+import { MaintenanceOverlay } from './components/MaintenanceOverlay';
 import { ToastContainer } from './components/Toast';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
@@ -47,7 +48,21 @@ import { supabase } from './lib/supabase';
 
 function MainApp() {
   const { theme } = useTheme();
+  const { user } = useAuth();
   const vis = theme.featureVisibility;
+
+  const masterSwitches = theme.masterSwitches || DEFAULT_MASTER_SWITCHES;
+  const isMaintenanceMode = masterSwitches.enableSystemMaintenance === true;
+  
+  let isMaintenanceExpired = false;
+  if (masterSwitches.maintenanceEndTime) {
+    const target = new Date(masterSwitches.maintenanceEndTime).getTime();
+    if (Date.now() >= target) {
+      isMaintenanceExpired = true;
+    }
+  }
+
+  const isSystemLockedByMaintenance = isMaintenanceMode && !isMaintenanceExpired && user?.role !== 'SUPER_ADMIN';
 
   const [products, setProducts] = useState<Product[]>(() => {
     const savedCustoms = JSON.parse(localStorage.getItem('tq_custom_products') || '[]');
@@ -435,6 +450,24 @@ function MainApp() {
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-300">
       <ToastContainer />
+
+      {/* SYSTEM MAINTENANCE OVERLAY LOCK SCREEN FOR REGULAR USERS & GUESTS */}
+      {isSystemLockedByMaintenance && (
+        <MaintenanceOverlay
+          title={masterSwitches.maintenanceTitle}
+          message={masterSwitches.maintenanceMessage}
+          endTime={masterSwitches.maintenanceEndTime}
+          onOpenAuthModal={() => setIsAuthOpen(true)}
+          onCheckStatus={() => window.location.reload()}
+        />
+      )}
+
+      {/* SUPER ADMIN EXEMPTION NOTICE BANNER */}
+      {isMaintenanceMode && !isMaintenanceExpired && user?.role === 'SUPER_ADMIN' && (
+        <div className="bg-gradient-to-r from-rose-600 via-amber-600 to-orange-600 text-white font-black text-xs px-4 py-2 text-center shadow-lg border-b border-amber-400/50 flex items-center justify-center gap-2 z-50 animate-pulse">
+          🚧 ĐANG BẬT BẢO TRÌ NÂNG CẤP HỆ THỐNG - CHỈ SUPER ADMIN MỚI CÓ QUYỀN TRUY CẬP SỬ DỤNG WEB!
+        </div>
+      )}
 
       <Header
         onOpenAuthModal={() => setIsAuthOpen(true)}

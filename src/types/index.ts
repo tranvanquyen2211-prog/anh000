@@ -102,6 +102,10 @@ export interface FeatureVisibilityConfig {
 }
 
 export interface SystemMasterSwitches {
+  enableSystemMaintenance?: boolean;
+  maintenanceTitle?: string;
+  maintenanceMessage?: string;
+  maintenanceEndTime?: string;
   enableWalletPayment: boolean;
   enableVietQRPayment: boolean;
   enableCODPayment: boolean;
