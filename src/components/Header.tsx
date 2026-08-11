@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType, Product } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, Wallet, Coins, Palette, Crown, PlusCircle, Store, Bell, MessageSquare, Wand2, Flame } from 'lucide-react';
+import { ShoppingCart, Search, User, Wallet, Coins, Palette, Crown, PlusCircle, Store, Bell, MessageSquare, Wand2, Flame, Wrench } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -499,6 +499,18 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <PlusCircle className="w-4 h-4 text-slate-950" />
               <span className="hidden sm:inline">ĐĂNG SP GIAN HÀNG</span>
+            </button>
+          )}
+
+          {/* Quick Access System Maintenance Lock Button for Super Admin */}
+          {user && user.role === 'SUPER_ADMIN' && onOpenSuperAdminDashboard && (
+            <button
+              onClick={onOpenSuperAdminDashboard}
+              className="bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-700 hover:to-amber-700 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-rose-300/50"
+              title="Bấm mở ngay Cấu hình Bật/Tắt Khóa Bảo Trì Hệ Thống 0ms"
+            >
+              <Wrench className="w-4 h-4 text-amber-300 animate-bounce" />
+              <span className="hidden lg:inline">🚨 Khóa Bảo Trì 0ms</span>
             </button>
           )}
 

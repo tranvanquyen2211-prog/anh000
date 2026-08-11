@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, Wallet, Coins, Key, LogOut, Package, Camera, Crown, Store, ShieldCheck, ChevronRight, X } from 'lucide-react';
+import { User, Wallet, Coins, Key, LogOut, Package, Camera, Crown, Store, ShieldCheck, ChevronRight, X, Wrench } from 'lucide-react';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -195,17 +195,41 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
                 {/* Shop Management / Admin Dashboard (Role-based) */}
                 {user.role === 'SUPER_ADMIN' && onOpenSuperAdminDashboard && (
-                  <div
-                    onClick={() => { onClose(); onOpenSuperAdminDashboard(); }}
-                    className="p-3 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 hover:bg-amber-500/20 rounded-2xl flex items-center justify-between cursor-pointer transition border border-amber-300/40 text-amber-900"
-                  >
-                    <div className="flex items-center gap-3 font-black">
-                      <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center">
-                        <Crown className="w-4 h-4" />
-                      </div>
-                      <span>Bảng Điều Hành Super Admin</span>
+                  <div className="space-y-2 pt-1 border-t border-amber-200/60">
+                    <div className="text-[10px] font-black text-amber-800 uppercase tracking-wider px-1">
+                      👑 NÚT BẤM NHANH QUẢN TRỊ SUPER ADMIN (MỤC TÔI)
                     </div>
-                    <ChevronRight className="w-4 h-4 text-amber-600" />
+
+                    {/* 1. Quick Maintenance Lock Shortcut */}
+                    <div
+                      onClick={() => { onClose(); onOpenSuperAdminDashboard(); }}
+                      className="p-3.5 bg-gradient-to-r from-rose-500 via-amber-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white rounded-2xl flex items-center justify-between cursor-pointer transition shadow-md group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white/20 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                          <Wrench className="w-5 h-5 animate-bounce" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-black text-white text-xs sm:text-sm">🚨 Bật/Tắt Khóa Bảo Trì Hệ Thống</span>
+                          <span className="text-[10px] text-amber-100 font-medium">Bấm chuyển ngay vào Cấu hình Đếm ngược & Master Control</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4.5 h-4.5 text-white group-hover:translate-x-0.5 transition" />
+                    </div>
+
+                    {/* 2. Full Admin Dashboard Shortcut */}
+                    <div
+                      onClick={() => { onClose(); onOpenSuperAdminDashboard(); }}
+                      className="p-3 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 hover:bg-amber-500/20 rounded-2xl flex items-center justify-between cursor-pointer transition border border-amber-300/40 text-amber-900"
+                    >
+                      <div className="flex items-center gap-3 font-black">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center">
+                          <Crown className="w-4 h-4" />
+                        </div>
+                        <span>Bảng Điều Hành Super Admin Overlord</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-amber-600" />
+                    </div>
                   </div>
                 )}
 
