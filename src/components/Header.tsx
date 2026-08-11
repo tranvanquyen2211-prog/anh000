@@ -112,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="text"
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
-              placeholder="Flash Sale Siêu Hot, Thử đồ AI, Gọi Taxi..."
+              placeholder="Tìm trang phục thuê, sản phẩm, đồ ăn, gói spa..."
               className="w-full text-xs bg-transparent focus:outline-none placeholder:text-gray-400 font-medium"
             />
             <button className="text-gray-400 hover:text-[#ee4d2d] p-0.5 cursor-pointer shrink-0">
@@ -164,13 +164,13 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Quick Search Chips Bar (Shopee Taglines Bar) */}
+        {/* Quick Search Shortcuts Bar (Original Website Shortcuts) */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none text-[10px] font-bold pt-0.5 text-amber-100">
-          <span onClick={() => onSelectCategory('ALL')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">⚡ Flash Sale</span>
-          <span onClick={() => onSelectCategory('RENTAL')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">👗 Thuê Trang Phục 0đ</span>
-          <span onClick={() => onSelectCategory('RETAIL')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">🛍️ Gian Hàng Chính Hãng</span>
-          <span onClick={() => onSelectCategory('FNB')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">🧋 Đồ Ăn Hỏa Tốc 15p</span>
-          <span onClick={() => onSelectCategory('BEAUTY')} className="bg-white/20 px-2 py-0.5 rounded-full text-white shrink-0 cursor-pointer">💄 Spa Voucher 50%</span>
+          <span onClick={() => { onSearchChange('taxi'); onSelectCategory('TAXI'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">🚖 Taxi Đón Tận Nơi</span>
+          <span onClick={() => { onSearchChange('sale'); onSelectCategory('ALL'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">⚡ Flash Sale 50%</span>
+          <span onClick={() => { onSearchChange('váy cưới'); onSelectCategory('RENTAL'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">👗 Váy Cưới Luxury</span>
+          <span onClick={() => { onSearchChange('trà sữa'); onSelectCategory('FNB'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">🧋 Trà Sữa Ô Long</span>
+          <span onClick={() => { onSearchChange('spa'); onSelectCategory('BEAUTY'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">💄 Spa Thảo Dược 60P</span>
         </div>
 
       </div>
