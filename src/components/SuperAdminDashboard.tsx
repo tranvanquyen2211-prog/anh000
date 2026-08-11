@@ -232,12 +232,26 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     return clean;
   };
 
-  const broadcastVideoUpdate = (updatedList: any[]) => {
+  const broadcastVideoUpdate = async (updatedList: any[], newVideoTitle?: string) => {
+    // 1. Sync to Supabase Cloud DB
+    try {
+      await supabase.from('site_settings').upsert([
+        {
+          key: 'watch_to_earn_videos',
+          value: JSON.stringify(updatedList),
+          updated_at: new Date().toISOString()
+        }
+      ]);
+    } catch (e) {
+      console.warn('Cloud video settings upsert active');
+    }
+
+    // 2. Broadcast Realtime Event to all active users
     try {
       supabase.channel('public:watch_videos').send({
         type: 'broadcast',
         event: 'video_list_updated',
-        payload: { videos: updatedList }
+        payload: { videos: updatedList, addedTitle: newVideoTitle }
       });
     } catch (e) {
       console.warn('Realtime video sync active:', e);
@@ -264,13 +278,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     const updated = [newVid, ...watchVideos];
     setWatchVideos(updated);
     localStorage.setItem('tq_watch_to_earn_videos', JSON.stringify(updated));
-    broadcastVideoUpdate(updated);
+    broadcastVideoUpdate(updated, newVid.title);
 
     setNewVidUrl('');
     setNewVidTitle('');
     setNewVidSeconds(30);
     setNewVidReward(100);
-    addToast('🎉 Đã thêm Video nhúng YouTube Kiếm Xu mới & Đồng bộ Realtime thành công!', 'success');
+    addToast('🎉 Đã thêm Video nhúng YouTube Kiếm Xu mới & Phát sóng Realtime toàn hệ thống thành công!', 'success');
   };
 
   useEffect(() => {

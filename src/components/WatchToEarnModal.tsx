@@ -85,6 +85,25 @@ export const WatchToEarnModal: React.FC<WatchToEarnModalProps> = ({ isOpen, onCl
 
   // Sync videos from localStorage if admin updates & Supabase Realtime Broadcast
   useEffect(() => {
+    // Fetch initial latest videos list from Supabase Cloud DB
+    const fetchCloudVideos = async () => {
+      try {
+        const { data } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'watch_to_earn_videos')
+          .single();
+        if (data?.value) {
+          const parsed = JSON.parse(data.value);
+          setVideos(parsed);
+          localStorage.setItem('tq_watch_to_earn_videos', JSON.stringify(parsed));
+        }
+      } catch (e) {
+        console.warn('Cloud video fetch active');
+      }
+    };
+    fetchCloudVideos();
+
     const handleStorage = () => {
       const saved = localStorage.getItem('tq_watch_to_earn_videos');
       if (saved) setVideos(JSON.parse(saved));
@@ -98,6 +117,11 @@ export const WatchToEarnModal: React.FC<WatchToEarnModalProps> = ({ isOpen, onCl
         if (payload?.payload?.videos) {
           setVideos(payload.payload.videos);
           localStorage.setItem('tq_watch_to_earn_videos', JSON.stringify(payload.payload.videos));
+          if (payload.payload.addedTitle) {
+            addToast(`📺 Admin vừa phát hành Video Kiếm Xu mới: "${payload.payload.addedTitle}"!`, 'success');
+          } else {
+            addToast('📺 Danh sách Video Kiếm Xu vừa được Admin đồng bộ Realtime!', 'info');
+          }
         }
       })
       .subscribe();
