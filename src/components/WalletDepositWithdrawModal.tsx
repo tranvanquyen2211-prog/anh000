@@ -152,12 +152,21 @@ export const WalletDepositWithdrawModal: React.FC<WalletDepositWithdrawModalProp
     localStorage.setItem('tq_wallet_transactions', JSON.stringify(updatedAll));
     setTransactions([newTx, ...transactions]);
 
-    // Send Realtime notification to Super Admin
+    window.dispatchEvent(new CustomEvent('tq_wallet_tx_updated', { detail: newTx }));
+
     try {
       await supabase.from('wallet_transactions').insert([newTx]);
     } catch (e) {
       console.warn('Cloud wallet tx sync active');
     }
+
+    try {
+      supabase.channel('public:wallet_transactions').send({
+        type: 'broadcast',
+        event: 'wallet_tx_created',
+        payload: newTx
+      });
+    } catch (e) {}
 
     addToast(`🎉 ĐÃ KHỞI TẠO LỆNH NẠP ${depositAmount.toLocaleString('vi-VN')}Đ. VUI LÒNG CHUYỂN KHOẢN ĐÚNG NỘI DUNG VÀ MÃ QR!`, 'success');
   };
@@ -229,11 +238,21 @@ export const WalletDepositWithdrawModal: React.FC<WalletDepositWithdrawModalProp
     localStorage.setItem('tq_wallet_transactions', JSON.stringify(updatedAll));
     setTransactions([newTx, ...transactions]);
 
+    window.dispatchEvent(new CustomEvent('tq_wallet_tx_updated', { detail: newTx }));
+
     try {
       await supabase.from('wallet_transactions').insert([newTx]);
     } catch (e) {
       console.warn('Cloud wallet tx sync active');
     }
+
+    try {
+      supabase.channel('public:wallet_transactions').send({
+        type: 'broadcast',
+        event: 'wallet_tx_created',
+        payload: newTx
+      });
+    } catch (e) {}
 
     addToast(`✅ LỆNH RÚT TIỀN ${withdrawAmount.toLocaleString('vi-VN')}Đ VỀ STK [${cleanReqAccNum}] ĐÃ ĐƯỢC GỬI ADMIN PHÊ DUYỆT!`, 'success');
   };

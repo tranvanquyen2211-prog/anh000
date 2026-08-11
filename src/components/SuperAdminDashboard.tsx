@@ -281,8 +281,46 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     return saved ? JSON.parse(saved) : [];
   });
 
+  const syncWalletTxsFromStorage = () => {
+    const saved = localStorage.getItem('tq_wallet_transactions');
+    if (saved) {
+      try {
+        setWalletTxs(JSON.parse(saved));
+      } catch (e) {}
+    }
+  };
+
   useEffect(() => {
-    const fetchWalletTxs = async () => {
+    syncWalletTxsFromStorage();
+
+    const handleTxEvent = (e: any) => {
+      syncWalletTxsFromStorage();
+      if (e?.detail) {
+        addToast(`💳 VỪA NHẬN LỆNH ${e.detail.type === 'DEPOSIT' ? 'NẠP' : 'RÚT'} TIỀN MỚI: ${e.detail.userName} (${e.detail.amount.toLocaleString('vi-VN')} VNĐ)`, 'info');
+      }
+    };
+
+    window.addEventListener('tq_wallet_tx_updated', handleTxEvent);
+    window.addEventListener('storage', syncWalletTxsFromStorage);
+
+    // Supabase Realtime Listener
+    const walletChannel = supabase.channel('public:wallet_transactions')
+      .on('broadcast', { event: 'wallet_tx_created' }, (payload) => {
+        if (payload?.payload) {
+          const newTx = payload.payload;
+          setWalletTxs(prev => {
+            const exists = prev.some(t => t.id === newTx.id);
+            if (exists) return prev;
+            const updated = [newTx, ...prev];
+            localStorage.setItem('tq_wallet_transactions', JSON.stringify(updated));
+            return updated;
+          });
+          addToast(`💳 REALTIME: ${newTx.userName} VỪA GỬI LỆNH ${newTx.type === 'DEPOSIT' ? 'NẠP' : 'RÚT'} TIỀN (${newTx.amount.toLocaleString('vi-VN')} VNĐ)!`, 'info');
+        }
+      })
+      .subscribe();
+
+    const fetchCloudWalletTxs = async () => {
       try {
         const { data, error } = await supabase.from('wallet_transactions').select('*').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
@@ -304,7 +342,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         }
       } catch (e) {}
     };
-    fetchWalletTxs();
+    fetchCloudWalletTxs();
+
+    return () => {
+      window.removeEventListener('tq_wallet_tx_updated', handleTxEvent);
+      window.removeEventListener('storage', syncWalletTxsFromStorage);
+      supabase.removeChannel(walletChannel);
+    };
   }, [adminTab]);
 
   const handleApproveWalletTx = async (tx: WalletTransaction) => {
