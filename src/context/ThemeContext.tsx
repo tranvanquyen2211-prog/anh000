@@ -76,7 +76,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { addToast } = useToast();
   const [theme, setTheme] = useState<ThemeConfig>(() => {
-    const saved = localStorage.getItem('tq_site_theme');
+    const saved = localStorage.getItem('tq_site_theme') || localStorage.getItem('tq_global_active_theme');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -110,23 +110,27 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     localStorage.setItem('tq_site_theme', JSON.stringify(theme));
+    localStorage.setItem('tq_global_active_theme', JSON.stringify(theme));
   }, [theme]);
 
-  // Sync theme with Supabase & Subscribe to Realtime WebSocket Theme Updates
+  // Sync theme with Supabase Cloud DB & Subscribe to Realtime WebSocket Theme Updates
   useEffect(() => {
     const fetchRemoteTheme = async () => {
       try {
-        const { data, error } = await supabase.from('site_settings').select('*').single();
-        if (!error && data && data.config) {
+        const { data, error } = await supabase.from('site_settings').select('*').limit(1);
+        if (!error && data && data.length > 0 && data[0].config) {
+          const cloudConfig = data[0].config;
           setTheme(prev => ({
             ...prev,
-            ...data.config,
+            ...cloudConfig,
             featureVisibility: {
               ...DEFAULT_FEATURE_VISIBILITY,
               ...(prev.featureVisibility || {}),
-              ...(data.config.featureVisibility || {})
+              ...(cloudConfig.featureVisibility || {})
             }
           }));
+          localStorage.setItem('tq_site_theme', JSON.stringify(cloudConfig));
+          localStorage.setItem('tq_global_active_theme', JSON.stringify(cloudConfig));
         }
       } catch (err) {
         console.warn('Local theme config fallback active');
