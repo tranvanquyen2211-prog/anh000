@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2, LayoutGrid } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -536,18 +536,26 @@ export const Header: React.FC<HeaderProps> = ({
           <span>Trang Chủ</span>
         </button>
 
-        {/* Tab 2: Shopee Live / Kiếm Xu */}
+        {/* Tab 2: Danh Mục */}
         <button
-          onClick={onOpenWatchToEarnModal || (() => {})}
-          className="flex flex-col items-center justify-center gap-0.5 text-pink-600 cursor-pointer relative"
+          onClick={() => {
+            const types: (ShopType | 'ALL')[] = ['ALL', 'RENTAL', 'RETAIL', 'FNB', 'BEAUTY', 'TAXI'];
+            const currentIdx = types.indexOf(selectedCategory);
+            const nextType = types[(currentIdx + 1) % types.length];
+            setActiveTab('shop');
+            onSelectCategory(nextType);
+          }}
+          className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+            selectedCategory !== 'ALL' ? 'text-[#ee4d2d] font-extrabold' : 'text-gray-500 hover:text-[#ee4d2d]'
+          }`}
         >
           <div className="relative">
-            <Tv className="w-5 h-5 text-pink-600 animate-pulse" />
-            <span className="absolute -top-1 -right-2 bg-[#ee4d2d] text-white text-[8px] font-black px-1 rounded-full animate-bounce">
-              +50 Xu
-            </span>
+            <LayoutGrid className="w-5 h-5" />
+            {selectedCategory !== 'ALL' && (
+              <span className="absolute -top-1 -right-1 bg-[#ee4d2d] w-2 h-2 rounded-full"></span>
+            )}
           </div>
-          <span>Shopee Live</span>
+          <span>Danh Mục</span>
         </button>
 
         {/* Tab 3: Thông Báo */}
