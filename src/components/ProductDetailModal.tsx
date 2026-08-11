@@ -21,7 +21,8 @@ import {
   UserCheck,
   ExternalLink,
   MapPin,
-  Navigation
+  Navigation,
+  LocateFixed
 } from 'lucide-react';
 
 interface ProductDetailModalProps {
@@ -45,6 +46,41 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [reviews, setReviews] = useState<any[]>([]);
+
+  // Taxi GPS & Ride Booking state
+  const [pickupAddress, setPickupAddress] = useState('');
+  const [destinationAddress, setDestinationAddress] = useState('');
+  const [userGpsCoords, setUserGpsCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isGettingGps, setIsGettingGps] = useState(false);
+
+  const handleGetLiveGpsLocation = () => {
+    if (!navigator.geolocation) {
+      addToast('Trình duyệt của bạn không hỗ trợ định vị GPS!', 'error');
+      return;
+    }
+
+    setIsGettingGps(true);
+    addToast('📍 Đang xác định tọa độ GPS hiện tại của bạn...', 'info');
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserGpsCoords({ lat, lng });
+        setIsGettingGps(false);
+
+        const gpsFormattedStr = `📍 Vị trí GPS hiện tại: ${lat.toFixed(6)}, ${lng.toFixed(6)} (Bản đồ: https://www.google.com/maps?q=${lat},${lng})`;
+        setPickupAddress(gpsFormattedStr);
+
+        addToast(`✅ Đã định vị vị trí GPS! (${lat.toFixed(4)}, ${lng.toFixed(4)})`, 'success');
+      },
+      () => {
+        setIsGettingGps(false);
+        addToast('⚠️ Không thể tự động lấy GPS. Vui lòng bật quyền truy cập vị trí trên trình duyệt!', 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   useEffect(() => {
     if (!product) return;
@@ -323,13 +359,40 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                       </span>
                     </div>
 
+                    {/* GPS Location Button */}
+                    <button
+                      type="button"
+                      onClick={handleGetLiveGpsLocation}
+                      disabled={isGettingGps}
+                      className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2 cursor-pointer border border-emerald-400 animate-pulse"
+                    >
+                      <LocateFixed className={`w-4 h-4 text-emerald-200 ${isGettingGps ? 'animate-spin' : ''}`} />
+                      {isGettingGps ? '📍 ĐANG LẤY TỌA ĐỘ GPS...' : '📍 GỬI VỊ TRÍ ĐỊNH VỊ GPS HIỆN TẠI CỦA TÔI (CHO TÀI XẾ)'}
+                    </button>
+
+                    {userGpsCoords && (
+                      <div className="bg-emerald-950/80 border border-emerald-500 p-2.5 rounded-xl text-emerald-300 text-[11px] font-medium flex items-center justify-between">
+                        <span>🎯 Tọa độ GPS của bạn: <strong>{userGpsCoords.lat.toFixed(6)}, {userGpsCoords.lng.toFixed(6)}</strong></span>
+                        <a
+                          href={`https://www.google.com/maps?q=${userGpsCoords.lat},${userGpsCoords.lng}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1"
+                        >
+                          <Navigation className="w-3 h-3" /> Xem Bản Đồ
+                        </a>
+                      </div>
+                    )}
+
                     <div className="space-y-2 text-xs">
                       <div>
-                        <label className="text-[10px] font-bold text-slate-700 block mb-0.5">📍 Điểm Đón Khách:</label>
+                        <label className="text-[10px] font-bold text-slate-700 block mb-0.5">📍 Điểm Đón Khách (Địa chỉ / Định vị GPS):</label>
                         <input
                           type="text"
-                          placeholder="Nhập địa chỉ nhà / ví dụ: 123 Nguyễn Trãi, Hà Nội..."
-                          className="w-full bg-white border border-yellow-400 text-slate-900 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
+                          value={pickupAddress}
+                          onChange={e => setPickupAddress(e.target.value)}
+                          placeholder="Nhập địa chỉ nhà hoặc bấm nút Lấy vị trí GPS ở trên..."
+                          className="w-full bg-white border border-yellow-400 text-slate-900 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500"
                         />
                       </div>
 
@@ -337,20 +400,27 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                         <label className="text-[10px] font-bold text-slate-700 block mb-0.5">🏁 Điểm Đến / Nơi Trả Khách:</label>
                         <input
                           type="text"
+                          value={destinationAddress}
+                          onChange={e => setDestinationAddress(e.target.value)}
                           placeholder="Nhập điểm đến / Sân bay Nội Bài, bến xe..."
-                          className="w-full bg-white border border-yellow-400 text-slate-900 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
+                          className="w-full bg-white border border-yellow-400 text-slate-900 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500"
                         />
                       </div>
                     </div>
 
                     <button
                       onClick={() => {
-                        addToast(`🚖 Đã gửi yêu cầu gọi xe Taxi tới [${product.shopName}]! Tài xế sẽ liên hệ bạn ngay!`, 'success');
+                        const rideDetails = `🚖 ĐẶT XE TAXI HỎA TỐC:\n${pickupAddress ? pickupAddress : '📍 Vị trí đón: Theo định vị của khách'}\n🏁 Điểm đến: ${destinationAddress || 'Chưa nhập điểm đến'}`;
+                        addToast(`🚖 Đã gửi vị trí GPS & yêu cầu gọi xe tới [${product.shopName}]! Tài xế sẽ liên hệ ngay!`, 'success');
                         onClose();
+                        onOpenChatWithProduct({
+                          ...product,
+                          details: rideDetails
+                        });
                       }}
-                      className="w-full bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-500 hover:to-amber-500 text-slate-950 font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer border border-yellow-500"
+                      className="w-full bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-500 hover:to-amber-500 text-slate-950 font-black py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer border border-yellow-500"
                     >
-                      🚖 ĐẶT XE TAXI NGAY (GIÁ CHỈ {product.price.toLocaleString('vi-VN')} Đ/KM)
+                      🚖 ĐẶT XE TAXI & GỬI VỊ TRÍ ĐỐN CHO TÀI XẾ (GIÁ {product.price.toLocaleString('vi-VN')} Đ/KM)
                     </button>
                   </div>
                 )}
