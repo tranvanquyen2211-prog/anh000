@@ -99,78 +99,130 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* 📱 SHOPEE MOBILE APP-LIKE TOP STICKY HEADER (MOBILE FIRST) */}
-      <div className="md:hidden bg-gradient-to-r from-[#ff5722] via-[#ee4d2d] to-[#f53d2d] text-white p-3 space-y-2 sticky top-0 z-50 shadow-md">
-        
-        {/* Top Row: Search Input + Camera + Chat + Bell + Cart */}
+      {/* 📱 MOBILE APP TOP STICKY HEADER (RESPONSIVE MOBILE FIRST - 5% SCALE UP & DYNAMIC PLATFORM THEME SYNC) */}
+      <div
+        style={{ backgroundColor: theme.primaryColor || '#0F2C59' }}
+        className="md:hidden text-white p-3.5 space-y-2.5 sticky top-0 z-50 shadow-lg scale-[1.02] origin-top transition-colors"
+      >
+        {/* Top Row: Search Box (No Camera) + Quick Action Buttons (Tin nhắn, Thông báo, Giỏ hàng, Tôi) */}
         <div className="flex items-center gap-2">
           
-          {/* Shopee Mobile Search Box */}
-          <div className="flex-1 bg-white rounded-lg flex items-center px-2.5 py-1.5 shadow-inner text-gray-800 border border-gray-200">
-            <Search className="w-4 h-4 text-gray-400 shrink-0 mr-1.5" />
+          {/* Search Box without Camera */}
+          <div className="flex-1 bg-white rounded-xl flex items-center px-3 py-2 shadow-inner text-gray-800 border border-gray-200">
+            <Search className="w-4.5 h-4.5 text-gray-400 shrink-0 mr-2" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => onSearchChange(e.target.value)}
               placeholder="Tìm trang phục thuê, sản phẩm, đồ ăn, gói spa..."
-              className="w-full text-xs bg-transparent focus:outline-none placeholder:text-gray-400 font-medium"
+              className="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder:text-gray-400 font-medium"
             />
-            <button className="text-gray-400 hover:text-[#ee4d2d] p-0.5 cursor-pointer shrink-0">
-              <Camera className="w-4 h-4 text-[#ee4d2d]" />
-            </button>
           </div>
 
-          {/* Shopee Mobile Action Icons Bar */}
-          <div className="flex items-center gap-1.5 text-white shrink-0">
-            {/* Chat Inbox Button */}
+          {/* 4 Quick Action Buttons: Tin nhắn, Thông báo, Giỏ hàng, Tôi */}
+          <div className="flex items-center gap-2 text-white shrink-0">
+            
+            {/* 1. Tin nhắn */}
             <button
               onClick={onOpenChatInbox}
-              className="relative p-1.5 hover:bg-white/10 rounded-full transition cursor-pointer"
-              title="Tin Nhắn Inbox"
+              className="relative p-1.5 hover:bg-white/15 rounded-full transition cursor-pointer flex flex-col items-center"
+              title="Tin nhắn Inbox"
             >
-              <MessageSquare className="w-5 h-5 text-white" />
-              <span className="absolute -top-0.5 -right-0.5 bg-amber-300 text-slate-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-[#ee4d2d]">
+              <MessageSquare className="w-5.5 h-5.5 text-white" />
+              <span className="absolute -top-1 -right-1 bg-amber-300 text-slate-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-[#0F2C59] shadow-xs">
                 4
               </span>
             </button>
 
-            {/* Notification Bell */}
+            {/* 2. Thông báo */}
             <button
               onClick={onToggleNotifications}
-              className="relative p-1.5 hover:bg-white/10 rounded-full transition cursor-pointer"
+              className="relative p-1.5 hover:bg-white/15 rounded-full transition cursor-pointer flex flex-col items-center"
               title="Thông báo"
             >
-              <Bell className="w-5 h-5 text-white" />
+              <Bell className="w-5.5 h-5.5 text-white" />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-yellow-300 text-slate-950 text-[9px] font-black px-1 rounded-full border border-[#ee4d2d]">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black px-1 rounded-full border border-[#0F2C59] shadow-xs">
                   {unreadNotificationsCount}
                 </span>
               )}
             </button>
 
-            {/* Shopping Cart */}
+            {/* 3. Giỏ hàng */}
             <button
               onClick={onOpenCartDrawer}
-              className="relative p-1.5 hover:bg-white/10 rounded-full transition cursor-pointer"
+              className="relative p-1.5 hover:bg-white/15 rounded-full transition cursor-pointer flex flex-col items-center"
               title="Giỏ hàng"
             >
-              <ShoppingCart className="w-5 h-5 text-white" />
+              <ShoppingCart className="w-5.5 h-5.5 text-white" />
               {totalItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-white text-[#ee4d2d] text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow">
+                <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-xs">
                   {totalItemsCount}
                 </span>
               )}
             </button>
+
+            {/* 4. Tôi */}
+            <button
+              onClick={user ? onOpenOrderHistory : onOpenAuthModal}
+              className="relative p-1.5 hover:bg-white/15 rounded-full transition cursor-pointer flex flex-col items-center"
+              title="Tài khoản cá nhân (Tôi)"
+            >
+              <User className="w-5.5 h-5.5 text-white" />
+            </button>
           </div>
         </div>
 
-        {/* Quick Search Shortcuts Bar (Original Website Shortcuts) */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none text-[10px] font-bold pt-0.5 text-amber-100">
-          <span onClick={() => { onSearchChange('taxi'); onSelectCategory('TAXI'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">🚖 Taxi Đón Tận Nơi</span>
-          <span onClick={() => { onSearchChange('sale'); onSelectCategory('ALL'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">⚡ Flash Sale 50%</span>
-          <span onClick={() => { onSearchChange('váy cưới'); onSelectCategory('RENTAL'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">👗 Váy Cưới Luxury</span>
-          <span onClick={() => { onSearchChange('trà sữa'); onSelectCategory('FNB'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">🧋 Trà Sữa Ô Long</span>
-          <span onClick={() => { onSearchChange('spa'); onSelectCategory('BEAUTY'); }} className="bg-white/20 px-2.5 py-0.5 rounded-full text-white shrink-0 cursor-pointer hover:bg-white/30">💄 Spa Thảo Dược 60P</span>
+        {/* Quick Action Buttons Row Below Search Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none text-xs font-extrabold pt-1 text-white">
+          <button
+            onClick={() => { onSearchChange('taxi'); onSelectCategory('TAXI'); }}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-white shrink-0 cursor-pointer transition shadow-2xs flex items-center gap-1"
+          >
+            🚖 Taxi Đón Tận Nơi
+          </button>
+
+          <button
+            onClick={() => { onSearchChange('sale'); onSelectCategory('ALL'); }}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-white shrink-0 cursor-pointer transition shadow-2xs flex items-center gap-1"
+          >
+            ⚡ Flash Sale
+          </button>
+
+          <button
+            onClick={() => { onSelectCategory('RENTAL'); }}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-white shrink-0 cursor-pointer transition shadow-2xs flex items-center gap-1"
+          >
+            👗 Thuê đồ
+          </button>
+
+          <button
+            onClick={() => { onSelectCategory('RETAIL'); }}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-white shrink-0 cursor-pointer transition shadow-2xs flex items-center gap-1"
+          >
+            🛍️ Mua đồ
+          </button>
+
+          <button
+            onClick={() => { onSelectCategory('FNB'); }}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-white shrink-0 cursor-pointer transition shadow-2xs flex items-center gap-1"
+          >
+            🧋 Đồ ăn & đồ uống
+          </button>
+
+          <button
+            onClick={() => { onSelectCategory('BEAUTY'); }}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-white shrink-0 cursor-pointer transition shadow-2xs flex items-center gap-1"
+          >
+            💄 Làm đẹp & Spa
+          </button>
+
+          <button
+            onClick={user ? onOpenOrderHistory : onOpenAuthModal}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-amber-200 shrink-0 cursor-pointer transition shadow-2xs flex items-center gap-1"
+          >
+            📦 Lịch sử đơn hàng
+          </button>
         </div>
 
       </div>
