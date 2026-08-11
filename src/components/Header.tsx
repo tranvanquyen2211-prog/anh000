@@ -22,6 +22,7 @@ interface HeaderProps {
   onOpenSuperAdminDashboard?: () => void;
   onOpenAddProductModal?: () => void;
   onOpenShopManagementDashboard?: () => void;
+  onSubmitSearch?: () => void;
   selectedCategory: ShopType | 'ALL';
   onSelectCategory: (cat: ShopType | 'ALL') => void;
   searchQuery: string;
@@ -53,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSuperAdminDashboard,
   onOpenAddProductModal,
   onOpenShopManagementDashboard,
+  onSubmitSearch,
   selectedCategory,
   onSelectCategory,
   searchQuery,
@@ -108,8 +110,16 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-2">
           
           {/* Search Box without Camera */}
-          <div className="flex-1 bg-white rounded-xl flex items-center px-3 py-2 shadow-inner text-gray-800 border border-gray-200">
-            <Search className="w-4.5 h-4.5 text-gray-400 shrink-0 mr-2" />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (onSubmitSearch) onSubmitSearch();
+            }}
+            className="flex-1 bg-white rounded-xl flex items-center px-3 py-2 shadow-inner text-gray-800 border border-gray-200"
+          >
+            <button type="submit" className="text-gray-400 hover:text-navy cursor-pointer">
+              <Search className="w-4.5 h-4.5 text-gray-400 shrink-0 mr-2" />
+            </button>
             <input
               type="text"
               value={searchQuery}
@@ -117,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({
               placeholder="Tìm trang phục thuê, sản phẩm, đồ ăn, gói spa..."
               className="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder:text-gray-400 font-medium"
             />
-          </div>
+          </form>
 
           {/* 4 Quick Action Buttons: Tin nhắn, Thông báo, Giỏ hàng, Tôi */}
           <div className="flex items-center gap-2 text-white shrink-0">
@@ -247,7 +257,13 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Search Bar */}
-        <div className="flex-1 max-w-xl hidden md:flex items-center bg-gray-100 rounded-full border border-gray-200 focus-within:border-navy focus-within:bg-white transition-all">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (onSubmitSearch) onSubmitSearch();
+          }}
+          className="flex-1 max-w-xl hidden md:flex items-center bg-gray-100 rounded-full border border-gray-200 focus-within:border-navy focus-within:bg-white transition-all"
+        >
           <select
             value={selectedCategory}
             onChange={e => onSelectCategory(e.target.value as ShopType | 'ALL')}
@@ -266,10 +282,10 @@ export const Header: React.FC<HeaderProps> = ({
             placeholder="Tìm trang phục thuê, sản phẩm, đồ ăn, gói spa..."
             className="w-full bg-transparent px-4 py-2 text-xs text-gray-800 focus:outline-none"
           />
-          <button className="bg-navy text-white px-5 py-2.5 rounded-r-full hover:bg-navy-dark transition-colors">
+          <button type="submit" className="bg-navy hover:bg-[#ee4d2d] text-white px-5 py-2.5 rounded-r-full transition-colors cursor-pointer">
             <Search className="w-4 h-4" />
           </button>
-        </div>
+        </form>
 
         {/* Actions & Account */}
         <div className="flex items-center gap-2 sm:gap-3">

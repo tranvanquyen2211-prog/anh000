@@ -34,6 +34,7 @@ import { UserCoinsHistoryModal } from './components/UserCoinsHistoryModal';
 import { WalletDepositWithdrawModal } from './components/WalletDepositWithdrawModal';
 import { AiMixMatchStudioModal } from './components/AiMixMatchStudioModal';
 import { ExportStatementModal } from './components/ExportStatementModal';
+import { SearchResultsModal } from './components/SearchResultsModal';
 import { ShopeeMobileIconGrid } from './components/ShopeeMobileIconGrid';
 import { ShopeeFlashSaleSection } from './components/ShopeeFlashSaleSection';
 import { ShopeeMallSection } from './components/ShopeeMallSection';
@@ -107,6 +108,7 @@ function MainApp() {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isAiMixMatchModalOpen, setIsAiMixMatchModalOpen] = useState(false);
   const [isExportStatementOpen, setIsExportStatementOpen] = useState(false);
+  const [isSearchResultsModalOpen, setIsSearchResultsModalOpen] = useState(false);
   const [exportTargetRole, setExportTargetRole] = useState<'SUPER_ADMIN' | 'SHOP'>('SHOP');
   const [exportShopName, setExportShopName] = useState<string | undefined>(undefined);
 
@@ -374,7 +376,11 @@ function MainApp() {
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={(q) => {
+          setSearchQuery(q);
+          if (q) setIsSearchResultsModalOpen(true);
+        }}
+        onSubmitSearch={() => setIsSearchResultsModalOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         unreadNotificationsCount={unreadNotificationsCount}
@@ -627,6 +633,17 @@ function MainApp() {
         isOpen={isChatInboxOpen}
         onClose={() => setIsChatInboxOpen(false)}
         onSelectConversationProduct={(prod) => setSelectedProductForDetail(prod)}
+      />
+
+      <SearchResultsModal
+        isOpen={isSearchResultsModalOpen}
+        searchQuery={searchQuery}
+        products={products}
+        onClose={() => setIsSearchResultsModalOpen(false)}
+        onSearchChange={setSearchQuery}
+        onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
+        onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+        onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
       />
 
       <ProductDetailModal
