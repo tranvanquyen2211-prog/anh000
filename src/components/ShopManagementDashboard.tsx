@@ -21,7 +21,8 @@ import {
   QrCode,
   Sparkles,
   Phone,
-  CheckCircle2
+  CheckCircle2,
+  LocateFixed
 } from 'lucide-react';
 
 interface ShopManagementDashboardProps {
@@ -94,11 +95,42 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
       } else {
         setWarehouseAddress('Kho Hàng Tổng TQ Marketplace');
         setPickupAddress('Địa chỉ lấy hàng TQ Store');
-        setSlogan('Gian Hàng Uy Tín Top 1 TQ Store');
         setHotline(user.phone || '0367818343');
       }
     }
   }, [user?.name]);
+
+  const [isGettingShopGps, setIsGettingShopGps] = useState(false);
+
+  const handleGetShopGpsLocation = () => {
+    if (!navigator.geolocation) {
+      addToast('Trình duyệt không hỗ trợ định vị GPS!', 'error');
+      return;
+    }
+
+    setIsGettingShopGps(true);
+    addToast('📍 Đang lấy vị trí GPS hiện tại của Shop / Tài xế...', 'info');
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setIsGettingShopGps(false);
+
+        const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        setGoogleMapsUrl(mapsUrl);
+        setWarehouseAddress(`Vị trí GPS live: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+        setPickupAddress(`Kho / Bãi xe GPS live: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+
+        addToast(`✅ Đã định vị thành công vị trí GPS của Shop / Tài xế! (${lat.toFixed(4)}, ${lng.toFixed(4)})`, 'success');
+      },
+      () => {
+        setIsGettingShopGps(false);
+        addToast('⚠️ Không thể tự động lấy GPS. Vui lòng bật quyền truy cập vị trí trên trình duyệt!', 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   if (!isOpen || !user) return null;
 
@@ -640,6 +672,17 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
                 <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-2">
                   <MapPin className="w-4 h-4" /> 1. CẤU HÌNH ĐỊA CHỈ KHO, ĐỊA CHỈ LẤY HÀNG & GOOGLE MAPS (TỰ ĐỘNG ĐỒNG BỘ ĐỊA LÝ)
                 </h3>
+
+                {/* Auto GPS Location Fetcher for Shop/Driver */}
+                <button
+                  type="button"
+                  onClick={handleGetShopGpsLocation}
+                  disabled={isGettingShopGps}
+                  className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-md transition flex items-center justify-center gap-2 cursor-pointer border border-emerald-400 animate-pulse"
+                >
+                  <LocateFixed className={`w-4 h-4 text-emerald-200 ${isGettingShopGps ? 'animate-spin' : ''}`} />
+                  {isGettingShopGps ? '📍 ĐANG TỰ ĐỘNG XÁC ĐỊNH GPS SHOP / TÀI XẾ...' : '📍 LẤY VỊ TRÍ ĐỊNH VỊ GPS THỰC CỦA SHOP / BÃI XE TÀI XẾ (CHO KHÁCH HÀNG CHỈ ĐƯỜNG)'}
+                </button>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>

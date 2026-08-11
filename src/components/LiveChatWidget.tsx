@@ -259,6 +259,9 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 custom-scrollbar">
             {messages.map(msg => {
               const isMyMsg = msg.sender_type === 'customer';
+              const mapUrlMatch = msg.content.match(/https:\/\/www\.google\.com\/maps\?q=[^\s]+/);
+              const mapUrl = mapUrlMatch ? mapUrlMatch[0] : null;
+
               return (
                 <div
                   key={msg.id}
@@ -276,7 +279,18 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
                         : 'bg-amber-100 text-amber-900 rounded-bl-none border border-amber-200'
                     }`}
                   >
-                    {msg.content}
+                    <p className="whitespace-pre-line">{msg.content}</p>
+                    
+                    {mapUrl && (
+                      <a
+                        href={mapUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black px-2.5 py-1.5 rounded-xl text-[10px] uppercase flex items-center justify-center gap-1 shadow transition cursor-pointer"
+                      >
+                        🗺️ MỞ BẢN ĐỒ GOOGLE MAPS DẪN ĐƯỜNG
+                      </a>
+                    )}
                   </div>
                 </div>
               );
@@ -284,18 +298,49 @@ export const LiveChatWidget: React.FC<LiveChatWidgetProps> = ({
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-100 flex gap-2">
+          <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-gray-100 flex items-center gap-1.5">
+            {/* GPS Location Button for Shops, Taxi Drivers & Customers */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!navigator.geolocation) {
+                  addToast('Trình duyệt không hỗ trợ định vị GPS!', 'error');
+                  return;
+                }
+                addToast('📍 Đang lấy vị trí GPS live...', 'info');
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const isShop = user?.role === 'SHOP';
+                    const roleLabel = isShop ? 'VỊ TRÍ SHOP / BÃI XE' : 'VỊ TRÍ ĐỊNH VỊ GPS LIVE';
+                    const gpsText = `📍 ${roleLabel}: https://www.google.com/maps?q=${lat},${lng} (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                    setInputMessage(gpsText);
+                    addToast('✅ Đã đính kèm vị trí GPS vào ô tin nhắn!', 'success');
+                  },
+                  () => {
+                    addToast('⚠️ Không thể tự động lấy vị trí GPS. Vui lòng bật quyền định vị!', 'error');
+                  },
+                  { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+              }}
+              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 p-2 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer shrink-0 border border-emerald-300"
+              title="Gửi vị trí định vị GPS hiện tại của bạn"
+            >
+              📍 GPS
+            </button>
+
             <input
               type="text"
               value={inputMessage}
               onChange={e => setInputMessage(e.target.value)}
               placeholder={user ? "Nhập tin nhắn..." : "Đăng nhập SĐT/Email để nhắn tin..."}
-              className="flex-1 bg-gray-100 border border-gray-200 rounded-xl px-3.5 py-2 text-xs text-gray-800 focus:outline-none focus:border-navy focus:bg-white transition"
+              className="flex-1 bg-gray-100 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:outline-none focus:border-navy focus:bg-white transition"
             />
             <button
               type="submit"
               disabled={!inputMessage.trim()}
-              className="bg-navy hover:bg-navy-dark text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center cursor-pointer disabled:opacity-40"
+              className="bg-navy hover:bg-navy-dark text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-xs flex items-center justify-center cursor-pointer disabled:opacity-40 shrink-0"
             >
               <Send className="w-3.5 h-3.5" />
             </button>
