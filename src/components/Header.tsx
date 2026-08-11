@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType, Product } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
+import { ShoppingCart, Search, User, Wallet, Coins, Palette, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -52,7 +52,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAiMixMatchModal,
   onOpenThemeCustomizer,
   onOpenAiDesignStudio,
-  onOpenChangePassword,
   onOpenChangeAvatar,
   onOpenSuperAdminDashboard,
   onOpenAddProductModal,
@@ -72,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
   notifications,
   onMarkAllNotificationsAsRead
 }) => {
-  const { user, logout, isImpersonating, exitImpersonation } = useAuth();
+  const { user, isImpersonating, exitImpersonation } = useAuth();
   const { totalItemsCount } = useCart();
   const { theme } = useTheme();
 
@@ -577,37 +576,16 @@ export const Header: React.FC<HeaderProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-col text-left">
-                  <span className="text-xs font-bold text-navy max-w-[90px] truncate">{user.name}</span>
+                <div className="flex flex-col text-left pr-1">
+                  <span className="text-xs font-bold text-navy max-w-[95px] truncate">{user.name}</span>
                   <span className="text-[9px] font-extrabold text-orange uppercase">
-                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : user.role === 'SHOP' ? 'CỬA HÀNG (SHOP)' : user.role}
+                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : user.role === 'SHOP' ? 'CỬA HÀNG' : 'TÀI KHOẢN'}
                   </span>
                 </div>
 
-                {/* Change Password Button */}
-                {onOpenChangePassword && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onOpenChangePassword();
-                    }}
-                    className="text-gray-500 hover:text-amber-600 p-1 ml-1 transition cursor-pointer"
-                    title="Đổi mật khẩu tài khoản"
-                  >
-                    <Key className="w-3.5 h-3.5" />
-                  </button>
-                )}
-
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    logout();
-                  }}
-                  className="text-gray-400 hover:text-rose-600 p-1 transition cursor-pointer"
-                  title="Đăng xuất"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                </button>
+                <span className="text-xs text-navy font-bold pl-1 border-l border-gray-300">
+                  Cá nhân ➔
+                </span>
               </div>
             </div>
           )}

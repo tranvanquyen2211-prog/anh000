@@ -143,46 +143,52 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
               </div>
 
               {/* Action Buttons Menu List */}
-              <div className="space-y-1.5 text-xs font-bold text-slate-800 pt-1">
+              <div className="space-y-2 text-xs font-bold text-slate-800 pt-1">
                 
-                {/* Thông tin tài khoản & Avatar */}
+                {/* 1. Lịch sử giao dịch & Đơn hàng */}
+                <div
+                  onClick={() => { onClose(); onOpenOrderHistory(); }}
+                  className="p-3.5 bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 rounded-2xl flex items-center justify-between cursor-pointer transition border border-purple-200/80 shadow-xs group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <Package className="w-4.5 h-4.5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-slate-900 text-xs sm:text-sm">Lịch Sử Giao Dịch & Đơn Hàng</span>
+                      <span className="text-[10px] text-purple-700 font-medium">Xem danh sách các đơn đã đặt, thuê đồ & nạp tiền</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4.5 h-4.5 text-purple-500 group-hover:translate-x-0.5 transition" />
+                </div>
+
+                {/* 2. Đổi mật khẩu tài khoản */}
+                <div
+                  onClick={() => { onClose(); if (onOpenChangePassword) onOpenChangePassword(); }}
+                  className="p-3.5 bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 rounded-2xl flex items-center justify-between cursor-pointer transition border border-amber-200/80 shadow-xs group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <Key className="w-4.5 h-4.5" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-extrabold text-slate-900 text-xs sm:text-sm">Đổi Mật Khẩu Tài Khoản</span>
+                      <span className="text-[10px] text-amber-800 font-medium">Bảo vệ tài khoản và cập nhật mật khẩu mới</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4.5 h-4.5 text-amber-600 group-hover:translate-x-0.5 transition" />
+                </div>
+
+                {/* 3. Thông tin tài khoản & Ảnh đại diện */}
                 <div
                   onClick={() => { onClose(); if (onOpenChangeAvatar) onOpenChangeAvatar(); }}
-                  className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl flex items-center justify-between cursor-pointer transition border border-gray-200/60"
+                  className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl flex items-center justify-between cursor-pointer transition border border-gray-200/70"
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
                       <User className="w-4 h-4" />
                     </div>
-                    <span>Thông tin tài khoản & Ảnh đại diện</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </div>
-
-                {/* Lịch sử đơn hàng */}
-                <div
-                  onClick={() => { onClose(); onOpenOrderHistory(); }}
-                  className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl flex items-center justify-between cursor-pointer transition border border-gray-200/60"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
-                      <Package className="w-4 h-4" />
-                    </div>
-                    <span>Lịch sử đơn hàng đã đặt</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </div>
-
-                {/* Đổi mật khẩu */}
-                <div
-                  onClick={() => { onClose(); if (onOpenChangePassword) onOpenChangePassword(); }}
-                  className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl flex items-center justify-between cursor-pointer transition border border-gray-200/60"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
-                      <Key className="w-4 h-4" />
-                    </div>
-                    <span>Đổi mật khẩu tài khoản</span>
+                    <span className="text-xs">Chỉnh sửa Ảnh Đại Diện Avatar</span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </div>
@@ -193,11 +199,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     onClick={() => { onClose(); onOpenSuperAdminDashboard(); }}
                     className="p-3 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 hover:bg-amber-500/20 rounded-2xl flex items-center justify-between cursor-pointer transition border border-amber-300/40 text-amber-900"
                   >
-                    <div className="flex items-center gap-2.5 font-black">
+                    <div className="flex items-center gap-3 font-black">
                       <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center">
                         <Crown className="w-4 h-4" />
                       </div>
-                      <span>Bảng điều hành Super Admin</span>
+                      <span>Bảng Điều Hành Super Admin</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-amber-600" />
                   </div>
@@ -208,22 +214,22 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     onClick={() => { onClose(); onOpenShopManagementDashboard(); }}
                     className="p-3 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 hover:bg-blue-500/20 rounded-2xl flex items-center justify-between cursor-pointer transition border border-blue-300/40 text-blue-900"
                   >
-                    <div className="flex items-center gap-2.5 font-black">
+                    <div className="flex items-center gap-3 font-black">
                       <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center">
                         <Store className="w-4 h-4" />
                       </div>
-                      <span>Quản lý gian hàng Shop</span>
+                      <span>Quản Lý Gian Hàng Shop</span>
                     </div>
                     <ChevronRight className="w-4 h-4 text-blue-600" />
                   </div>
                 )}
 
-                {/* Đăng xuất */}
+                {/* 4. Nút Đăng xuất */}
                 <button
                   onClick={() => { onClose(); logout(); }}
-                  className="w-full mt-3 p-3 bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold rounded-2xl flex items-center justify-center gap-2 transition cursor-pointer border border-rose-200"
+                  className="w-full mt-4 p-3.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-extrabold rounded-2xl flex items-center justify-center gap-2 transition cursor-pointer border border-rose-200/80 shadow-xs"
                 >
-                  <LogOut className="w-4 h-4" /> ĐĂNG XUẤT TÀI KHOẢN
+                  <LogOut className="w-4.5 h-4.5" /> ĐĂNG XUẤT TÀI KHOẢN
                 </button>
 
               </div>
