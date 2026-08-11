@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
-import type { UserProfile, Product, CoinTransaction, WalletTransaction } from '../types';
+import { recordAuditLog } from '../lib/auditLogger';
+import type { UserProfile, Product, CoinTransaction, WalletTransaction, AuditLog } from '../types';
 import {
   Crown,
   UserCheck,
@@ -42,7 +43,11 @@ import {
   History,
   Wallet,
   CheckCircle2,
-  XCircle
+  XCircle,
+  FileText,
+  ShieldAlert,
+  Download,
+  Store
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -107,6 +112,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'watch-to-earn'
     | 'coin-audit'
     | 'wallet-approvals'
+    | 'audit-logs'
   >('users');
 
   // Users list state
@@ -277,6 +283,120 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [coinAuditSearch, setCoinAuditSearch] = useState('');
   const [coinAuditFilterType, setCoinAuditFilterType] = useState<string>('ALL');
 
+  // Module 19: Audit Logs (System Operation Logs) State
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
+    const saved = localStorage.getItem('tq_audit_logs');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      {
+        id: 'log_sys_01',
+        actorName: 'Super Admin Overlord',
+        actorRole: 'SUPER_ADMIN',
+        action: 'Duyệt Lệnh Nạp Ví',
+        target: 'Tài khoản: Nguyễn Văn A (SĐT: 0912345678)',
+        details: 'Phê duyệt lệnh nạp 5,000,000 VNĐ vào Ví TQ Pay qua ngân hàng Vietcombank - Mã CK: VietQR-998877',
+        ipAddress: '113.190.24.185 (Hà Nội, VN)',
+        timestamp: '00:32:15 12/08/2026',
+        severity: 'SUCCESS'
+      },
+      {
+        id: 'log_sys_02',
+        actorName: 'Super Admin Overlord',
+        actorRole: 'SUPER_ADMIN',
+        action: 'Khóa Tài Khoản',
+        target: 'Shop Giả Lập Bán Hàng (SĐT: 0999888777)',
+        details: 'Phát hiện nghi vấn tạo đơn hàng ảo gian lận Xu TQ, tiến hành khóa tài khoản 30 ngày',
+        ipAddress: '113.190.24.185 (Hà Nội, VN)',
+        timestamp: '23:45:10 11/08/2026',
+        severity: 'WARNING'
+      },
+      {
+        id: 'log_sys_03',
+        actorName: 'Super Admin Overlord',
+        actorRole: 'SUPER_ADMIN',
+        action: 'Phát Sóng Broadcast',
+        target: 'Toàn bộ 1,500+ tài khoản hệ thống',
+        details: 'Phát sóng thông báo ưu đãi Flash Sale 50% toàn hệ thống TQ Store',
+        ipAddress: '113.190.24.185 (Hà Nội, VN)',
+        timestamp: '22:15:00 11/08/2026',
+        severity: 'INFO'
+      },
+      {
+        id: 'log_sys_04',
+        actorName: 'Hệ Thống Supabase Cloud',
+        actorRole: 'SYSTEM',
+        action: 'Đồng Bộ Realtime WebSocket',
+        target: 'Channel public:theme_settings',
+        details: 'Đồng bộ cấu hình giao diện & danh mục sản phẩm tới 50+ máy khách đang kết nối',
+        ipAddress: 'Supabase Cloud SG-01',
+        timestamp: '21:00:12 11/08/2026',
+        severity: 'SUCCESS'
+      },
+      {
+        id: 'log_sys_05',
+        actorName: 'Super Admin Overlord',
+        actorRole: 'SUPER_ADMIN',
+        action: 'Cài % Phí Sàn Riêng',
+        target: 'Shop Thời Trang TQ Rental Studio',
+        details: 'Cập nhật tỷ lệ phí sàn riêng từ 5% xuống 2.5% cho đối tác chiến lược',
+        ipAddress: '113.190.24.185 (Hà Nội, VN)',
+        timestamp: '19:30:45 11/08/2026',
+        severity: 'INFO'
+      },
+      {
+        id: 'log_sys_06',
+        actorName: 'Shop Thời Trang TQ',
+        actorRole: 'SHOP',
+        action: 'Đổi Mật Khẩu',
+        target: 'Tài khoản Cửa hàng ID: shop_01',
+        details: 'Đã thay đổi mật khẩu bảo mật tài khoản Cửa hàng thành công',
+        ipAddress: '14.226.12.90 (TP.HCM, VN)',
+        timestamp: '18:10:05 11/08/2026',
+        severity: 'INFO'
+      }
+    ];
+  });
+
+  const [auditSearch, setAuditSearch] = useState('');
+  const [auditFilterSeverity, setAuditFilterSeverity] = useState<string>('ALL');
+  const [auditFilterRole, setAuditFilterRole] = useState<string>('ALL');
+
+  const handleExportAuditLogsCSV = () => {
+    const headers = ['ID', 'Thời Gian', 'Người Thực Hiện', 'Quyền', 'Hành Động', 'Đối Tượng', 'Chi Tiết Thao Tác', 'Mức Độ', 'Địa Chỉ IP'];
+    const rows = auditLogs.map(l => [
+      l.id,
+      l.timestamp,
+      `"${l.actorName}"`,
+      l.actorRole,
+      `"${l.action}"`,
+      `"${l.target}"`,
+      `"${l.details}"`,
+      l.severity,
+      l.ipAddress || 'N/A'
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `TQ_Audit_Logs_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addToast('📄 Đã xuất toàn bộ Nhật ký Audit Logs hệ thống ra file CSV thành công!', 'success');
+  };
+
+  const handleClearAuditLogs = () => {
+    if (confirm('Bạn có chắc chắn muốn xóa sạch Nhật ký Audit Logs trên hệ thống? (Hành động này không thể hoàn tác)')) {
+      setAuditLogs([]);
+      localStorage.removeItem('tq_audit_logs');
+      addToast('🗑️ Đã làm sạch Nhật ký Audit Logs hệ thống!', 'info');
+    }
+  };
+
   // Module 18: Wallet Deposit/Withdrawal Pending Approvals State
   const [walletTxs, setWalletTxs] = useState<WalletTransaction[]>(() => {
     const saved = localStorage.getItem('tq_wallet_transactions');
@@ -384,6 +504,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       await supabase.from('wallet_transactions').upsert([{ id: tx.id, status: 'APPROVED' }]);
     } catch (e) {}
 
+    recordAuditLog(
+      user?.name || 'Super Admin Overlord',
+      'SUPER_ADMIN',
+      'Duyệt Lệnh Ví TQ Pay',
+      `Thành viên: ${tx.userName} (${tx.userPhone || tx.userId})`,
+      `Phê duyệt lệnh ${tx.type === 'DEPOSIT' ? 'nạp' : 'rút'} tiền ${tx.amount.toLocaleString('vi-VN')} VNĐ`,
+      'SUCCESS'
+    );
+
     addToast(`🎉 Đã duyệt Lệnh ${tx.type === 'DEPOSIT' ? 'NẠP' : 'RÚT'} ${tx.amount.toLocaleString('vi-VN')}đ thành công!`, 'success');
   };
 
@@ -404,6 +533,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     try {
       await supabase.from('wallet_transactions').upsert([{ id: tx.id, status: 'REJECTED' }]);
     } catch (e) {}
+
+    recordAuditLog(
+      user?.name || 'Super Admin Overlord',
+      'SUPER_ADMIN',
+      'Từ Chối Lệnh Ví TQ Pay',
+      `Thành viên: ${tx.userName} (${tx.userPhone || tx.userId})`,
+      `Từ chối lệnh ${tx.type === 'DEPOSIT' ? 'nạp' : 'rút'} tiền ${tx.amount.toLocaleString('vi-VN')} VNĐ`,
+      'WARNING'
+    );
 
     addToast(`❌ Đã từ chối Lệnh ${tx.type === 'DEPOSIT' ? 'NẠP' : 'RÚT'} ${tx.amount.toLocaleString('vi-VN')}đ!`, 'info');
   };
@@ -909,7 +1047,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           {/* 14 Module Sidebar Navigation */}
           <aside className="w-64 bg-slate-950 border-r border-slate-800 p-3 space-y-1 overflow-y-auto custom-scrollbar shrink-0 text-xs font-bold">
             <div className="text-[9px] font-black text-amber-400 uppercase mb-2 px-3 tracking-wider">
-              Phân Hệ Quyền Lực Overlord (15 Modules)
+              Phân Hệ Quyền Lực Overlord (19 Modules)
             </div>
 
             <button
@@ -1076,6 +1214,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               }`}
             >
               <Wallet className="w-4 h-4 text-emerald-400 animate-pulse" /> 18. 💳 Duyệt Lệnh Nạp/Rút Ví TQ
+            </button>
+
+            <button
+              onClick={() => setAdminTab('audit-logs')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'audit-logs' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-cyan-400 animate-pulse" /> 19. 📜 Audit Logs (Nhật Ký Thao Tác)
             </button>
           </aside>
 
@@ -2548,6 +2695,194 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                             </td>
                           </tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 19: AUDIT LOGS (SYSTEM OPERATION LOGS) */}
+            {adminTab === 'audit-logs' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <div className="bg-slate-900 border border-cyan-500/40 p-6 rounded-3xl shadow-2xl space-y-6">
+                  
+                  {/* Header & Controls */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                      <h3 className="text-base font-black text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+                        📜 MODULE 19: NHẬT KÝ THAO TÁC HỆ THỐNG (AUDIT LOGS & AUDIT TRAIL)
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Theo dõi thời gian thực toàn bộ lịch sử thao tác quản trị, đồng bộ Supabase Cloud & biến động bảo mật
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={handleExportAuditLogsCSV}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5 cursor-pointer"
+                        title="Xuất file CSV Nhật ký thao tác"
+                      >
+                        <Download className="w-4 h-4" /> Xuất File CSV
+                      </button>
+
+                      <button
+                        onClick={handleClearAuditLogs}
+                        className="bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white font-bold text-xs px-3 py-2 rounded-xl transition cursor-pointer border border-rose-500/30 flex items-center gap-1"
+                        title="Làm sạch nhật ký thao tác"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Xóa Nhật Ký
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Summary Stat Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-extrabold text-slate-400 uppercase">Tổng Nhật Ký</p>
+                        <p className="text-lg font-black text-slate-100 mt-0.5">{auditLogs.length}</p>
+                      </div>
+                      <FileText className="w-7 h-7 text-cyan-400/50" />
+                    </div>
+
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-extrabold text-slate-400 uppercase">Thành Công (Success)</p>
+                        <p className="text-lg font-black text-emerald-400 mt-0.5">{auditLogs.filter(l => l.severity === 'SUCCESS').length}</p>
+                      </div>
+                      <CheckCircle2 className="w-7 h-7 text-emerald-400/50" />
+                    </div>
+
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-extrabold text-slate-400 uppercase">Cảnh Báo (Warning)</p>
+                        <p className="text-lg font-black text-amber-400 mt-0.5">{auditLogs.filter(l => l.severity === 'WARNING').length}</p>
+                      </div>
+                      <ShieldAlert className="w-7 h-7 text-amber-400/50" />
+                    </div>
+
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-extrabold text-slate-400 uppercase">Hành Động Super Admin</p>
+                        <p className="text-lg font-black text-purple-400 mt-0.5">{auditLogs.filter(l => l.actorRole === 'SUPER_ADMIN').length}</p>
+                      </div>
+                      <Crown className="w-7 h-7 text-purple-400/50" />
+                    </div>
+                  </div>
+
+                  {/* Search & Filters Bar */}
+                  <div className="flex flex-col sm:flex-row items-center gap-3 bg-slate-950 p-3 rounded-2xl border border-slate-800">
+                    <div className="flex-1 w-full relative">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={auditSearch}
+                        onChange={e => setAuditSearch(e.target.value)}
+                        placeholder="Tìm theo Người thực hiện, Hành động, Đối tượng, Chi tiết..."
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <select
+                        value={auditFilterSeverity}
+                        onChange={e => setAuditFilterSeverity(e.target.value)}
+                        className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-300 focus:outline-none focus:border-cyan-400 cursor-pointer"
+                      >
+                        <option value="ALL">Tất cả mức độ</option>
+                        <option value="SUCCESS">🟢 Thành công (SUCCESS)</option>
+                        <option value="INFO">🔵 Thông tin (INFO)</option>
+                        <option value="WARNING">🟡 Cảnh báo (WARNING)</option>
+                        <option value="CRITICAL">🔴 Nghiêm trọng (CRITICAL)</option>
+                      </select>
+
+                      <select
+                        value={auditFilterRole}
+                        onChange={e => setAuditFilterRole(e.target.value)}
+                        className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-300 focus:outline-none focus:border-cyan-400 cursor-pointer"
+                      >
+                        <option value="ALL">Tất cả vai trò</option>
+                        <option value="SUPER_ADMIN">👑 Super Admin</option>
+                        <option value="SHOP">🏪 Cửa Hàng Shop</option>
+                        <option value="SYSTEM">⚙️ Hệ Thống System</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Audit Logs Table */}
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 uppercase font-black">
+                          <th className="p-3">Thời Gian & IP</th>
+                          <th className="p-3">Người Thao Tác</th>
+                          <th className="p-3">Hành Động</th>
+                          <th className="p-3">Đối Tượng Tác Động</th>
+                          <th className="p-3">Nội Dung Chi Tiết</th>
+                          <th className="p-3 text-right">Mức Độ</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60 font-medium">
+                        {auditLogs
+                          .filter(l => {
+                            const matchSearch =
+                              l.actorName.toLowerCase().includes(auditSearch.toLowerCase()) ||
+                              l.action.toLowerCase().includes(auditSearch.toLowerCase()) ||
+                              l.target.toLowerCase().includes(auditSearch.toLowerCase()) ||
+                              l.details.toLowerCase().includes(auditSearch.toLowerCase());
+                            const matchSev = auditFilterSeverity === 'ALL' || l.severity === auditFilterSeverity;
+                            const matchRole = auditFilterRole === 'ALL' || l.actorRole === auditFilterRole;
+                            return matchSearch && matchSev && matchRole;
+                          })
+                          .map(log => (
+                            <tr key={log.id} className="hover:bg-slate-950/50 transition">
+                              <td className="p-3">
+                                <span className="font-mono text-cyan-300 block font-bold text-[11px]">{log.timestamp}</span>
+                                <span className="text-[10px] text-slate-500 font-mono block">{log.ipAddress || 'Client local'}</span>
+                              </td>
+
+                              <td className="p-3">
+                                <div className="flex items-center gap-1.5">
+                                  {log.actorRole === 'SUPER_ADMIN' && <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                                  {log.actorRole === 'SYSTEM' && <RefreshCw className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                                  {log.actorRole === 'SHOP' && <Store className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                                  <div>
+                                    <span className="font-bold text-slate-100 block">{log.actorName}</span>
+                                    <span className="text-[9px] text-slate-400 font-mono uppercase">{log.actorRole}</span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="p-3 font-bold text-amber-300">
+                                {log.action}
+                              </td>
+
+                              <td className="p-3 text-slate-300 font-medium max-w-xs truncate">
+                                {log.target}
+                              </td>
+
+                              <td className="p-3 text-slate-300 max-w-md">
+                                <p className="line-clamp-2 leading-relaxed">{log.details}</p>
+                              </td>
+
+                              <td className="p-3 text-right">
+                                <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase inline-flex items-center gap-1 ${
+                                  log.severity === 'SUCCESS' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+                                  log.severity === 'WARNING' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                                  log.severity === 'CRITICAL' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' :
+                                  'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                                }`}>
+                                  {log.severity === 'SUCCESS' && '🟢 SUCCESS'}
+                                  {log.severity === 'INFO' && '🔵 INFO'}
+                                  {log.severity === 'WARNING' && '🟡 WARNING'}
+                                  {log.severity === 'CRITICAL' && '🔴 CRITICAL'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>

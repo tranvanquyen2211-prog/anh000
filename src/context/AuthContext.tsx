@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { recordAuditLog } from '../lib/auditLogger';
 import type { UserProfile, CoinTransaction } from '../types';
 import { useToast } from './ToastContext';
 
@@ -296,6 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const profile = createProfileObject(data.user.id, data.user.email, '', data.user.user_metadata?.full_name, data.user.user_metadata?.avatar);
         setUser(profile);
         localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+        recordAuditLog(profile.name, profile.role, 'Đăng Nhập Email', `Tài khoản: ${profile.email}`, 'Đăng nhập hệ thống thành công', 'SUCCESS');
         addToast(`Xin chào ${profile.name}! Đăng nhập thành công.`, 'success');
         return true;
       }
@@ -437,6 +439,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const profile = createProfileObject(data.user.id, '', cleanPhone, data.user.user_metadata?.full_name, data.user.user_metadata?.avatar);
         setUser(profile);
         localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+        recordAuditLog(profile.name, profile.role, 'Đăng Nhập SĐT', `SĐT: ${profile.phone}`, 'Đăng nhập SĐT thành công', 'SUCCESS');
         addToast(`Xin chào ${profile.name}! Đăng nhập bằng SĐT thành công.`, 'success');
         return true;
       }
@@ -472,6 +475,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      recordAuditLog(user.name, user.role, 'Đổi Mật Khẩu', `Tài khoản: ${user.phone || user.email || user.name}`, 'Thay đổi mật khẩu tài khoản thành công', 'SUCCESS');
       addToast('🔑 Đổi mật khẩu thành công! Mật khẩu cũ không còn hiệu lực trên toàn hệ thống.', 'success');
       return true;
     } catch (err: any) {

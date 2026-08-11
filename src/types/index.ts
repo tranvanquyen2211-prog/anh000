@@ -143,3 +143,15 @@ export interface WalletTransaction {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   timestamp: string;
 }
+
+export interface AuditLog {
+  id: string;
+  actorName: string;
+  actorRole: 'SUPER_ADMIN' | 'SHOP' | 'STAFF' | 'USER' | 'SYSTEM';
+  action: string;
+  target: string;
+  details: string;
+  ipAddress?: string;
+  timestamp: string;
+  severity: 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
+}
