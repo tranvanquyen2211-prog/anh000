@@ -226,7 +226,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-navy-dark/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full relative border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 my-auto max-h-[92vh] flex flex-col">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-5xl lg:max-w-6xl w-full relative border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 my-auto max-h-[92vh] flex flex-col">
         
         {/* Close Button */}
         <button
