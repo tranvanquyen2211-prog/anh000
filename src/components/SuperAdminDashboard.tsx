@@ -1020,6 +1020,14 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               <RefreshCw className="w-3 h-3 animate-spin text-emerald-400" /> Cloud Sync 100%
             </span>
             <button
+              onClick={() => setAdminTab('audit-logs')}
+              className="bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-400/40 text-xs font-black px-3 py-2 rounded-xl transition shadow flex items-center gap-1.5 cursor-pointer"
+              title="Mở ngay Nhật ký Audit Logs Thao tác hệ thống"
+            >
+              <FileText className="w-4 h-4 text-cyan-400" /> 📜 Nhật Ký Audit Logs
+            </button>
+
+            <button
               onClick={() => onOpenExportStatement && onOpenExportStatement('SUPER_ADMIN')}
               className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5 cursor-pointer border border-emerald-400"
               title="Xuất Báo Cáo Sao Kê Doanh Thu Toàn Sàn (PDF / Excel)"
@@ -1044,7 +1052,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         {/* Layout Body: Sidebar + Main Content */}
         <div className="flex-1 flex overflow-hidden">
           
-          {/* 14 Module Sidebar Navigation */}
+          {/* 19 Module Sidebar Navigation */}
           <aside className="w-64 bg-slate-950 border-r border-slate-800 p-3 space-y-1 overflow-y-auto custom-scrollbar shrink-0 text-xs font-bold">
             <div className="text-[9px] font-black text-amber-400 uppercase mb-2 px-3 tracking-wider">
               Phân Hệ Quyền Lực Overlord (19 Modules)
@@ -1057,6 +1065,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               }`}
             >
               <UserCheck className="w-4 h-4 text-amber-400" /> 1. 👤 Quản Lý Tài Khoản & Shop
+            </button>
+
+            <button
+              onClick={() => setAdminTab('audit-logs')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'audit-logs' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-cyan-400 animate-pulse" /> 2. 📜 Audit Logs (Nhật Ký Thao Tác)
             </button>
 
             <button
