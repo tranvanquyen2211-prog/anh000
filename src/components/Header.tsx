@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType, Product } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, Wallet, Coins, Palette, Crown, PlusCircle, Store, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
+import { ShoppingCart, Search, User, Wallet, Coins, Palette, Crown, PlusCircle, Store, Bell, MessageSquare, Wand2 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -46,10 +46,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCartDrawer,
   onOpenOrderHistory,
   onOpenChatInbox,
-  onOpenWatchToEarnModal,
   onOpenUserCoinsModal,
   onOpenWalletDepositWithdrawModal,
-  onOpenAiMixMatchModal,
   onOpenThemeCustomizer,
   onOpenAiDesignStudio,
   onOpenSuperAdminDashboard,
@@ -436,29 +434,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Actions & Account */}
         <div className="flex items-center gap-2 sm:gap-3">
           
-          {/* AI Mix & Match Virtual Fitting Button */}
-          {onOpenAiMixMatchModal && (
-            <button
-              onClick={onOpenAiMixMatchModal}
-              className="bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:from-purple-700 hover:to-rose-600 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-pink-300"
-              title="Bộ công cụ AI Phối Đồ & Thử Trang Phục Ảo (Mix & Match Studio)"
-            >
-              <Wand2 className="w-4 h-4 text-amber-300 animate-spin" />
-              <span className="hidden sm:inline">👗 AI Phối Đồ Virtual Try-On</span>
-            </button>
-          )}
-
-          {/* Watch Video to Earn Coins Button */}
-          {onOpenWatchToEarnModal && (
-            <button
-              onClick={onOpenWatchToEarnModal}
-              className="bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-pink-300 animate-pulse"
-              title="Xem Video YouTube Nhúng Kiếm Xu TQ"
-            >
-              <Tv className="w-4 h-4 text-amber-300" />
-              <span className="hidden sm:inline">📺 Xem Video Kiếm Xu</span>
-            </button>
-          )}
+          {/* AI Mix & Match and Watch Video buttons removed from Desktop Header as requested */}
           
           {/* Shop Management Dashboard Button */}
           {user && (user.role === 'SHOP' || isImpersonating) && onOpenShopManagementDashboard && (
