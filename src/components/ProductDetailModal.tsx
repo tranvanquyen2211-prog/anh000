@@ -25,6 +25,8 @@ import {
   LocateFixed
 } from 'lucide-react';
 
+import { useAuth } from '../context/AuthContext';
+
 interface ProductDetailModalProps {
   product: Product | null;
   onClose: () => void;
@@ -40,12 +42,59 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onOpenShopStorefront,
   onProceedToCheckout
 }) => {
-  const { addToCart } = useCart();
+  const { user, updateCoins } = useAuth();
+  const { addToCart, orders } = useCart();
   const { addToast } = useToast();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [reviews, setReviews] = useState<any[]>([]);
+
+  // Review Form State
+  const [newReviewRating, setNewReviewRating] = useState(5);
+  const [newReviewComment, setNewReviewComment] = useState('');
+
+  const handlePostReviewWithWalletCoinCheck = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      addToast('Vui lòng đăng nhập để gửi đánh giá sản phẩm!', 'error');
+      return;
+    }
+
+    if (!newReviewComment.trim()) {
+      addToast('Vui lòng viết cảm nhận / đánh giá của bạn!', 'error');
+      return;
+    }
+
+    // Check if user has an order for this product
+    const matchingOrder = orders.find(o =>
+      o.items?.some(i => i.product_id === product?.id || i.product_name === product?.title || (i as any).title === product?.title) ||
+      (o as any).user_name === user.name
+    );
+
+    // Payment Method Cashback Policy Verification: Only WALLET gets Review Bonus Coins!
+    const isWalletPaid = matchingOrder ? (matchingOrder.payment_method === 'wallet' || (matchingOrder as any).paymentMethod === 'wallet') : true;
+
+    const newRev = {
+      id: `rev_${Date.now()}`,
+      product_id: product?.id,
+      user_name: user.name || 'Khách Hàng TQ',
+      rating: newReviewRating,
+      comment: newReviewComment.trim(),
+      created_at: new Date().toISOString()
+    };
+
+    setReviews([newRev, ...reviews]);
+    setNewReviewComment('');
+
+    if (isWalletPaid) {
+      const bonusCoins = 50;
+      updateCoins(bonusCoins, true, 'Thưởng Hoàn Xu Đánh Giá Sản Phẩm (Ví TQ Pay)', 'REVIEW_BONUS');
+      addToast(`🎉 ĐÁNH GIÁ THÀNH CÔNG! Bạn được THƯỞNG +${bonusCoins} TQ XU nhờ Thanh toán bằng VÍ TQ PAY!`, 'success');
+    } else {
+      addToast(`💬 ĐÁNH GIÁ THÀNH CÔNG! ⚠️ Lưu ý: Đơn hàng thanh toán COD / CK trực tiếp cho Shop sẽ KHÔNG được hoàn xu đánh giá (Chỉ áp dụng khi thanh toán bằng Ví TQ Pay).`, 'info');
+    }
+  };
 
   // Taxi GPS & Ride Booking state
   const [pickupAddress, setPickupAddress] = useState('');
@@ -496,6 +545,46 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 100% Đánh Giá Xác Thực
               </span>
             </div>
+
+            {/* WRITE REVIEW FORM */}
+            <form onSubmit={handlePostReviewWithWalletCoinCheck} className="bg-slate-900 text-white p-4 rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Star className="w-4 h-4 fill-amber-400" /> VIẾT ĐÁNH GIÁ SẢN PHẨM & NHẬN HOÀN XU TQ PAY
+                </h4>
+
+                <div className="flex items-center gap-1 text-amber-400 cursor-pointer">
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <Star
+                      key={s}
+                      onClick={() => setNewReviewRating(s)}
+                      className={`w-4 h-4 cursor-pointer ${s <= newReviewRating ? 'fill-amber-400' : 'text-slate-600'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                value={newReviewComment}
+                onChange={e => setNewReviewComment(e.target.value)}
+                placeholder="Chia sẻ trải nghiệm sử dụng sản phẩm của bạn (độ vừa vặn, chất lượng, thời gian giao hàng...)"
+                rows={2}
+                className="w-full bg-slate-950 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 resize-none focus:outline-none focus:border-amber-400"
+              />
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 border-t border-slate-800">
+                <span className="text-[10px] text-amber-300 font-bold">
+                  💡 Thưởng +50 TQ Xu áp dụng duy nhất khi Đơn hàng Thanh toán bằng Ví TQ Pay!
+                </span>
+
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs uppercase tracking-wider transition cursor-pointer flex items-center justify-center gap-1"
+                >
+                  <PackageCheck className="w-4 h-4" /> GỬI ĐÁNH GIÁ NHẬN XU
+                </button>
+              </div>
+            </form>
 
             {reviews.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

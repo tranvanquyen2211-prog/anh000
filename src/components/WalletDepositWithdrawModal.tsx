@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import type { BankInfo, WalletTransaction } from '../types';
@@ -15,7 +16,9 @@ import {
   Copy,
   CreditCard,
   History,
-  Lock
+  Lock,
+  PieChart,
+  Award
 } from 'lucide-react';
 
 interface WalletDepositWithdrawModalProps {
@@ -34,9 +37,16 @@ export const WalletDepositWithdrawModal: React.FC<WalletDepositWithdrawModalProp
   onClose
 }) => {
   const { user } = useAuth();
+  const { orders } = useCart();
   const { addToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw' | 'history'>('deposit');
+  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw' | 'history' | 'budget'>('deposit');
+
+  // Budget & Expense Ledger State
+  const [monthlyBudgetLimit, setMonthlyBudgetLimit] = useState<number>(() => {
+    const saved = localStorage.getItem('tq_user_monthly_budget');
+    return saved ? Number(saved) : 5000000;
+  });
 
   // Deposit Form State
   const [depositAmount, setDepositAmount] = useState<number>(500000);
@@ -81,6 +91,20 @@ export const WalletDepositWithdrawModal: React.FC<WalletDepositWithdrawModalProp
   }, [isOpen, user]);
 
   if (!isOpen || !user) return null;
+
+  // Calculate total monthly spent amount from user's completed orders
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  const monthlySpentAmount = orders
+    .filter(o => {
+      const d = new Date(o.created_at || Date.now());
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear && (o.user_name === user.name || !o.user_name);
+    })
+    .reduce((sum, o) => sum + (o.total_price || 0), 0);
+
+  const remainingBudget = Math.max(0, monthlyBudgetLimit - monthlySpentAmount);
+  const budgetPercent = monthlyBudgetLimit > 0 ? (monthlySpentAmount / monthlyBudgetLimit) * 100 : 0;
 
   const transferSyntax = user.name ? `${user.name.toUpperCase()} ${user.phone || ''}`.trim() : `NAP VI ${user.phone || user.id}`;
 
@@ -287,7 +311,7 @@ export const WalletDepositWithdrawModal: React.FC<WalletDepositWithdrawModalProp
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-100">
+      <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden text-slate-100">
         
         {/* Header Bar */}
         <div className="p-5 border-b border-slate-800 bg-slate-950 flex items-center justify-between">
@@ -328,32 +352,41 @@ export const WalletDepositWithdrawModal: React.FC<WalletDepositWithdrawModalProp
         </div>
 
         {/* Navigation Tabs */}
-        <div className="grid grid-cols-3 bg-slate-950 border-b border-slate-800 text-xs font-black uppercase">
+        <div className="grid grid-cols-4 bg-slate-950 border-b border-slate-800 text-[11px] font-black uppercase">
           <button
             onClick={() => setActiveTab('deposit')}
-            className={`py-3 flex items-center justify-center gap-1.5 transition cursor-pointer border-b-2 ${
+            className={`py-3 flex items-center justify-center gap-1 transition cursor-pointer border-b-2 ${
               activeTab === 'deposit' ? 'border-emerald-400 text-emerald-400 bg-emerald-500/10' : 'border-transparent text-slate-400 hover:bg-slate-900'
             }`}
           >
-            <ArrowDownCircle className="w-4 h-4 text-emerald-400" /> Nạp Tiền (QR/Bank)
+            <ArrowDownCircle className="w-3.5 h-3.5 text-emerald-400" /> Nạp Tiền
           </button>
 
           <button
             onClick={() => setActiveTab('withdraw')}
-            className={`py-3 flex items-center justify-center gap-1.5 transition cursor-pointer border-b-2 ${
+            className={`py-3 flex items-center justify-center gap-1 transition cursor-pointer border-b-2 ${
               activeTab === 'withdraw' ? 'border-amber-400 text-amber-400 bg-amber-500/10' : 'border-transparent text-slate-400 hover:bg-slate-900'
             }`}
           >
-            <ArrowUpCircle className="w-4 h-4 text-amber-400" /> Rút Tiền Về STK
+            <ArrowUpCircle className="w-3.5 h-3.5 text-amber-400" /> Rút Tiền
           </button>
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-3 flex items-center justify-center gap-1.5 transition cursor-pointer border-b-2 ${
+            className={`py-3 flex items-center justify-center gap-1 transition cursor-pointer border-b-2 ${
               activeTab === 'history' ? 'border-cyan-400 text-cyan-400 bg-cyan-500/10' : 'border-transparent text-slate-400 hover:bg-slate-900'
             }`}
           >
-            <History className="w-4 h-4 text-cyan-400" /> Lịch Sử Nạp/Rút
+            <History className="w-3.5 h-3.5 text-cyan-400" /> Lịch Sử
+          </button>
+
+          <button
+            onClick={() => setActiveTab('budget')}
+            className={`py-3 flex items-center justify-center gap-1 transition cursor-pointer border-b-2 ${
+              activeTab === 'budget' ? 'border-purple-400 text-purple-400 bg-purple-500/10' : 'border-transparent text-slate-400 hover:bg-slate-900'
+            }`}
+          >
+            <PieChart className="w-3.5 h-3.5 text-purple-400" /> Sổ Thu Chi & Xu
           </button>
         </div>
 
@@ -670,6 +703,105 @@ export const WalletDepositWithdrawModal: React.FC<WalletDepositWithdrawModalProp
                   <p className="text-[11px] text-slate-500">Hãy chuyển sang tab "Nạp Tiền" để nạp tiền vào ví TQ Pay!</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 4: PERSONAL EXPENSE BUDGET & COIN CASHBACK POLICY */}
+          {activeTab === 'budget' && (
+            <div className="space-y-5 animate-in fade-in duration-200">
+              
+              {/* Monthly Budget Card */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-purple-500/40 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <PieChart className="w-5 h-5 text-purple-400" />
+                    <h4 className="text-xs font-black text-purple-300 uppercase tracking-wider">
+                      📊 QUẢN LÝ SỔ THU CHI & HẠN MỨC CHI TIÊU THÁNG
+                    </h4>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">Tháng {new Date().getMonth() + 1}/{new Date().getFullYear()}</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 font-bold block mb-1">🎯 HẠN MỨC ĐẶT RA:</span>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        value={monthlyBudgetLimit}
+                        onChange={e => {
+                          const val = Number(e.target.value);
+                          setMonthlyBudgetLimit(val);
+                          localStorage.setItem('tq_user_monthly_budget', val.toString());
+                        }}
+                        step="500000"
+                        className="w-full bg-slate-950 border border-purple-400 text-purple-300 font-mono font-black rounded-lg px-2 py-1 text-sm focus:outline-none"
+                      />
+                      <span className="text-slate-400 text-[10px] font-bold">đ</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 font-bold block mb-1">💸 ĐÃ CHI TIÊU THÁNG NÀY:</span>
+                    <span className="text-sm font-black font-mono text-amber-400 block">
+                      {monthlySpentAmount.toLocaleString('vi-VN')} VNĐ
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                    <span className="text-[10px] text-slate-400 font-bold block mb-1">✨ SỐ TIỀN CÒN ĐƯỢC CHI:</span>
+                    <span className={`text-sm font-black font-mono block ${remainingBudget > 0 ? 'text-emerald-400' : 'text-rose-400 animate-pulse'}`}>
+                      {remainingBudget.toLocaleString('vi-VN')} VNĐ
+                    </span>
+                  </div>
+                </div>
+
+                {/* Visual Progress Bar */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-[10px] font-bold">
+                    <span className="text-slate-400">Tiến độ chi tiêu hạn mức tháng:</span>
+                    <span className={budgetPercent > 90 ? 'text-rose-400 font-black' : 'text-emerald-400'}>
+                      {budgetPercent.toFixed(1)}% ({monthlySpentAmount.toLocaleString('vi-VN')}đ / {monthlyBudgetLimit.toLocaleString('vi-VN')}đ)
+                    </span>
+                  </div>
+
+                  <div className="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        budgetPercent > 90 ? 'bg-rose-500' : budgetPercent > 70 ? 'bg-amber-400' : 'bg-emerald-400'
+                      }`}
+                      style={{ width: `${Math.min(100, budgetPercent)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Review Coin Cashback Policy Explanation Box */}
+              <div className="bg-gradient-to-br from-amber-950/60 via-slate-900 to-amber-950/40 p-5 rounded-2xl border-2 border-amber-400/50 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-amber-400 shrink-0" />
+                  <h4 className="text-xs font-black text-amber-300 uppercase tracking-wider">
+                    🪙 QUY ĐỊNH HOÀN XU ĐÁNH GIÁ KHI THANH TOÁN BẰNG VÍ TQ PAY
+                  </h4>
+                </div>
+
+                <div className="space-y-2 text-xs text-slate-300 leading-relaxed font-medium">
+                  <div className="flex items-start gap-2 bg-emerald-950/60 p-2.5 rounded-xl border border-emerald-500/40">
+                    <span className="text-emerald-400 font-black text-sm shrink-0">✓</span>
+                    <p>
+                      <strong className="text-emerald-300">Thanh Toán Bằng Ví TQ Pay:</strong> Khi nạp tiền trước vào Ví TQ Pay và chọn thanh toán đơn hàng bằng Ví, sau khi nhận hàng bạn gửi Đánh giá sẽ <strong className="text-amber-300">NHẬN TỰ ĐỘNG +50 TQ XU THƯỞNG</strong>.
+                    </p>
+                  </div>
+
+                  <div className="flex items-start gap-2 bg-rose-950/60 p-2.5 rounded-xl border border-rose-500/40">
+                    <span className="text-rose-400 font-black text-sm shrink-0">✕</span>
+                    <p>
+                      <strong className="text-rose-300">Thanh Toán COD Hoặc Chuyển Khoản Trực Tiếp:</strong> Đơn hàng chọn thanh toán tiền mặt khi nhận hàng (COD) hoặc chuyển khoản trực tiếp cho Shop sẽ <strong className="text-rose-300">KHÔNG ĐƯỢC TÍNH HOÀN XU ĐÁNH GIÁ</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
 
