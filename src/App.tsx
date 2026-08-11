@@ -32,6 +32,7 @@ import { AiShoppingAssistant } from './components/AiShoppingAssistant';
 import { WatchToEarnModal } from './components/WatchToEarnModal';
 import { UserCoinsHistoryModal } from './components/UserCoinsHistoryModal';
 import { WalletDepositWithdrawModal } from './components/WalletDepositWithdrawModal';
+import { AiMixMatchStudioModal } from './components/AiMixMatchStudioModal';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
 import { detectProvinceFromShopInfo } from './data/vietnamLocations';
@@ -100,6 +101,7 @@ function MainApp() {
   const [isWatchToEarnOpen, setIsWatchToEarnOpen] = useState(false);
   const [isUserCoinsModalOpen, setIsUserCoinsModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isAiMixMatchModalOpen, setIsAiMixMatchModalOpen] = useState(false);
 
   // Selected product & shop state
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
@@ -348,6 +350,7 @@ function MainApp() {
         onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
         onOpenUserCoinsModal={() => setIsUserCoinsModalOpen(true)}
         onOpenWalletDepositWithdrawModal={() => setIsWalletModalOpen(true)}
+        onOpenAiMixMatchModal={() => setIsAiMixMatchModalOpen(true)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenAiDesignStudio={() => setIsAdminAiDesignStudioOpen(true)}
         onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
@@ -592,6 +595,13 @@ function MainApp() {
       <WalletDepositWithdrawModal
         isOpen={isWalletModalOpen}
         onClose={() => setIsWalletModalOpen(false)}
+      />
+
+      <AiMixMatchStudioModal
+        isOpen={isAiMixMatchModalOpen}
+        onClose={() => setIsAiMixMatchModalOpen(false)}
+        products={products}
+        onOpenProductDetail={p => setSelectedProductForDetail(p)}
       />
     </div>
   );

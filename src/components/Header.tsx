@@ -14,6 +14,7 @@ interface HeaderProps {
   onOpenWatchToEarnModal?: () => void;
   onOpenUserCoinsModal?: () => void;
   onOpenWalletDepositWithdrawModal?: () => void;
+  onOpenAiMixMatchModal?: () => void;
   onOpenThemeCustomizer?: () => void;
   onOpenAiDesignStudio?: () => void;
   onOpenChangePassword?: () => void;
@@ -44,6 +45,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenWatchToEarnModal,
   onOpenUserCoinsModal,
   onOpenWalletDepositWithdrawModal,
+  onOpenAiMixMatchModal,
   onOpenThemeCustomizer,
   onOpenAiDesignStudio,
   onOpenChangePassword,
@@ -143,6 +145,18 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Actions & Account */}
         <div className="flex items-center gap-2 sm:gap-3">
           
+          {/* AI Mix & Match Virtual Fitting Button */}
+          {onOpenAiMixMatchModal && (
+            <button
+              onClick={onOpenAiMixMatchModal}
+              className="bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:from-purple-700 hover:to-rose-600 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-pink-300"
+              title="Bộ công cụ AI Phối Đồ & Thử Trang Phục Ảo (Mix & Match Studio)"
+            >
+              <Wand2 className="w-4 h-4 text-amber-300 animate-spin" />
+              <span className="hidden sm:inline">👗 AI Phối Đồ Virtual Try-On</span>
+            </button>
+          )}
+
           {/* Watch Video to Earn Coins Button */}
           {onOpenWatchToEarnModal && (
             <button
