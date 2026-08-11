@@ -169,3 +169,18 @@ export interface AuditLog {
   timestamp: string;
   severity: 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
 }
+
+export interface Voucher {
+  id: string;
+  code: string;
+  discountType: 'percent' | 'fixed';
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  requiredPaymentMethod: 'ALL' | 'WALLET' | 'VIETQR' | 'COD';
+  totalUsageLimit: number;
+  usedCount: number;
+  description?: string;
+  status: 'active' | 'disabled' | 'expired';
+  createdAt: string;
+}

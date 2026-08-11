@@ -4,7 +4,7 @@ import { useTheme, DEFAULT_MASTER_SWITCHES } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import { recordAuditLog } from '../lib/auditLogger';
-import type { UserProfile, Product, CoinTransaction, WalletTransaction, AuditLog } from '../types';
+import type { UserProfile, Product, CoinTransaction, WalletTransaction, AuditLog, Voucher } from '../types';
 import {
   Crown,
   UserCheck,
@@ -156,13 +156,66 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   });
 
   // Vouchers state
-  const [vouchers, setVouchers] = useState<any[]>(() => {
+  const [vouchers, setVouchers] = useState<Voucher[]>(() => {
     const saved = localStorage.getItem('tq_vouchers');
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      {
+        id: 'v_1',
+        code: 'TQVIP100K',
+        discountType: 'fixed',
+        discountValue: 100000,
+        minOrderAmount: 300000,
+        maxDiscountAmount: 100000,
+        requiredPaymentMethod: 'WALLET',
+        totalUsageLimit: 100,
+        usedCount: 24,
+        description: 'Giảm 100K cho đơn từ 300K khi thanh toán qua Ví TQ Pay',
+        status: 'active',
+        createdAt: '10/08/2026'
+      },
+      {
+        id: 'v_2',
+        code: 'TQCHAO2026',
+        discountType: 'percent',
+        discountValue: 15,
+        minOrderAmount: 150000,
+        maxDiscountAmount: 50000,
+        requiredPaymentMethod: 'ALL',
+        totalUsageLimit: 500,
+        usedCount: 142,
+        description: 'Giảm 15% tối đa 50K cho tất cả đơn hàng từ 150K',
+        status: 'active',
+        createdAt: '11/08/2026'
+      },
+      {
+        id: 'v_3',
+        code: 'TQVIETQR20',
+        discountType: 'fixed',
+        discountValue: 20000,
+        minOrderAmount: 100000,
+        maxDiscountAmount: 20000,
+        requiredPaymentMethod: 'VIETQR',
+        totalUsageLimit: 200,
+        usedCount: 88,
+        description: 'Giảm 20K cho đơn chuyển khoản VietQR từ 100K',
+        status: 'active',
+        createdAt: '11/08/2026'
+      }
+    ];
   });
   const [newVCode, setNewVCode] = useState('');
-  const [newVType, setNewVType] = useState<'percent' | 'fixed'>('percent');
-  const [newVValue, setNewVValue] = useState<number>(10);
+  const [newVType, setNewVType] = useState<'percent' | 'fixed'>('fixed');
+  const [newVValue, setNewVValue] = useState<number>(50000);
+  const [newVMinOrder, setNewVMinOrder] = useState<number>(100000);
+  const [newVMaxDiscount, setNewVMaxDiscount] = useState<number>(100000);
+  const [newVRequiredPayment, setNewVRequiredPayment] = useState<'ALL' | 'WALLET' | 'VIETQR' | 'COD'>('WALLET');
+  const [newVTotalLimit, setNewVTotalLimit] = useState<number>(100);
+  const [newVDesc, setNewVDesc] = useState('');
 
   // Custom links state
   const [customLinks, setCustomLinks] = useState<any[]>(() => {
@@ -951,17 +1004,103 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     e.preventDefault();
     if (!newVCode.trim()) return;
     const codeUpper = newVCode.trim().toUpperCase();
-    const newV = { code: codeUpper, type: newVType, value: Number(newVValue), maxUsage: 100, usedCount: 0, status: 'active', allowedMethods: ['wallet', 'cash', 'transfer'] };
-    const updated = [newV, ...vouchers];
+
+    const newV: Voucher = {
+      id: `v_${Date.now()}`,
+      code: codeUpper,
+      discountType: newVType,
+      discountValue: Number(newVValue),
+      minOrderAmount: Number(newVMinOrder) || 0,
+      maxDiscountAmount: Number(newVMaxDiscount) || Number(newVValue),
+      requiredPaymentMethod: newVRequiredPayment,
+      totalUsageLimit: Number(newVTotalLimit) || 100,
+      usedCount: 0,
+      description: newVDesc.trim() || `Giảm ${newVType === 'fixed' ? `${Number(newVValue).toLocaleString('vi-VN')} đ` : `${newVValue}%`} cho đơn từ ${Number(newVMinOrder).toLocaleString('vi-VN')} đ`,
+      status: 'active',
+      createdAt: new Date().toLocaleDateString('vi-VN')
+    };
+
+    const updated = [newV, ...vouchers.filter(v => v.code !== codeUpper)];
     setVouchers(updated);
     localStorage.setItem('tq_vouchers', JSON.stringify(updated));
 
     try {
-      await supabase.from('vouchers').upsert([{ code: codeUpper, discount_type: newVType, discount_value: Number(newVValue), status: 'active' }]);
+      await supabase.from('vouchers').upsert([
+        {
+          id: newV.id,
+          code: codeUpper,
+          discount_type: newVType,
+          discount_value: Number(newVValue),
+          min_order_amount: newV.minOrderAmount,
+          max_discount_amount: newV.maxDiscountAmount,
+          required_payment_method: newV.requiredPaymentMethod,
+          total_usage_limit: newV.totalUsageLimit,
+          used_count: 0,
+          description: newV.description,
+          status: 'active'
+        }
+      ]);
     } catch (e) {}
 
+    recordAuditLog(
+      user?.name || 'Super Admin Overlord',
+      'SUPER_ADMIN',
+      'Phát Hành Voucher Mới',
+      `Mã Voucher: ${codeUpper}`,
+      `Tạo mã ${codeUpper} (Giảm ${newV.discountValue.toLocaleString('vi-VN')}${newVType === 'fixed' ? 'đ' : '%'}, Bắt buộc: ${newVRequiredPayment}, Lượt dùng: ${newV.totalUsageLimit})`,
+      'SUCCESS'
+    );
+
     setNewVCode('');
-    addToast(`🎫 Đã tạo mã giảm giá mới: [${codeUpper}] & đồng bộ toàn hệ thống!`, 'success');
+    setNewVDesc('');
+    addToast(`🎫 Đã phát hành Mã giảm giá mới: [${codeUpper}] & đồng bộ toàn hệ thống!`, 'success');
+  };
+
+  const handleToggleVoucherStatus = (vId: string) => {
+    const updated = vouchers.map(v => {
+      if (v.id === vId || v.code === vId) {
+        const nextStatus = v.status === 'active' ? ('disabled' as const) : ('active' as const);
+        return { ...v, status: nextStatus };
+      }
+      return v;
+    });
+    setVouchers(updated);
+    localStorage.setItem('tq_vouchers', JSON.stringify(updated));
+    addToast('🔄 Đã cập nhật trạng thái Voucher!', 'info');
+  };
+
+  const handleDeleteVoucher = (vId: string) => {
+    if (confirm('Bạn có chắc muốn xóa Mã giảm giá Voucher này?')) {
+      const updated = vouchers.filter(v => v.id !== vId && v.code !== vId);
+      setVouchers(updated);
+      localStorage.setItem('tq_vouchers', JSON.stringify(updated));
+      addToast('🗑️ Đã xóa Voucher thành công!', 'info');
+    }
+  };
+
+  const handleExportVouchersCSV = () => {
+    const headers = ['Mã Code', 'Loại', 'Mức Giảm', 'Đơn Tối Thiểu', 'Giảm Tối Đa', 'P.Thức Bắt Buộc', 'Lượt Đã Dùng', 'Tổng Giới Hạn', 'Trạng Thái', 'Mô Tả'];
+    const rows = vouchers.map(v => [
+      v.code,
+      v.discountType === 'fixed' ? 'Số tiền (VNĐ)' : 'Phần trăm (%)',
+      v.discountValue,
+      v.minOrderAmount || 0,
+      v.maxDiscountAmount || 0,
+      v.requiredPaymentMethod,
+      v.usedCount || 0,
+      v.totalUsageLimit || 100,
+      v.status,
+      `"${v.description || ''}"`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `TQ_Vouchers_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addToast('📄 Đã xuất danh sách Voucher ra file CSV thành công!', 'success');
   };
 
   const handleCreateCustomLink = (e: React.FormEvent) => {
@@ -2069,21 +2208,260 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               </div>
             )}
 
-            {/* MODULE 8: VOUCHERS */}
+            {/* MODULE 8: COUPON / VOUCHER MANAGEMENT & ISSUANCE */}
             {adminTab === 'vouchers' && (
-              <div className="space-y-6">
-                <form onSubmit={handleCreateVoucher} className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-3 max-w-lg">
-                  <h3 className="text-xs font-black text-amber-400 uppercase">🎟️ TẠO MÃ GIẢM GIÁ VOUCHER MỚI</h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    <input type="text" value={newVCode} onChange={e => setNewVCode(e.target.value)} required placeholder="Mã (VD: TQ100K)" className="bg-slate-900 border border-slate-700 text-amber-400 font-mono font-bold rounded-xl px-3 py-2 text-xs uppercase" />
-                    <select value={newVType} onChange={e => setNewVType(e.target.value as any)} className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-3 py-2 text-xs">
-                      <option value="percent">Phần trăm (%)</option>
-                      <option value="fixed">Số tiền (VNĐ)</option>
-                    </select>
-                    <input type="number" value={newVValue} onChange={e => setNewVValue(Number(e.target.value))} required className="bg-slate-900 border border-slate-700 text-emerald-400 font-bold rounded-xl px-3 py-2 text-xs" />
+              <div className="space-y-6 animate-in fade-in duration-200">
+                
+                {/* 1. Voucher Creation Form */}
+                <form onSubmit={handleCreateVoucher} className="bg-slate-950 p-6 rounded-2xl border border-rose-500/40 space-y-4 shadow-xl">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <div>
+                      <h3 className="text-xs font-black text-rose-400 uppercase tracking-wider flex items-center gap-2">
+                        <Ticket className="w-4 h-4 text-rose-400" /> TẠO & PHÁT HÀNH MÃ GIẢM GIÁ VOUCHER MỚI
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-medium">Cấu hình chi tiết mức giảm, giới hạn số lượt sử dụng và phương thức thanh toán bắt buộc</p>
+                    </div>
+                    <span className="bg-rose-500/20 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded border border-rose-400/30">
+                      CẬP NHẬT REALTIME TOÀN SÀN
+                    </span>
                   </div>
-                  <button type="submit" className="bg-amber-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs uppercase cursor-pointer">+ Tạo Voucher</button>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* Code */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">Mã Voucher Code:</label>
+                      <input
+                        type="text"
+                        value={newVCode}
+                        onChange={e => setNewVCode(e.target.value)}
+                        required
+                        placeholder="VD: TQVIP100K"
+                        className="w-full bg-slate-900 border border-slate-700 text-amber-400 font-mono font-black rounded-xl px-3.5 py-2 text-xs uppercase focus:outline-none focus:border-rose-400"
+                      />
+                    </div>
+
+                    {/* Discount Type */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">Loại Giảm Giá:</label>
+                      <select
+                        value={newVType}
+                        onChange={e => setNewVType(e.target.value as any)}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-rose-400"
+                      >
+                        <option value="fixed">Số tiền cố định (VNĐ)</option>
+                        <option value="percent">Phần trăm (%)</option>
+                      </select>
+                    </div>
+
+                    {/* Discount Value */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                        Mức Giảm ({newVType === 'fixed' ? 'VNĐ' : '%'}):
+                      </label>
+                      <input
+                        type="number"
+                        value={newVValue}
+                        onChange={e => setNewVValue(Number(e.target.value))}
+                        required
+                        className="w-full bg-slate-900 border border-slate-700 text-emerald-400 font-mono font-black rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-rose-400"
+                      />
+                    </div>
+
+                    {/* Min Order Amount */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">Đơn Hàng Tối Thiểu (VNĐ):</label>
+                      <input
+                        type="number"
+                        value={newVMinOrder}
+                        onChange={e => setNewVMinOrder(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-mono font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-rose-400"
+                      />
+                    </div>
+
+                    {/* Max Discount Amount */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">Mức Giảm Tối Đa (VNĐ):</label>
+                      <input
+                        type="number"
+                        value={newVMaxDiscount}
+                        onChange={e => setNewVMaxDiscount(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-mono font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-rose-400"
+                      />
+                    </div>
+
+                    {/* Total Usage Limit */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">Giới Hạn Lượt Sử Dụng (Lượt):</label>
+                      <input
+                        type="number"
+                        value={newVTotalLimit}
+                        onChange={e => setNewVTotalLimit(Number(e.target.value))}
+                        required
+                        className="w-full bg-slate-900 border border-slate-700 text-amber-400 font-mono font-black rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-rose-400"
+                      />
+                    </div>
+
+                    {/* Required Payment Method */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">Phương Thức Thanh Toán Bắt Buộc:</label>
+                      <select
+                        value={newVRequiredPayment}
+                        onChange={e => setNewVRequiredPayment(e.target.value as any)}
+                        className="w-full bg-slate-900 border border-slate-700 text-amber-300 font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-rose-400"
+                      >
+                        <option value="ALL">🌐 Cho Phép Tất Cả Phương Thức (Không Bắt Buộc)</option>
+                        <option value="WALLET">💳 Bắt Buộc Thanh Toán Qua Ví TQ Pay (Kích Cầu Nạp Ví)</option>
+                        <option value="VIETQR">🏦 Bắt Buộc Chuyển Khoản Ngân Hàng VietQR</option>
+                        <option value="COD">🚚 Bắt Buộc Thanh Toán Tiền Mặt COD Khi Nhận Hàng</option>
+                      </select>
+                    </div>
+
+                    {/* Description */}
+                    <div className="sm:col-span-3">
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">Mô Tả & Điều Kiện Áp Dụng:</label>
+                      <input
+                        type="text"
+                        value={newVDesc}
+                        onChange={e => setNewVDesc(e.target.value)}
+                        placeholder="VD: Giảm 100K cho đơn hàng từ 300K khi thanh toán qua Ví TQ Pay"
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-medium rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-rose-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="submit"
+                      className="bg-gradient-to-r from-rose-500 via-red-600 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-black px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition shadow-lg cursor-pointer flex items-center gap-2"
+                    >
+                      <Ticket className="w-4 h-4" /> 🚀 TẠO & PHÁT HÀNH VOUCHER TOÀN SÀN
+                    </button>
+                  </div>
                 </form>
+
+                {/* 2. Issued Vouchers Table */}
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-xl">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      <Ticket className="w-4 h-4 text-amber-400" /> DANH SÁCH MÃ GIẢM GIÁ ĐÃ PHÁT HÀNH ({vouchers.length} VOUCHER)
+                    </h3>
+
+                    <button
+                      type="button"
+                      onClick={handleExportVouchersCSV}
+                      className="bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Xuất File CSV
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left text-xs border-collapse min-w-[700px]">
+                      <thead>
+                        <tr className="bg-slate-900 text-slate-400 font-bold border-b border-slate-800">
+                          <th className="p-3">MÃ CODE</th>
+                          <th className="p-3">MỨC GIẢM</th>
+                          <th className="p-3">ĐIỀU KIỆN ĐƠN</th>
+                          <th className="p-3">P.THỨC BẮT BUỘC</th>
+                          <th className="p-3">TIẾN ĐỘ SỬ DỤNG</th>
+                          <th className="p-3 text-center">TRẠNG THÁI</th>
+                          <th className="p-3 text-right">THAO TÁC</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {vouchers.map((v, idx) => {
+                          const pct = Math.min(100, Math.round(((v.usedCount || 0) / (v.totalUsageLimit || 1)) * 100));
+
+                          return (
+                            <tr key={idx} className="hover:bg-slate-900/60 transition">
+                              <td className="p-3">
+                                <span className="font-mono font-black text-amber-400 text-sm bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/30">
+                                  {v.code}
+                                </span>
+                                {v.description && (
+                                  <span className="text-[10px] text-slate-400 font-medium block mt-1 line-clamp-1 max-w-[200px]">
+                                    {v.description}
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="p-3 font-bold">
+                                <span className="text-emerald-400 font-mono text-sm">
+                                  {v.discountType === 'fixed' ? `${v.discountValue.toLocaleString('vi-VN')} đ` : `-${v.discountValue}%`}
+                                </span>
+                                {v.maxDiscountAmount && v.discountType === 'percent' && (
+                                  <span className="text-[10px] text-slate-400 block font-mono">Tối đa {v.maxDiscountAmount.toLocaleString('vi-VN')} đ</span>
+                                )}
+                              </td>
+
+                              <td className="p-3 text-slate-300">
+                                <div>Đơn từ: <strong className="text-slate-100 font-mono">{(v.minOrderAmount || 0).toLocaleString('vi-VN')} đ</strong></div>
+                              </td>
+
+                              <td className="p-3">
+                                {v.requiredPaymentMethod === 'WALLET' && (
+                                  <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-lg border border-emerald-500/40">
+                                    💳 Ví TQ Pay
+                                  </span>
+                                )}
+                                {v.requiredPaymentMethod === 'VIETQR' && (
+                                  <span className="bg-blue-500/20 text-blue-300 text-[10px] font-black px-2 py-0.5 rounded-lg border border-blue-500/40">
+                                    🏦 VietQR
+                                  </span>
+                                )}
+                                {v.requiredPaymentMethod === 'COD' && (
+                                  <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black px-2 py-0.5 rounded-lg border border-amber-500/40">
+                                    🚚 COD Tiền mặt
+                                  </span>
+                                )}
+                                {v.requiredPaymentMethod === 'ALL' && (
+                                  <span className="bg-slate-800 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-lg">
+                                    🌐 Tất cả PTTT
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="p-3">
+                                <div className="space-y-1 w-28">
+                                  <div className="flex justify-between text-[10px] font-mono">
+                                    <span className="text-amber-400 font-bold">{v.usedCount || 0} / {v.totalUsageLimit || 100}</span>
+                                    <span className="text-slate-400">{pct}%</span>
+                                  </div>
+                                  <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                                    <div className="bg-gradient-to-r from-amber-400 to-rose-500 h-full rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="p-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleVoucherStatus(v.id || v.code)}
+                                  className={`px-2.5 py-1 rounded-xl text-[10px] font-black uppercase transition cursor-pointer ${
+                                    v.status === 'active' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-800 text-slate-500 border border-slate-700'
+                                  }`}
+                                >
+                                  {v.status === 'active' ? '🟢 Kích Hoạt' : '🔒 Khóa'}
+                                </button>
+                              </td>
+
+                              <td className="p-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteVoucher(v.id || v.code)}
+                                  className="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                                  title="Xóa Voucher"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
 
