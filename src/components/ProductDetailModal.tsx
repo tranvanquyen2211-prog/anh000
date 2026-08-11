@@ -3,6 +3,7 @@ import type { Product } from '../types';
 import { useCart } from '../context/CartContext';
 import { supabase } from '../lib/supabase';
 import { detectProvinceFromShopInfo } from '../data/vietnamLocations';
+import { useToast } from '../context/ToastContext';
 import {
   X,
   ShoppingCart,
@@ -39,6 +40,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onProceedToCheckout
 }) => {
   const { addToCart } = useCart();
+  const { addToast } = useToast();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -308,6 +310,50 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     <Navigation className="w-4 h-4 text-slate-950" /> 🗺️ MỞ GOOGLE MAPS CHỈ ĐƯỜNG ĐẾN SHOP <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 </div>
+
+                {/* 🚖 TAXI RIDE BOOKING BLOCK (FOR TAXI SHOP TYPES) */}
+                {product.shopType === 'TAXI' && (
+                  <div className="bg-gradient-to-br from-yellow-500/20 via-amber-500/10 to-yellow-600/20 border-2 border-yellow-500 p-4 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                        🚖 GỌI XE TAXI ĐÓN TẬN NƠI HỎA TỐC
+                      </h4>
+                      <span className="bg-yellow-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded shadow">
+                        ⚡ ĐÓN TRONG 5 PHÚT
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-xs">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-700 block mb-0.5">📍 Điểm Đón Khách:</label>
+                        <input
+                          type="text"
+                          placeholder="Nhập địa chỉ nhà / ví dụ: 123 Nguyễn Trãi, Hà Nội..."
+                          className="w-full bg-white border border-yellow-400 text-slate-900 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-700 block mb-0.5">🏁 Điểm Đến / Nơi Trả Khách:</label>
+                        <input
+                          type="text"
+                          placeholder="Nhập điểm đến / Sân bay Nội Bài, bến xe..."
+                          className="w-full bg-white border border-yellow-400 text-slate-900 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        addToast(`🚖 Đã gửi yêu cầu gọi xe Taxi tới [${product.shopName}]! Tài xế sẽ liên hệ bạn ngay!`, 'success');
+                        onClose();
+                      }}
+                      className="w-full bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-500 hover:to-amber-500 text-slate-950 font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 cursor-pointer border border-yellow-500"
+                    >
+                      🚖 ĐẶT XE TAXI NGAY (GIÁ CHỈ {product.price.toLocaleString('vi-VN')} Đ/KM)
+                    </button>
+                  </div>
+                )}
 
                 {/* Quantity Control */}
                 <div className="flex items-center gap-3 pt-2">

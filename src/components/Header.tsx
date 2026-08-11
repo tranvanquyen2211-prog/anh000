@@ -387,6 +387,14 @@ export const Header: React.FC<HeaderProps> = ({
           >
             💄 Làm Đẹp & Spa
           </button>
+          <button
+            onClick={() => { setActiveTab('shop'); onSelectCategory('TAXI'); }}
+            className={`px-3.5 py-2 rounded-lg transition-colors cursor-pointer ${
+              activeTab === 'shop' && selectedCategory === 'TAXI' ? 'bg-amber-400 text-slate-950 font-black' : 'hover:bg-navy-light text-gray-200'
+            }`}
+          >
+            🚖 Gọi Taxi & Đặt Xe
+          </button>
 
           <button
             onClick={onOpenOrderHistory}

@@ -31,6 +31,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       case 'RETAIL': return 'bg-emerald-600 text-white';
       case 'FNB': return 'bg-amber-600 text-white';
       case 'BEAUTY': return 'bg-rose-500 text-white';
+      case 'TAXI': return 'bg-yellow-400 text-slate-950 font-black border border-yellow-500';
       default: return 'bg-navy text-white';
     }
   };

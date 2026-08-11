@@ -22,15 +22,16 @@ export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
     { type: 'RENTAL' as const, title: '👗 Cho Thuê Đồ', img: 'https://images.unsplash.com/photo-1594552072238-b8a33785b261?auto=format&fit=crop&w=200&q=80' },
     { type: 'RETAIL' as const, title: '🛍️ Shop Bán Đồ', img: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=200&q=80' },
     { type: 'FNB' as const, title: '🧋 Đồ Ăn & Uống', img: 'https://images.unsplash.com/photo-1558857563-b371033873b8?auto=format&fit=crop&w=200&q=80' },
-    { type: 'BEAUTY' as const, title: '💄 Làm Đẹp & Spa', img: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=200&q=80' }
+    { type: 'BEAUTY' as const, title: '💄 Làm Đẹp & Spa', img: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=200&q=80' },
+    { type: 'TAXI' as const, title: '🚖 Gọi Taxi & Đặt Xe', img: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=200&q=80' }
   ];
 
   const quickShortcuts = [
+    { label: '🚖 Taxi Đón Tận Nơi', query: 'taxi' },
     { label: '⚡ Flash Sale 50%', query: 'sale' },
     { label: '👗 Váy Cưới Luxury', query: 'váy cưới' },
     { label: '🧋 Trà Sữa Ô Long', query: 'trà sữa' },
-    { label: '💄 Spa Thảo Dược 60P', query: 'spa' },
-    { label: '🛍️ Sơ Mi Oxford Silk', query: 'sơ mi' }
+    { label: '💄 Spa Thảo Dược 60P', query: 'spa' }
   ];
 
   return (
@@ -62,7 +63,7 @@ export const CategoryFilters: React.FC<CategoryFiltersProps> = ({
         </span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         {categories.map(cat => {
           const isSelected = selectedCategory === cat.type;
           return (

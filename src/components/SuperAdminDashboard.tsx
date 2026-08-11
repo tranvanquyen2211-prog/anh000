@@ -961,6 +961,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                           <option value="RETAIL">🛍️ Shop Bán Đồ (Retail)</option>
                           <option value="FNB">🧋 Đồ Ăn & Đồ Uống (F&B)</option>
                           <option value="BEAUTY">💄 Shop Làm Đẹp & Spa (Beauty)</option>
+                          <option value="TAXI">🚖 Shop Dịch Vụ Taxi & Đặt Xe (Taxi)</option>
                         </select>
                       </div>
                     )}

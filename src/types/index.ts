@@ -1,4 +1,4 @@
-export type ShopType = 'RENTAL' | 'RETAIL' | 'FNB' | 'BEAUTY';
+export type ShopType = 'RENTAL' | 'RETAIL' | 'FNB' | 'BEAUTY' | 'TAXI';
 
 export interface Product {
   id: number | string;

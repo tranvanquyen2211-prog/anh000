@@ -80,9 +80,37 @@ export const INITIAL_PRODUCTS: Product[] = [
     shopName: "TQ Tea & Coffee",
     img: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80",
     images: ["https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=600&q=80"],
-    badge: "🧋 F&B 29k",
-    details: "Hạt Robusta Buôn Ma Thuột rang mộc đậm đà",
-    stock: 150,
-    salesCount: 88
+    badge: "💄 Combo Make Up",
+    details: "Chuyên viên trang điểm chuyên nghiệp tận nơi",
+    stock: 15,
+    salesCount: 29
+  },
+  {
+    id: 7,
+    title: "🚖 Taxi Điện Xanh SM VF8 Luxury 5 Chỗ (Gọi Xe Đưa Đón 24/7)",
+    name: "🚖 Taxi Điện Xanh SM VF8 Luxury 5 Chỗ (Gọi Xe Đưa Đón 24/7)",
+    price: 15000,
+    shopType: "TAXI",
+    shopName: "Taxi Điện Xanh SM Nội Bài",
+    img: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=600&q=80",
+    images: ["https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=600&q=80"],
+    badge: "🚖 Taxi 15k/km",
+    details: "Xe điện VinFast VF8 cao cấp êm ái | Đưa đón sân bay & liên tỉnh 24/7",
+    stock: 20,
+    salesCount: 189
+  },
+  {
+    id: 8,
+    title: "🚖 Taxi Gia Đình 7 Chỗ Fortuner (Đón Tận Nơi Hỏa Tốc)",
+    name: "🚖 Taxi Gia Đình 7 Chỗ Fortuner (Đón Tận Nơi Hỏa Tốc)",
+    price: 18000,
+    shopType: "TAXI",
+    shopName: "Taxi Gia Đình TQ Premium",
+    img: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80",
+    images: ["https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=600&q=80"],
+    badge: "🚖 Taxi 7 Chỗ 18k/km",
+    details: "Toyota Fortuner 7 chỗ đời mới rộng rãi | Phù hợp du lịch & đại gia đình",
+    stock: 15,
+    salesCount: 112
   }
 ];
