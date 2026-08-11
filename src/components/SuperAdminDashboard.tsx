@@ -43,13 +43,13 @@ import {
   History,
   Wallet,
   CheckCircle2,
+  ShoppingBag,
   XCircle,
   FileText,
   ShieldAlert,
   Download,
   Store,
   Truck,
-  ShoppingBag,
   Package
 } from 'lucide-react';
 
@@ -117,6 +117,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'coin-audit'
     | 'wallet-approvals'
     | 'audit-logs'
+    | 'customer-orders'
   >('users');
 
   // Users list state
@@ -417,6 +418,107 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       }
     ];
   });
+
+  // Module 21: Customer Order History & Platform Orders State
+  const [allPlatformOrders, setAllPlatformOrders] = useState<any[]>(() => {
+    const saved = localStorage.getItem('tq_orders');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      {
+        id: 'ORD_2026_9988',
+        customerName: 'Nguyễn Văn A',
+        customerPhone: '0912345678',
+        shopName: 'TQ Rental Studio',
+        items: [
+          { title: 'Váy Cưới Luxury VIP Studio 2026', quantity: 1, price: 4500000, type: 'RENTAL' }
+        ],
+        total_price: 4500000,
+        paymentMethod: 'wallet',
+        address: '123 Tôn Đức Thắng, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+        status: 'COMPLETED',
+        created_at: '11/08/2026 14:30'
+      },
+      {
+        id: 'ORD_2026_9989',
+        customerName: 'Trần Thị B',
+        customerPhone: '0987654321',
+        shopName: 'TQ Retail Shop',
+        items: [
+          { title: 'Áo Dài Cách Tân Thêu Hoa Cao Cấp', quantity: 2, price: 650000, type: 'RETAIL' }
+        ],
+        total_price: 1300000,
+        paymentMethod: 'transfer',
+        address: '456 Lê Lợi, Quận 3, TP. Hồ Chí Minh',
+        status: 'COMPLETED',
+        created_at: '11/08/2026 16:45'
+      },
+      {
+        id: 'ORD_2026_9990',
+        customerName: 'Lê Hoàng C',
+        customerPhone: '0901112233',
+        shopName: 'TQ Tea & Coffee',
+        items: [
+          { title: 'Trà Sữa Matcha Kem Trứng Nướng VIP', quantity: 5, price: 45000, type: 'FNB' }
+        ],
+        total_price: 225000,
+        paymentMethod: 'cash',
+        address: '789 Nguyễn Huệ, Quận 1, TP. Hồ Chí Minh',
+        status: 'COMPLETED',
+        created_at: '12/08/2026 00:15'
+      }
+    ];
+  });
+
+  const [orderSearch, setOrderSearch] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
+  const [orderPaymentFilter, setOrderPaymentFilter] = useState('ALL');
+
+  useEffect(() => {
+    const handleOrderSync = () => {
+      const saved = localStorage.getItem('tq_orders');
+      if (saved) {
+        try {
+          setAllPlatformOrders(JSON.parse(saved));
+        } catch (e) {}
+      }
+    };
+    handleOrderSync();
+    window.addEventListener('storage', handleOrderSync);
+    window.addEventListener('tq_orders_updated', handleOrderSync);
+    return () => {
+      window.removeEventListener('storage', handleOrderSync);
+      window.removeEventListener('tq_orders_updated', handleOrderSync);
+    };
+  }, []);
+
+  const handleExportCustomerOrdersCSV = () => {
+    const headers = ['Mã Đơn Hàng', 'Thời Gian', 'Tên Khách Hàng', 'SĐT Khách', 'Tên Gian Hàng', 'Sản Phẩm', 'Tổng Tiền (VNĐ)', 'Phương Thức Thanh Toán', 'Trạng Thái', 'Địa Chỉ Giao Hàng'];
+    const rows = allPlatformOrders.map(o => [
+      o.id || o.order_id,
+      o.created_at || o.timestamp,
+      `"${o.customerName || o.user_name || 'Khách Vãng Lai'}"`,
+      o.customerPhone || o.user_phone || 'N/A',
+      `"${o.shopName || 'TQ Store'}"`,
+      `"${(o.items || []).map((i: any) => `${i.title} (x${i.quantity})`).join('; ')}"`,
+      o.total_price || o.totalPrice || 0,
+      o.paymentMethod === 'wallet' ? 'Ví TQ Pay' : o.paymentMethod === 'transfer' ? 'VietQR' : 'COD Tiền Mặt',
+      o.status || 'COMPLETED',
+      `"${o.address || ''}"`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `TQ_Customer_Orders_History_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    addToast('📄 Đã xuất toàn bộ Lịch sử mua hàng của Khách hàng ra file CSV thành công!', 'success');
+  };
 
   // Curated Featured Shops & Search Suggested Products State
   const [featuredShops, setFeaturedShops] = useState<string[]>(() => {
@@ -1493,6 +1595,16 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               }`}
             >
               <FileText className="w-4 h-4 text-cyan-400 animate-pulse" /> 19. 📜 Audit Logs (Nhật Ký Thao Tác)
+            </button>
+
+            <button
+              onClick={() => setAdminTab('customer-orders')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition cursor-pointer ${
+                adminTab === 'customer-orders' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <span className="flex items-center gap-2.5"><ShoppingBag className="w-4 h-4 text-emerald-400 animate-pulse" /> 21. 🛍️ Lịch Sử Mua Hàng Khách</span>
+              <span className="bg-emerald-500 text-slate-950 text-[9px] px-1.5 py-0.2 rounded font-black">{allPlatformOrders.length}</span>
             </button>
           </aside>
 
@@ -3780,6 +3892,231 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                                   {log.severity === 'INFO' && '🔵 INFO'}
                                   {log.severity === 'WARNING' && '🟡 WARNING'}
                                   {log.severity === 'CRITICAL' && '🔴 CRITICAL'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 21: CUSTOMER ORDER HISTORY & PLATFORM ORDERS MANAGEMENT */}
+            {adminTab === 'customer-orders' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                
+                {/* Executive Order KPI Stats */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center gap-3 shadow-md">
+                    <div className="w-10 h-10 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center font-black">
+                      <ShoppingBag className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Tổng Đơn Hàng Thành Công</span>
+                      <h4 className="text-base font-black text-emerald-400 font-mono">
+                        {allPlatformOrders.filter(o => !o.status || o.status === 'COMPLETED').length} Đơn
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center gap-3 shadow-md">
+                    <div className="w-10 h-10 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center font-black">
+                      <TrendingUp className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Tổng Giá Trị Đơn Hàng (GMV)</span>
+                      <h4 className="text-base font-black text-amber-400 font-mono">
+                        {allPlatformOrders.reduce((sum, o) => sum + (o.total_price || o.totalPrice || 0), 0).toLocaleString('vi-VN')} đ
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center gap-3 shadow-md">
+                    <div className="w-10 h-10 bg-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center font-black">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Thanh Toán Ví TQ / VietQR</span>
+                      <h4 className="text-base font-black text-blue-400 font-mono">
+                        {allPlatformOrders.filter(o => o.paymentMethod === 'wallet' || o.paymentMethod === 'transfer').length} Đơn
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center gap-3 shadow-md">
+                    <div className="w-10 h-10 bg-purple-500/20 text-purple-400 rounded-xl flex items-center justify-center font-black">
+                      <Truck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Thanh Toán COD Tiền Mặt</span>
+                      <h4 className="text-base font-black text-purple-400 font-mono">
+                        {allPlatformOrders.filter(o => o.paymentMethod === 'cash').length} Đơn
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Orders Filter & Controls Header */}
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-xl">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-3 flex-wrap gap-2">
+                    <div>
+                      <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        <ShoppingBag className="w-4 h-4 text-amber-400" /> QUẢN LÝ LỊCH SỬ MUA HÀNG TOÀN SÀN CỦA TẤT CẢ KHÁCH HÀNG ({allPlatformOrders.length} ĐƠN)
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-medium">Theo dõi và truy xuất toàn bộ giao dịch mua sắm thành công của khách hàng toàn hệ thống</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleExportCustomerOrdersCSV}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black px-4 py-2 rounded-xl text-xs transition shadow cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Download className="w-4 h-4" /> 📊 Xuất Báo Cáo CSV Tất Cả Đơn Hàng
+                    </button>
+                  </div>
+
+                  {/* Search and Filters Bar */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {/* Search */}
+                    <div>
+                      <input
+                        type="text"
+                        value={orderSearch}
+                        onChange={e => setOrderSearch(e.target.value)}
+                        placeholder="Tìm theo Mã Đơn, Tên/SĐT Khách, Tên Shop..."
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-100 font-medium rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* Status Filter */}
+                    <div>
+                      <select
+                        value={orderStatusFilter}
+                        onChange={e => setOrderStatusFilter(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="ALL">🌐 Tất Cả Trạng Thái Đơn Hàng</option>
+                        <option value="COMPLETED">🟢 Đã Mua Thành Công (Completed)</option>
+                        <option value="SHIPPING">🔵 Đang Vận Chuyển (Shipping)</option>
+                        <option value="PENDING">🟡 Đang Xử Lý (Pending)</option>
+                        <option value="CANCELLED">🔴 Đã Hủy Đơn (Cancelled)</option>
+                      </select>
+                    </div>
+
+                    {/* Payment Method Filter */}
+                    <div>
+                      <select
+                        value={orderPaymentFilter}
+                        onChange={e => setOrderPaymentFilter(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="ALL">💳 Tất Cả Phương Thức Thanh Toán</option>
+                        <option value="wallet">💳 Thanh Toán Ví TQ Pay</option>
+                        <option value="transfer">🏦 Chuyển Khoản VietQR</option>
+                        <option value="cash">🚚 Thanh Toán COD Tiền Mặt</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Customer Orders Table */}
+                  <div className="overflow-x-auto custom-scrollbar pt-2">
+                    <table className="w-full text-left text-xs border-collapse min-w-[850px]">
+                      <thead>
+                        <tr className="bg-slate-900 text-slate-400 font-bold border-b border-slate-800">
+                          <th className="p-3">MÃ ĐƠN & THỜI GIAN</th>
+                          <th className="p-3">KHÁCH HÀNG</th>
+                          <th className="p-3">GIAN HÀNG SHOP</th>
+                          <th className="p-3">CHI TIẾT SẢN PHẨM MUA</th>
+                          <th className="p-3">TỔNG TIỀN</th>
+                          <th className="p-3">P.THỨC THANH TOÁN</th>
+                          <th className="p-3 text-center">TRẠNG THÁI</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {allPlatformOrders
+                          .filter(o => {
+                            const q = orderSearch.toLowerCase().trim();
+                            const matchQ = !q ||
+                              (o.id || '').toLowerCase().includes(q) ||
+                              (o.customerName || o.user_name || '').toLowerCase().includes(q) ||
+                              (o.customerPhone || o.user_phone || '').toLowerCase().includes(q) ||
+                              (o.shopName || '').toLowerCase().includes(q);
+                            
+                            const st = o.status || 'COMPLETED';
+                            const matchStatus = orderStatusFilter === 'ALL' || st === orderStatusFilter;
+
+                            const pm = o.paymentMethod || 'wallet';
+                            const matchPayment = orderPaymentFilter === 'ALL' || pm === orderPaymentFilter;
+
+                            return matchQ && matchStatus && matchPayment;
+                          })
+                          .map((ord, idx) => (
+                            <tr key={idx} className="hover:bg-slate-900/60 transition">
+                              <td className="p-3">
+                                <span className="font-mono font-black text-amber-400 text-xs block bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 w-fit">
+                                  #{ord.id || ord.order_id || `ORD_${idx+1000}`}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-medium block mt-1">
+                                  {ord.created_at || ord.timestamp || '12/08/2026 01:00'}
+                                </span>
+                              </td>
+
+                              <td className="p-3">
+                                <span className="font-bold text-slate-100 block">{ord.customerName || ord.user_name || 'Nguyễn Văn A'}</span>
+                                <span className="text-[10px] text-amber-400 font-mono font-bold block">{ord.customerPhone || ord.user_phone || '0912345678'}</span>
+                                {ord.address && (
+                                  <span className="text-[9px] text-slate-400 block line-clamp-1 max-w-[180px] font-medium" title={ord.address}>
+                                    📍 {ord.address}
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="p-3">
+                                <span className="font-bold text-emerald-400 block">{ord.shopName || 'TQ Store'}</span>
+                              </td>
+
+                              <td className="p-3">
+                                <div className="space-y-1 max-w-[240px]">
+                                  {(ord.items || []).map((item: any, iIdx: number) => (
+                                    <div key={iIdx} className="flex justify-between items-center text-[11px]">
+                                      <span className="text-slate-200 truncate font-medium max-w-[170px]" title={item.title}>
+                                        {item.title}
+                                      </span>
+                                      <span className="text-slate-400 font-mono font-bold shrink-0">x{item.quantity}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+
+                              <td className="p-3 font-bold">
+                                <span className="text-amber-400 font-mono text-sm">
+                                  {(ord.total_price || ord.totalPrice || 0).toLocaleString('vi-VN')} đ
+                                </span>
+                              </td>
+
+                              <td className="p-3">
+                                {ord.paymentMethod === 'wallet' && (
+                                  <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black px-2 py-0.5 rounded-lg border border-emerald-500/40">
+                                    💳 Ví TQ Pay
+                                  </span>
+                                )}
+                                {ord.paymentMethod === 'transfer' && (
+                                  <span className="bg-blue-500/20 text-blue-300 text-[10px] font-black px-2 py-0.5 rounded-lg border border-blue-500/40">
+                                    🏦 VietQR
+                                  </span>
+                                )}
+                                {ord.paymentMethod === 'cash' && (
+                                  <span className="bg-purple-500/20 text-purple-300 text-[10px] font-black px-2 py-0.5 rounded-lg border border-purple-500/40">
+                                    🚚 COD Tiền mặt
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="p-3 text-center">
+                                <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-black px-2.5 py-1 rounded-full border border-emerald-500/40 uppercase">
+                                  🟢 THÀNH CÔNG
                                 </span>
                               </td>
                             </tr>
