@@ -149,12 +149,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
           }));
           localStorage.setItem('tq_site_theme', JSON.stringify(newTheme));
+          addToast(`🎨 REALTIME: Super Admin vừa cập nhật giao diện mới "${newTheme.siteName}" cho toàn hệ thống!`, 'info');
         }
       })
       .subscribe();
 
+    const handleLocalThemeUpdated = (e: any) => {
+      if (e.detail) {
+        setTheme(e.detail);
+      }
+    };
+
+    window.addEventListener('tq_theme_updated', handleLocalThemeUpdated);
+
     return () => {
       supabase.removeChannel(themeChannel);
+      window.removeEventListener('tq_theme_updated', handleLocalThemeUpdated);
     };
   }, []);
 
@@ -181,6 +191,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     // 📡 Realtime Broadcast live to ALL connected users across the entire system!
+    window.dispatchEvent(new CustomEvent('tq_theme_updated', { detail: updated }));
+
     try {
       await supabase.channel('public:theme_settings').send({
         type: 'broadcast',
