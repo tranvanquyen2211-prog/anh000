@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
@@ -77,6 +77,25 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme } = useTheme();
 
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > 60 && currentScrollY > lastScrollY) {
+        // Cuộn xuống -> Ẩn cụm tìm kiếm & thanh Header
+        setIsHeaderVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        // Cuộn lên -> Hiện lại cụm tìm kiếm & thanh Header
+        setIsHeaderVisible(true);
+      }
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const q = searchQuery.toLowerCase().trim();
   const matchedSearchProducts = (products || []).filter(p => {
@@ -89,7 +108,9 @@ export const Header: React.FC<HeaderProps> = ({
   }).slice(0, 5);
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100">
+    <header className={`bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100 transition-transform duration-300 ease-in-out ${
+      isHeaderVisible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
+    }`}>
       
       {/* Top Announcement Promo Bar */}
       {(theme.featureVisibility?.showPromoBar !== false) && (
