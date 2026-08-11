@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType, Product } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, Wallet, Coins, Palette, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
+import { ShoppingCart, Search, User, Wallet, Coins, Palette, Crown, PlusCircle, Store, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -52,7 +52,6 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAiMixMatchModal,
   onOpenThemeCustomizer,
   onOpenAiDesignStudio,
-  onOpenChangeAvatar,
   onOpenSuperAdminDashboard,
   onOpenAddProductModal,
   onOpenShopManagementDashboard,
@@ -259,17 +258,18 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* 4. Tôi */}
+            {/* 4. Tôi (Person Logo Button) */}
             <button
               onClick={() => {
                 if (onOpenUserProfileModal) onOpenUserProfileModal();
                 else if (user) onOpenOrderHistory();
                 else onOpenAuthModal();
               }}
-              className="relative p-1.5 hover:bg-white/15 rounded-full transition cursor-pointer flex flex-col items-center"
-              title="Tài khoản cá nhân (Tôi)"
+              className="relative px-2.5 py-1 bg-white/15 hover:bg-white/25 rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-white/20 active:scale-95 shrink-0"
+              title="Bấm để mở các tính năng tài khoản cá nhân (Tôi)"
             >
-              <User className="w-5.5 h-5.5 text-white" />
+              <User className="w-5 h-5 text-amber-300" />
+              <span className="text-xs font-black text-white">Tôi</span>
             </button>
           </div>
         </div>
@@ -551,42 +551,29 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>{(user.coins || 0).toLocaleString('vi-VN')} Xu</span>
               </button>
 
-              {/* User Avatar & Menu (Opens User Profile Modal on Click) */}
-              <div
-                onClick={() => { if (onOpenUserProfileModal) onOpenUserProfileModal(); }}
-                className="flex items-center gap-2 bg-gray-100 hover:bg-orange/10 border border-gray-200 hover:border-orange/40 px-3 py-1.5 rounded-xl shadow-xs cursor-pointer transition"
+              {/* 👤 Nút Tôi Logo Người (Bấm vào mở danh sách tính năng cá nhân) */}
+              <button
+                onClick={() => {
+                  if (onOpenUserProfileModal) onOpenUserProfileModal();
+                  else if (user) onOpenOrderHistory();
+                  else onOpenAuthModal();
+                }}
+                className="flex items-center gap-2 bg-[#0F2C59] hover:bg-[#ee4d2d] text-white px-3.5 py-1.5 rounded-xl shadow-sm transition-all cursor-pointer group border border-amber-400/40 shrink-0 active:scale-95"
                 title="Bấm để mở Màn Hình Tác Vụ Nhanh Tài Khoản (Tôi)"
               >
-                {/* Clickable Avatar with Camera Overlay */}
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onOpenChangeAvatar) onOpenChangeAvatar();
-                  }}
-                  className="relative group/avatar shrink-0"
-                  title="Đổi ảnh đại diện Avatar"
-                >
-                  <img
-                    src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0F2C59&color=fff`}
-                    alt={user.name}
-                    className="w-7 h-7 rounded-full object-cover border border-amber-400 group-hover/avatar:opacity-80 transition"
-                  />
-                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition">
-                    <Camera className="w-3 h-3 text-amber-400" />
-                  </div>
+                <div className="w-6.5 h-6.5 rounded-lg bg-white/20 group-hover:bg-white/30 flex items-center justify-center text-amber-300 group-hover:text-white transition">
+                  <User className="w-4 h-4" />
                 </div>
-
-                <div className="flex flex-col text-left pr-1">
-                  <span className="text-xs font-bold text-navy max-w-[95px] truncate">{user.name}</span>
-                  <span className="text-[9px] font-extrabold text-orange uppercase">
-                    {user.role === 'SUPER_ADMIN' ? 'OVERLORD ADMIN' : user.role === 'SHOP' ? 'CỬA HÀNG' : 'TÀI KHOẢN'}
+                <div className="flex flex-col text-left pr-0.5">
+                  <span className="text-xs font-black tracking-wide flex items-center gap-1">
+                    Tôi
+                    <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-ping"></span>
+                  </span>
+                  <span className="text-[9px] text-gray-200 font-extrabold truncate max-w-[85px]">
+                    {user ? user.name : 'Đăng nhập'}
                   </span>
                 </div>
-
-                <span className="text-xs text-navy font-bold pl-1 border-l border-gray-300">
-                  Cá nhân ➔
-                </span>
-              </div>
+              </button>
             </div>
           )}
 
