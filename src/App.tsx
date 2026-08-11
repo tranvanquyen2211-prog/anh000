@@ -373,12 +373,13 @@ function MainApp() {
         onOpenChangeAvatar={() => setIsChangeAvatarOpen(true)}
         onOpenAddProductModal={() => setIsAddProductOpen(true)}
         onOpenShopManagementDashboard={() => setIsShopManagementOpen(true)}
+        products={products}
+        onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         searchQuery={searchQuery}
         onSearchChange={(q) => {
           setSearchQuery(q);
-          if (q) setIsSearchResultsModalOpen(true);
         }}
         onSubmitSearch={() => setIsSearchResultsModalOpen(true)}
         activeTab={activeTab}

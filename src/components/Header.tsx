@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
-import type { ShopType } from '../types';
+import type { ShopType, Product } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
 import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
 
@@ -23,6 +23,8 @@ interface HeaderProps {
   onOpenAddProductModal?: () => void;
   onOpenShopManagementDashboard?: () => void;
   onSubmitSearch?: () => void;
+  products?: Product[];
+  onOpenProductDetail?: (product: Product) => void;
   selectedCategory: ShopType | 'ALL';
   onSelectCategory: (cat: ShopType | 'ALL') => void;
   searchQuery: string;
@@ -55,6 +57,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAddProductModal,
   onOpenShopManagementDashboard,
   onSubmitSearch,
+  products = [],
+  onOpenProductDetail,
   selectedCategory,
   onSelectCategory,
   searchQuery,
@@ -70,6 +74,18 @@ export const Header: React.FC<HeaderProps> = ({
   const { user, logout, isImpersonating, exitImpersonation } = useAuth();
   const { totalItemsCount } = useCart();
   const { theme } = useTheme();
+
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  const q = searchQuery.toLowerCase().trim();
+  const matchedSearchProducts = (products || []).filter(p => {
+    if (!q) return false;
+    const titleMatch = p.title.toLowerCase().includes(q);
+    const shopMatch = p.shopName.toLowerCase().includes(q);
+    const detailsMatch = (p.details || '').toLowerCase().includes(q);
+    const tagsMatch = p.tags ? p.tags.some(t => t.toLowerCase().includes(q)) : false;
+    return titleMatch || shopMatch || detailsMatch || tagsMatch;
+  }).slice(0, 5);
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100">
@@ -109,25 +125,80 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Top Row: Search Box (No Camera) + Quick Action Buttons (Tin nhắn, Thông báo, Giỏ hàng, Tôi) */}
         <div className="flex items-center gap-2">
           
-          {/* Search Box without Camera */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (onSubmitSearch) onSubmitSearch();
-            }}
-            className="flex-1 bg-white rounded-xl flex items-center px-3 py-2 shadow-inner text-gray-800 border border-gray-200"
-          >
-            <button type="submit" className="text-gray-400 hover:text-navy cursor-pointer">
-              <Search className="w-4.5 h-4.5 text-gray-400 shrink-0 mr-2" />
-            </button>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => onSearchChange(e.target.value)}
-              placeholder="Tìm trang phục thuê, sản phẩm, đồ ăn, gói spa..."
-              className="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder:text-gray-400 font-medium"
-            />
-          </form>
+          {/* Search Box with Live Autocomplete */}
+          <div className="flex-1 relative">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setIsSearchFocused(false);
+                if (onSubmitSearch) onSubmitSearch();
+              }}
+              className="w-full bg-white rounded-xl flex items-center px-3 py-2 shadow-inner text-gray-800 border border-gray-200"
+            >
+              <button type="submit" className="text-gray-400 hover:text-navy cursor-pointer shrink-0 mr-2">
+                <Search className="w-4.5 h-4.5 text-gray-400" />
+              </button>
+              <input
+                type="text"
+                value={searchQuery}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                onChange={e => {
+                  onSearchChange(e.target.value);
+                  setIsSearchFocused(true);
+                }}
+                placeholder="Tìm trang phục thuê, sản phẩm, đồ ăn, gói spa..."
+                className="w-full text-xs sm:text-sm bg-transparent focus:outline-none placeholder:text-gray-400 font-medium"
+              />
+            </form>
+
+            {/* 🔍 REALTIME LIVE AUTOCOMPLETE SEARCH DROPDOWN (MOBILE) */}
+            {isSearchFocused && q.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white text-slate-900 rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden text-xs">
+                <div
+                  onMouseDown={() => {
+                    setIsSearchFocused(false);
+                    if (onSubmitSearch) onSubmitSearch();
+                  }}
+                  className="p-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between cursor-pointer hover:bg-orange/10 transition"
+                >
+                  <span className="font-extrabold text-navy flex items-center gap-1.5 line-clamp-1">
+                    <Search className="w-3.5 h-3.5 text-[#ee4d2d]" />
+                    Tìm kiếm kết quả cho: <strong className="text-[#ee4d2d] font-mono">"{searchQuery}"</strong>
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-bold shrink-0">Bấm xem ➔</span>
+                </div>
+
+                {matchedSearchProducts.length > 0 ? (
+                  <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                    {matchedSearchProducts.map((p) => (
+                      <div
+                        key={p.id}
+                        onMouseDown={() => {
+                          setIsSearchFocused(false);
+                          if (onOpenProductDetail) onOpenProductDetail(p);
+                        }}
+                        className="p-2.5 flex items-center gap-2.5 hover:bg-orange/5 transition cursor-pointer"
+                      >
+                        <img src={p.img} alt={p.title} className="w-10 h-10 rounded-lg object-cover border border-gray-200 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <h5 className="font-bold text-slate-800 text-xs line-clamp-1">{p.title}</h5>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[#ee4d2d] font-black font-mono text-xs">{p.price.toLocaleString('vi-VN')} đ</span>
+                            <span className="text-[9px] text-gray-400 font-medium bg-gray-100 px-1.5 py-0.2 rounded line-clamp-1">{p.shopName}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-gray-400 text-xs font-medium">
+                    Không thấy sản phẩm chứa từ khóa "{searchQuery}"
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* 4 Quick Action Buttons: Tin nhắn, Thông báo, Giỏ hàng, Tôi */}
           <div className="flex items-center gap-2 text-white shrink-0">
@@ -256,36 +327,91 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Search Bar */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (onSubmitSearch) onSubmitSearch();
-          }}
-          className="flex-1 max-w-xl hidden md:flex items-center bg-gray-100 rounded-full border border-gray-200 focus-within:border-navy focus-within:bg-white transition-all"
-        >
-          <select
-            value={selectedCategory}
-            onChange={e => onSelectCategory(e.target.value as ShopType | 'ALL')}
-            className="bg-transparent px-4 py-2 text-xs font-semibold text-gray-700 border-r border-gray-200 focus:outline-none cursor-pointer"
+        {/* Search Bar with Live Autocomplete */}
+        <div className="flex-1 max-w-xl hidden md:block relative">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setIsSearchFocused(false);
+              if (onSubmitSearch) onSubmitSearch();
+            }}
+            className="w-full flex items-center bg-gray-100 rounded-full border border-gray-200 focus-within:border-navy focus-within:bg-white transition-all shadow-inner"
           >
-            <option value="ALL">Tất cả sản phẩm</option>
-            <option value="RENTAL">👗 Thuê Đồ</option>
-            <option value="RETAIL">🛍️ Bán Đồ</option>
-            <option value="FNB">🧋 Đồ Ăn & Uống</option>
-            <option value="BEAUTY">💄 Làm Đẹp & Spa</option>
-          </select>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={e => onSearchChange(e.target.value)}
-            placeholder="Tìm trang phục thuê, sản phẩm, đồ ăn, gói spa..."
-            className="w-full bg-transparent px-4 py-2 text-xs text-gray-800 focus:outline-none"
-          />
-          <button type="submit" className="bg-navy hover:bg-[#ee4d2d] text-white px-5 py-2.5 rounded-r-full transition-colors cursor-pointer">
-            <Search className="w-4 h-4" />
-          </button>
-        </form>
+            <select
+              value={selectedCategory}
+              onChange={e => onSelectCategory(e.target.value as ShopType | 'ALL')}
+              className="bg-transparent px-4 py-2 text-xs font-semibold text-gray-700 border-r border-gray-200 focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">Tất cả sản phẩm</option>
+              <option value="RENTAL">👗 Thuê Đồ</option>
+              <option value="RETAIL">🛍️ Bán Đồ</option>
+              <option value="FNB">🧋 Đồ Ăn & Uống</option>
+              <option value="BEAUTY">💄 Làm Đẹp & Spa</option>
+            </select>
+            <input
+              type="text"
+              value={searchQuery}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+              onChange={e => {
+                onSearchChange(e.target.value);
+                setIsSearchFocused(true);
+              }}
+              placeholder="Tìm trang phục thuê, sản phẩm, đồ ăn, gói spa..."
+              className="w-full bg-transparent px-4 py-2 text-xs text-gray-800 focus:outline-none font-medium"
+            />
+            <button type="submit" className="bg-navy hover:bg-[#ee4d2d] text-white px-5 py-2.5 rounded-r-full transition-colors cursor-pointer shrink-0">
+              <Search className="w-4 h-4" />
+            </button>
+          </form>
+
+          {/* 🔍 REALTIME LIVE AUTOCOMPLETE SEARCH DROPDOWN (DESKTOP) */}
+          {isSearchFocused && q.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white text-slate-900 rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden text-xs">
+              <div
+                onMouseDown={() => {
+                  setIsSearchFocused(false);
+                  if (onSubmitSearch) onSubmitSearch();
+                }}
+                className="p-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between cursor-pointer hover:bg-orange/10 transition"
+              >
+                <span className="font-extrabold text-navy flex items-center gap-1.5 line-clamp-1">
+                  <Search className="w-4 h-4 text-[#ee4d2d]" />
+                  Tìm kiếm kết quả cho: <strong className="text-[#ee4d2d] font-mono">"{searchQuery}"</strong>
+                </span>
+                <span className="text-xs text-[#ee4d2d] font-bold shrink-0">Xem tất cả ➔</span>
+              </div>
+
+              {matchedSearchProducts.length > 0 ? (
+                <div className="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                  {matchedSearchProducts.map((p) => (
+                    <div
+                      key={p.id}
+                      onMouseDown={() => {
+                        setIsSearchFocused(false);
+                        if (onOpenProductDetail) onOpenProductDetail(p);
+                      }}
+                      className="p-3 flex items-center gap-3 hover:bg-orange/5 transition cursor-pointer"
+                    >
+                      <img src={p.img} alt={p.title} className="w-12 h-12 rounded-xl object-cover border border-gray-200 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <h5 className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1">{p.title}</h5>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-[#ee4d2d] font-black font-mono text-sm">{p.price.toLocaleString('vi-VN')} đ</span>
+                          <span className="text-[10px] text-gray-500 font-semibold bg-gray-100 px-2 py-0.5 rounded-full">{p.shopName}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-5 text-center text-gray-400 text-xs font-medium">
+                  Không tìm thấy sản phẩm nào khớp từ khóa "{searchQuery}"
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Actions & Account */}
         <div className="flex items-center gap-2 sm:gap-3">
