@@ -43,29 +43,38 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   };
 
   return (
-    <div className="absolute right-0 top-12 z-50 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 my-2">
-      
-      {/* Notification Header */}
-      <div className="bg-navy text-white px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Bell className="w-4 h-4 text-amber-400 animate-pulse" />
-          <h3 className="text-xs font-black uppercase tracking-wider">THÔNG BÁO HOẠT ĐỘNG HỆ THỐNG</h3>
+    <>
+      {/* Mobile Modal Backdrop Overlay */}
+      <div 
+        onClick={onClose}
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 md:hidden animate-in fade-in duration-200"
+      />
+
+      {/* Responsive Notification Drawer: Fixed Overlay on Mobile, Popover Dropdown on Desktop */}
+      <div className="fixed inset-x-3 top-16 md:absolute md:inset-auto md:right-0 md:top-12 z-50 max-w-sm sm:max-w-md w-full mx-auto bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 my-2">
+        
+        {/* Notification Header */}
+        <div className="bg-navy text-white px-4 py-3.5 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4.5 h-4.5 text-amber-400 animate-bounce" />
+            <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider">THÔNG BÁO HOẠT ĐỘNG HỆ THỐNG</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onMarkAllAsRead}
+              className="text-[10px] bg-white/15 hover:bg-white/25 text-amber-300 px-2.5 py-1 rounded-full transition font-bold cursor-pointer"
+            >
+              ✓ Đã xem
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-300 hover:text-white p-1 rounded-full hover:bg-navy-light transition cursor-pointer"
+              title="Đóng thông báo"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onMarkAllAsRead}
-            className="text-[10px] bg-white/10 hover:bg-white/20 text-amber-300 px-2 py-0.5 rounded-full transition font-bold cursor-pointer"
-          >
-            ✓ Đánh dấu đã xem
-          </button>
-          <button
-            onClick={onClose}
-            className="text-gray-300 hover:text-white p-1 rounded-full hover:bg-navy-light transition cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
 
       {/* Notifications List Body */}
       <div className="max-h-96 overflow-y-auto custom-scrollbar p-2 space-y-1.5 text-xs">
@@ -109,5 +118,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         Supabase Realtime Activity Notification System
       </div>
     </div>
+    </>
   );
 };

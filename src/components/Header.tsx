@@ -618,20 +618,13 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               )}
             </button>
-
-            {/* Notification Popover Drawer */}
-            <NotificationCenter
-              isOpen={isNotificationsOpen}
-              onClose={onToggleNotifications}
-              notifications={notifications}
-              onMarkAllAsRead={onMarkAllNotificationsAsRead}
-            />
           </div>
 
           {/* Cart Button */}
           <button
             onClick={onOpenCartDrawer}
             className="relative flex items-center justify-center p-2.5 text-navy hover:text-orange transition-colors rounded-xl hover:bg-gray-100 cursor-pointer"
+            title="Giỏ hàng"
           >
             <ShoppingCart className="w-6 h-6" />
             {totalItemsCount > 0 && (
@@ -643,9 +636,13 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Navigation Links Bar Removed to Maximize Screen Viewing Area */}
-
-      {/* Bottom Navigation Dock Bar Hidden to Maximize Mobile Screen Space */}
+      {/* System Notification Popover Drawer (Accessible on both Mobile & Desktop) */}
+      <NotificationCenter
+        isOpen={isNotificationsOpen}
+        onClose={onToggleNotifications}
+        notifications={notifications}
+        onMarkAllAsRead={onMarkAllNotificationsAsRead}
+      />
     </header>
   );
 };
