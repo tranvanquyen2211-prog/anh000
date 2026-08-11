@@ -552,13 +552,19 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>{(user.coins || 0).toLocaleString('vi-VN')} Xu</span>
               </button>
 
-              {/* User Avatar & Menu */}
-              <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-xl shadow-xs">
-                
+              {/* User Avatar & Menu (Opens User Profile Modal on Click) */}
+              <div
+                onClick={() => { if (onOpenUserProfileModal) onOpenUserProfileModal(); }}
+                className="flex items-center gap-2 bg-gray-100 hover:bg-orange/10 border border-gray-200 hover:border-orange/40 px-3 py-1.5 rounded-xl shadow-xs cursor-pointer transition"
+                title="Bấm để mở Màn Hình Tác Vụ Nhanh Tài Khoản (Tôi)"
+              >
                 {/* Clickable Avatar with Camera Overlay */}
                 <div
-                  onClick={onOpenChangeAvatar}
-                  className="relative cursor-pointer group/avatar shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenChangeAvatar) onOpenChangeAvatar();
+                  }}
+                  className="relative group/avatar shrink-0"
                   title="Đổi ảnh đại diện Avatar"
                 >
                   <img
@@ -581,7 +587,10 @@ export const Header: React.FC<HeaderProps> = ({
                 {/* Change Password Button */}
                 {onOpenChangePassword && (
                   <button
-                    onClick={onOpenChangePassword}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenChangePassword();
+                    }}
                     className="text-gray-500 hover:text-amber-600 p-1 ml-1 transition cursor-pointer"
                     title="Đổi mật khẩu tài khoản"
                   >
@@ -590,7 +599,10 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
 
                 <button
-                  onClick={logout}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    logout();
+                  }}
                   className="text-gray-400 hover:text-rose-600 p-1 transition cursor-pointer"
                   title="Đăng xuất"
                 >
