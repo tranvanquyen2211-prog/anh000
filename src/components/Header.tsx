@@ -12,6 +12,7 @@ interface HeaderProps {
   onOpenOrderHistory: () => void;
   onOpenChatInbox: () => void;
   onOpenWatchToEarnModal?: () => void;
+  onOpenUserCoinsModal?: () => void;
   onOpenThemeCustomizer?: () => void;
   onOpenChangePassword?: () => void;
   onOpenChangeAvatar?: () => void;
@@ -39,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenOrderHistory,
   onOpenChatInbox,
   onOpenWatchToEarnModal,
+  onOpenUserCoinsModal,
   onOpenThemeCustomizer,
   onOpenChangePassword,
   onOpenChangeAvatar,
@@ -218,13 +220,14 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
 
               {/* Coins Badge */}
-              <div
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-xs hidden md:flex items-center gap-1.5 cursor-pointer hover:scale-105 transition"
-                title="Ví TQ Xu tích lũy"
+              <button
+                onClick={onOpenUserCoinsModal}
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-xs hidden md:flex items-center gap-1.5 cursor-pointer hover:scale-105 transition"
+                title="Bấm để xem Ví Xu TQ & Lịch sử nguồn gốc tích Xu"
               >
-                <Coins className="w-3.5 h-3.5 text-yellow-100" />
+                <Coins className="w-3.5 h-3.5 text-yellow-100 animate-pulse" />
                 <span>{(user.coins || 0).toLocaleString('vi-VN')} Xu</span>
-              </div>
+              </button>
 
               {/* User Avatar & Menu */}
               <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-xl shadow-xs">

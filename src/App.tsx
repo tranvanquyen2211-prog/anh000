@@ -29,6 +29,7 @@ import { ShopManagementDashboard } from './components/ShopManagementDashboard';
 import { LiveChatWidget } from './components/LiveChatWidget';
 import { AiShoppingAssistant } from './components/AiShoppingAssistant';
 import { WatchToEarnModal } from './components/WatchToEarnModal';
+import { UserCoinsHistoryModal } from './components/UserCoinsHistoryModal';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
 import { detectProvinceFromShopInfo } from './data/vietnamLocations';
@@ -94,6 +95,7 @@ function MainApp() {
   const [isShopManagementOpen, setIsShopManagementOpen] = useState(false);
   const [isFakeReviewOpen, setIsFakeReviewOpen] = useState(false);
   const [isWatchToEarnOpen, setIsWatchToEarnOpen] = useState(false);
+  const [isUserCoinsModalOpen, setIsUserCoinsModalOpen] = useState(false);
 
   // Selected product & shop state
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
@@ -340,6 +342,7 @@ function MainApp() {
         onOpenOrderHistory={() => setIsOrderHistoryOpen(true)}
         onOpenChatInbox={() => setIsChatInboxOpen(true)}
         onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
+        onOpenUserCoinsModal={() => setIsUserCoinsModalOpen(true)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
@@ -567,6 +570,12 @@ function MainApp() {
       <WatchToEarnModal
         isOpen={isWatchToEarnOpen}
         onClose={() => setIsWatchToEarnOpen(false)}
+      />
+
+      <UserCoinsHistoryModal
+        isOpen={isUserCoinsModalOpen}
+        onClose={() => setIsUserCoinsModalOpen(false)}
+        onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
       />
     </div>
   );
