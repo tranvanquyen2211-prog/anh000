@@ -35,6 +35,7 @@ import { WalletDepositWithdrawModal } from './components/WalletDepositWithdrawMo
 import { AiMixMatchStudioModal } from './components/AiMixMatchStudioModal';
 import { ExportStatementModal } from './components/ExportStatementModal';
 import { SearchResultsModal } from './components/SearchResultsModal';
+import { UserProfileModal } from './components/UserProfileModal';
 import { ShopeeMobileIconGrid } from './components/ShopeeMobileIconGrid';
 import { ShopeeFlashSaleSection } from './components/ShopeeFlashSaleSection';
 import { ShopeeMallSection } from './components/ShopeeMallSection';
@@ -109,6 +110,7 @@ function MainApp() {
   const [isAiMixMatchModalOpen, setIsAiMixMatchModalOpen] = useState(false);
   const [isExportStatementOpen, setIsExportStatementOpen] = useState(false);
   const [isSearchResultsModalOpen, setIsSearchResultsModalOpen] = useState(false);
+  const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState(false);
   const [exportTargetRole, setExportTargetRole] = useState<'SUPER_ADMIN' | 'SHOP'>('SHOP');
   const [exportShopName, setExportShopName] = useState<string | undefined>(undefined);
 
@@ -382,6 +384,7 @@ function MainApp() {
           setSearchQuery(q);
         }}
         onSubmitSearch={() => setIsSearchResultsModalOpen(true)}
+        onOpenUserProfileModal={() => setIsUserProfileModalOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         unreadNotificationsCount={unreadNotificationsCount}
@@ -645,6 +648,19 @@ function MainApp() {
         onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
         onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
         onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
+      />
+
+      <UserProfileModal
+        isOpen={isUserProfileModalOpen}
+        onClose={() => setIsUserProfileModalOpen(false)}
+        onOpenAuthModal={() => setIsAuthOpen(true)}
+        onOpenOrderHistory={() => setIsOrderHistoryOpen(true)}
+        onOpenWalletDepositWithdrawModal={() => setIsWalletModalOpen(true)}
+        onOpenUserCoinsModal={() => setIsUserCoinsModalOpen(true)}
+        onOpenChangePassword={() => setIsChangePasswordOpen(true)}
+        onOpenChangeAvatar={() => setIsChangeAvatarOpen(true)}
+        onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
+        onOpenShopManagementDashboard={() => setIsShopManagementOpen(true)}
       />
 
       <ProductDetailModal

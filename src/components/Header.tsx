@@ -23,6 +23,7 @@ interface HeaderProps {
   onOpenAddProductModal?: () => void;
   onOpenShopManagementDashboard?: () => void;
   onSubmitSearch?: () => void;
+  onOpenUserProfileModal?: () => void;
   products?: Product[];
   onOpenProductDetail?: (product: Product) => void;
   selectedCategory: ShopType | 'ALL';
@@ -57,6 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAddProductModal,
   onOpenShopManagementDashboard,
   onSubmitSearch,
+  onOpenUserProfileModal,
   products = [],
   onOpenProductDetail,
   selectedCategory,
@@ -245,7 +247,11 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* 4. Tôi */}
             <button
-              onClick={user ? onOpenOrderHistory : onOpenAuthModal}
+              onClick={() => {
+                if (onOpenUserProfileModal) onOpenUserProfileModal();
+                else if (user) onOpenOrderHistory();
+                else onOpenAuthModal();
+              }}
               className="relative p-1.5 hover:bg-white/15 rounded-full transition cursor-pointer flex flex-col items-center"
               title="Tài khoản cá nhân (Tôi)"
             >
