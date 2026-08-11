@@ -50,10 +50,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return false;
   };
 
-  const createProfileObject = (id: string, email?: string, phone?: string, name?: string, avatarUrl?: string): UserProfile => {
+  const createProfileObject = (
+    id: string,
+    email?: string,
+    phone?: string,
+    name?: string,
+    avatarUrl?: string,
+    explicitCoins?: number,
+    explicitWallet?: number
+  ): UserProfile => {
     const isAdmin = isUserAdmin(email, phone);
     const displayName = name || (isAdmin ? 'Super Admin Overlord' : (phone || email?.split('@')[0] || 'Khách hàng'));
     const defaultAvatar = avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(isAdmin ? 'Admin' : displayName)}&background=0F2C59&color=fff`;
+
+    // 1. Recover saved coins and wallet balance from localStorage to prevent resetting to 0 on refresh F5
+    let savedCoins = explicitCoins;
+    let savedWallet = explicitWallet;
+
+    if (savedCoins === undefined) {
+      const savedUserStr = localStorage.getItem('tq_user_profile');
+      if (savedUserStr) {
+        try {
+          const parsed = JSON.parse(savedUserStr);
+          if (parsed && (parsed.id === id || parsed.phone === phone || (email && parsed.email === email))) {
+            if (parsed.coins !== undefined) savedCoins = parsed.coins;
+            if (parsed.walletBalance !== undefined) savedWallet = parsed.walletBalance;
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (savedCoins === undefined && phone) {
+      const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+      const found = localAccounts.find((u: any) => u.phone === phone);
+      if (found) {
+        if (found.coins !== undefined) savedCoins = found.coins;
+        if (found.walletBalance !== undefined) savedWallet = found.walletBalance;
+      }
+    }
 
     return {
       id,
@@ -63,8 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: isAdmin ? 'SUPER_ADMIN' : 'USER',
       isGuest: false,
       avatar: defaultAvatar,
-      walletBalance: isAdmin ? 99999999 : 0,
-      coins: isAdmin ? 99999 : 0
+      walletBalance: isAdmin ? 99999999 : (savedWallet !== undefined ? savedWallet : 0),
+      coins: isAdmin ? 99999 : (savedCoins !== undefined ? savedCoins : 0)
     };
   };
 
@@ -75,14 +109,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user && !isImpersonating) {
           const userEmail = session.user.email || '';
           const userPhone = session.user.user_metadata?.phone || session.user.phone || '';
+
+          // Try fetching cloud coins from Supabase profiles table
+          let cloudCoins: number | undefined;
+          let cloudWallet: number | undefined;
+          try {
+            const { data: pData } = await supabase.from('profiles').select('coins, wallet_balance').eq('id', session.user.id).single();
+            if (pData) {
+              if (pData.coins !== undefined && pData.coins !== null) cloudCoins = pData.coins;
+              if (pData.wallet_balance !== undefined && pData.wallet_balance !== null) cloudWallet = pData.wallet_balance;
+            }
+          } catch (e) {}
+
           const profile = createProfileObject(
             session.user.id,
             userEmail,
             userPhone,
             session.user.user_metadata?.full_name,
-            session.user.user_metadata?.avatar
+            session.user.user_metadata?.avatar,
+            cloudCoins,
+            cloudWallet
           );
-          setUser(profile);
+
+          setUser(prev => {
+            if (prev && prev.id === profile.id && (prev.coins || 0) > (profile.coins || 0)) {
+              return { ...profile, coins: prev.coins };
+            }
+            return profile;
+          });
+          
           localStorage.setItem('tq_user_profile', JSON.stringify(profile));
         }
       } catch (err) {
@@ -105,7 +160,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           session.user.user_metadata?.full_name,
           session.user.user_metadata?.avatar
         );
-        setUser(profile);
+        setUser(prev => {
+          if (prev && prev.id === profile.id && (prev.coins || 0) > (profile.coins || 0)) {
+            return { ...profile, coins: prev.coins };
+          }
+          return profile;
+        });
         localStorage.setItem('tq_user_profile', JSON.stringify(profile));
       } else if (_event === 'SIGNED_OUT' && !isImpersonating) {
         setUser(null);
