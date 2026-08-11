@@ -11,9 +11,22 @@
   --font-sans: 'Montserrat', sans-serif;
 }
 
-body {
+html, body {
   font-family: 'Montserrat', sans-serif;
   overflow-x: hidden;
+  touch-action: manipulation;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  max-width: 100vw;
+}
+
+/* Native Mobile App Fixed Container & Smooth Momentum Scrolling */
+@media (max-width: 767px) {
+  body {
+    user-select: none;
+    -webkit-user-select: none;
+    background-color: #f8fafc;
+  }
 }
 
 .bg-pattern {
