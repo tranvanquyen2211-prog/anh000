@@ -39,7 +39,6 @@ import { SearchResultsModal } from './components/SearchResultsModal';
 import { UserProfileModal } from './components/UserProfileModal';
 import { ShopeeMobileIconGrid } from './components/ShopeeMobileIconGrid';
 import { ShopeeFlashSaleSection } from './components/ShopeeFlashSaleSection';
-import { ShopeeMallSection } from './components/ShopeeMallSection';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
 import { detectProvinceFromShopInfo } from './data/vietnamLocations';
@@ -519,12 +518,6 @@ function MainApp() {
 
         {/* ⚡ SHOPEE FLASH SALE COUNTDOWN SECTION */}
         <ShopeeFlashSaleSection
-          products={products}
-          onOpenProductDetail={(p) => setSelectedProductForDetail(p)}
-        />
-
-        {/* 🛍️ SHOPEE MALL OFFICIAL STORE SECTION */}
-        <ShopeeMallSection
           products={products}
           onOpenProductDetail={(p) => setSelectedProductForDetail(p)}
         />
