@@ -188,38 +188,66 @@ export const WalletDepositWithdrawModal: React.FC<WalletDepositWithdrawModalProp
       return;
     }
 
-    // 🔒 STRICT SECURITY CHECK: MUST MATCH DEPOSIT BANK ACCOUNT!
-    const savedDepositBank = user.depositBankInfo || JSON.parse(localStorage.getItem('tq_user_profile') || '{}').depositBankInfo;
-
-    if (!savedDepositBank || !savedDepositBank.accountNumber) {
-      const errorText = `⚠️ RÚT TIỀN BỊ TỪ CHỐI! Bạn chưa từng nạp tiền bằng Tài khoản Ngân hàng nào. Theo quy định bảo mật sàn TQ Store, bạn phải thực hiện ít nhất 1 lệnh NẠP TIỀN thành công để xác thực tài khoản ngân hàng chính chủ trước khi Rút tiền!`;
-      setSecurityErrorMsg(errorText);
-      addToast('Rút tiền thất bại: Chưa có tài khoản ngân hàng xác thực từ lệnh nạp!', 'error');
+    if (!userWithdrawAccNum.trim() || !userWithdrawAccHolder.trim()) {
+      addToast('Vui lòng nhập đầy đủ Số tài khoản & Tên chủ tài khoản nhận tiền!', 'error');
       return;
     }
 
     const cleanReqAccNum = userWithdrawAccNum.trim().replace(/\s+/g, '');
-    const cleanSavedAccNum = savedDepositBank.accountNumber.trim().replace(/\s+/g, '');
-
-    const bankNameMatches = userWithdrawBank.toLowerCase().includes(savedDepositBank.bankName.toLowerCase()) ||
-      savedDepositBank.bankName.toLowerCase().includes(userWithdrawBank.toLowerCase());
-
-    const accNumMatches = cleanReqAccNum === cleanSavedAccNum;
-
-    if (!accNumMatches || !bankNameMatches) {
-      const errorText = `❌ RÚT TIỀN BỊ KHÓA BẢO MẬT! Tài khoản nhận tiền bạn nhập (${userWithdrawBank} - STK: ${cleanReqAccNum}) KHÔNG KHỚP với Tài khoản Ngân hàng bạn đã dùng Nạp tiền (${savedDepositBank.bankName} - STK: ${cleanSavedAccNum}). Vì lý do an toàn tài sản & chống rút tiền gian lận, bạn BẮT BUỘC phải rút về đúng tài khoản ngân hàng đã Nạp tiền!`;
-      setSecurityErrorMsg(errorText);
-      addToast('❌ Rút tiền thất bại: Tài khoản nhận không khớp với tài khoản đã nạp!', 'error');
-      return;
-    }
-
-    // Account matches verified deposit account! Create Withdrawal Request
     const verifiedWithdrawBankInfo: BankInfo = {
       bankName: userWithdrawBank,
       accountNumber: cleanReqAccNum,
       accountHolder: userWithdrawAccHolder.trim().toUpperCase()
     };
 
+    // 🔒 STRICT SECURITY CHECK: IF PREVIOUS DEPOSIT BANK EXISTS, MUST MATCH EXACTLY!
+    const savedDepositBank = user.depositBankInfo || JSON.parse(localStorage.getItem('tq_user_profile') || '{}').depositBankInfo;
+
+    if (savedDepositBank && savedDepositBank.accountNumber) {
+      const cleanSavedAccNum = savedDepositBank.accountNumber.trim().replace(/\s+/g, '');
+      const accNumMatches = cleanReqAccNum === cleanSavedAccNum;
+
+      if (!accNumMatches) {
+        const errorText = `❌ RÚT TIỀN BỊ KHÓA BẢO MẬT! Tài khoản nhận tiền bạn nhập (${userWithdrawBank} - STK: ${cleanReqAccNum}) KHÔNG KHỚP với Tài khoản Ngân hàng bạn đã dùng Nạp tiền (${savedDepositBank.bankName} - STK: ${cleanSavedAccNum}). Vì lý do an toàn tài sản & chống rút tiền gian lận, bạn BẮT BUỘC phải rút về đúng tài khoản ngân hàng đã Nạp tiền!`;
+        setSecurityErrorMsg(errorText);
+        addToast('❌ Rút tiền thất bại: Tài khoản nhận không khớp với tài khoản đã nạp!', 'error');
+        return;
+      }
+    } else {
+      // Auto-bind & register this bank account for future deposit/withdrawal matching
+      const updatedUser = {
+        ...user,
+        depositBankInfo: verifiedWithdrawBankInfo
+      };
+      localStorage.setItem('tq_user_profile', JSON.stringify(updatedUser));
+      try {
+        await supabase.from('profiles').upsert([{ id: user.id, deposit_bank_info: verifiedWithdrawBankInfo }]);
+      } catch (e) {}
+    }
+
+    // Freeze / Deduct pending withdrawal amount from user wallet balance
+    const updatedBalance = currentBalance - withdrawAmount;
+    user.walletBalance = updatedBalance;
+
+    const currentUserStr = localStorage.getItem('tq_user_profile');
+    if (currentUserStr) {
+      const curr = JSON.parse(currentUserStr);
+      curr.walletBalance = updatedBalance;
+      localStorage.setItem('tq_user_profile', JSON.stringify(curr));
+    }
+
+    const savedUsers: any[] = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+    const userIndex = savedUsers.findIndex((u: any) => u.id === user.id || (user.phone && u.phone === user.phone));
+    if (userIndex !== -1) {
+      savedUsers[userIndex].walletBalance = updatedBalance;
+      localStorage.setItem('tq_phone_users', JSON.stringify(savedUsers));
+    }
+
+    try {
+      await supabase.from('profiles').upsert([{ id: user.id, wallet_balance: updatedBalance }]);
+    } catch (e) {}
+
+    // Create Withdrawal Request Record
     const newTx: WalletTransaction = {
       id: `wtx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       userId: user.id,
