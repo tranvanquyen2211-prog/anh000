@@ -522,36 +522,7 @@ function MainApp() {
           onOpenProductDetail={(p) => setSelectedProductForDetail(p)}
         />
 
-        {(vis?.showCategoryFilters !== false) && (
-          <CategoryFilters
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-            onQuickSearch={(q) => setSearchQuery(q)}
-          />
-        )}
-
-        {/* Vietnam Province & District Location Filter Bar */}
-        {(vis?.showLocationFilter !== false) && (
-          <LocationFilter
-            selectedProvince={selectedProvince}
-            onSelectProvince={setSelectedProvince}
-            selectedDistrict={selectedDistrict}
-            onSelectDistrict={setSelectedDistrict}
-          />
-        )}
-
-        {/* 🤖 Smart Recommendation Section (New / Grand Opening Shops & Products & Keyword Match) */}
-        {(vis?.showSmartRecommender !== false) && (
-          <SmartRecommenderSection
-            products={products}
-            searchQuery={searchQuery}
-            onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
-            onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
-            onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
-            onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
-          />
-        )}
-
+        {/* 🏬 TẤT CẢ GIAN HÀNG & SẢN PHẨM GỢI Ý HÔM NAY */}
         <section className="space-y-4 pt-2">
           <div className="flex items-center justify-between border-b border-gray-200 pb-3">
             <div>
@@ -718,6 +689,36 @@ function MainApp() {
 
           </div>
         </section>
+
+        {(vis?.showCategoryFilters !== false) && (
+          <CategoryFilters
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            onQuickSearch={(q) => setSearchQuery(q)}
+          />
+        )}
+
+        {/* Vietnam Province & District Location Filter Bar */}
+        {(vis?.showLocationFilter !== false) && (
+          <LocationFilter
+            selectedProvince={selectedProvince}
+            onSelectProvince={setSelectedProvince}
+            selectedDistrict={selectedDistrict}
+            onSelectDistrict={setSelectedDistrict}
+          />
+        )}
+
+        {/* 🤖 Smart Recommendation Section (New / Grand Opening Shops & Products & Keyword Match) */}
+        {(vis?.showSmartRecommender !== false) && (
+          <SmartRecommenderSection
+            products={products}
+            searchQuery={searchQuery}
+            onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
+            onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
+            onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+            onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
+          />
+        )}
       </main>
 
       {(vis?.showLiveChatWidget !== false) && (
