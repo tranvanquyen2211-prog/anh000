@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import { useTheme, DEFAULT_MASTER_SWITCHES } from '../context/ThemeContext';
-import type { Product } from '../types';
+import type { Product, ShopAiBotConfig, KnowledgeBaseRule } from '../types';
 import {
   Store,
   DollarSign,
@@ -25,7 +25,12 @@ import {
   CheckCircle2,
   FileSpreadsheet,
   LocateFixed,
-  Lock
+  Lock,
+  Bot,
+  BookOpen,
+  Plus,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 
 interface ShopManagementDashboardProps {
@@ -54,7 +59,124 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const isProductAdditionEnabled = masterSwitches.enableShopProductAddition !== false;
   const isWithdrawalEnabled = masterSwitches.enableShopWithdrawals !== false;
 
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'earnings' | 'config'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'earnings' | 'config' | 'ai-bot'>('products');
+
+  // AI Chatbot & Knowledge Base State
+  const [aiBotConfig, setAiBotConfig] = useState<ShopAiBotConfig>(() => {
+    const sName = user?.name || 'TQ Store';
+    const saved = localStorage.getItem(`tq_ai_bot_config_${sName}`);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return {
+      shopName: sName,
+      enabled: true,
+      botName: `🤖 Trợ Lý AI ${sName}`,
+      tone: 'friendly',
+      welcomeGreeting: `Xin chào quý khách! Em là Trợ lý AI tự động của ${sName}. Anh/chị cần hỗ trợ thông tin gì ạ?`,
+      autoDelaySeconds: 1,
+      escalationKeywords: ['gặp nhân viên', 'tư vấn viên', 'gặp người thật', 'khiếu nại', 'hotline'],
+      knowledgeBase: [
+        {
+          id: 'kb_1',
+          category: 'HOURS',
+          keywords: ['giờ', 'mở cửa', 'địa chỉ', 'đâu', 'chi nhánh'],
+          question: 'Giờ mở cửa và địa chỉ của Shop ở đâu?',
+          answerBlueprint: `Dạ Shop mở cửa đón khách từ 08:00 - 22:00 tất cả các ngày trong tuần (kể cả Lễ/Tết). Địa chỉ tại Kho Hàng Tổng TQ Marketplace! Hotline: ${user?.phone || '0367818343'}.`,
+          isActive: true
+        },
+        {
+          id: 'kb_2',
+          category: 'RENTAL',
+          keywords: ['thuê', 'thủ tục', 'cọc', 'giấy tờ', 'cccd', 'hồ sơ'],
+          question: 'Thủ tục và tiền cọc thuê sản phẩm thế nào?',
+          answerBlueprint: 'Dạ thủ tục thuê bên em rất đơn giản: Quý khách chỉ cần để lại CCCD/GPLX hoặc cọc trước 30-50% giá trị sản phẩm. Khi hoàn trả trang phục nguyên vẹn, shop trả lại 100% cọc ngay lập tức ạ!',
+          isActive: true
+        },
+        {
+          id: 'kb_3',
+          category: 'SHIPPING',
+          keywords: ['ship', 'giao hàng', 'phí ship', 'hỏa tốc', 'vận chuyển'],
+          question: 'Thời gian và phí giao hàng ship bao lâu?',
+          answerBlueprint: 'Dạ bên em có hỗ trợ Ship Hỏa tốc nhận đồ trong 30-60 phút nội thành. Miễn phí vận chuyển cho tất cả các đơn hàng đủ điều kiện tối thiểu ạ!',
+          isActive: true
+        },
+        {
+          id: 'kb_4',
+          category: 'PROMO',
+          keywords: ['mã', 'voucher', 'giảm giá', 'coupon', 'khuyến mãi', 'code'],
+          question: 'Có mã giảm giá hoặc khuyến mãi gì không?',
+          answerBlueprint: 'Dạ anh/chị nhập ngay mã giảm giá TQVIP100K hoặc chọn các Voucher chiết khấu tại màn hình Checkout để được giảm ngay 10% - 20% ạ!',
+          isActive: true
+        }
+      ]
+    };
+  });
+
+  // Knowledge Base New Rule Form State
+  const [newKbCategory, setNewKbCategory] = useState<KnowledgeBaseRule['category']>('GENERAL');
+  const [newKbKeywords, setNewKbKeywords] = useState('');
+  const [newKbQuestion, setNewKbQuestion] = useState('');
+  const [newKbAnswer, setNewKbAnswer] = useState('');
+
+  const handleSaveAiBotConfig = (updatedConfig: ShopAiBotConfig) => {
+    setAiBotConfig(updatedConfig);
+    const sName = user?.name || 'TQ Store';
+    localStorage.setItem(`tq_ai_bot_config_${sName}`, JSON.stringify(updatedConfig));
+    addToast('🤖 Đã lưu và đồng bộ Cấu hình Trợ Lý AI Chat Bot & Kho Tri Thức thành công!', 'success');
+  };
+
+  const handleAddKbRule = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newKbQuestion.trim() || !newKbAnswer.trim()) {
+      addToast('Vui lòng nhập đầy đủ Câu hỏi và Câu trả lời mẫu!', 'error');
+      return;
+    }
+
+    const kwArray = newKbKeywords
+      .split(',')
+      .map(k => k.trim().toLowerCase())
+      .filter(Boolean);
+
+    const newRule: KnowledgeBaseRule = {
+      id: `kb_${Date.now()}`,
+      category: newKbCategory,
+      keywords: kwArray.length > 0 ? kwArray : [newKbQuestion.toLowerCase().trim()],
+      question: newKbQuestion.trim(),
+      answerBlueprint: newKbAnswer.trim(),
+      isActive: true
+    };
+
+    const updatedConfig: ShopAiBotConfig = {
+      ...aiBotConfig,
+      knowledgeBase: [newRule, ...aiBotConfig.knowledgeBase]
+    };
+
+    handleSaveAiBotConfig(updatedConfig);
+    setNewKbQuestion('');
+    setNewKbAnswer('');
+    setNewKbKeywords('');
+  };
+
+  const handleDeleteKbRule = (ruleId: string) => {
+    const updatedConfig: ShopAiBotConfig = {
+      ...aiBotConfig,
+      knowledgeBase: aiBotConfig.knowledgeBase.filter(r => r.id !== ruleId)
+    };
+    handleSaveAiBotConfig(updatedConfig);
+  };
+
+  const handleToggleKbRule = (ruleId: string) => {
+    const updatedConfig: ShopAiBotConfig = {
+      ...aiBotConfig,
+      knowledgeBase: aiBotConfig.knowledgeBase.map(r =>
+        r.id === ruleId ? { ...r, isActive: !r.isActive } : r
+      )
+    };
+    handleSaveAiBotConfig(updatedConfig);
+  };
 
   // Shop Config State
   const [warehouseAddress, setWarehouseAddress] = useState('');
@@ -440,6 +562,15 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
             }`}
           >
             <Sliders className="w-4 h-4 text-amber-400" /> ⚙️ Cấu Hình & Trang Cá Nhân Shop
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ai-bot')}
+            className={`py-3 px-4 border-b-2 transition cursor-pointer flex items-center gap-2 ${
+              activeTab === 'ai-bot' ? 'border-emerald-400 text-emerald-400 font-black' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Bot className="w-4 h-4 text-purple-400 animate-pulse" /> 🤖 Trợ Lý AI Chat Bot & Kho Tri Thức
           </button>
         </div>
 
@@ -890,6 +1021,264 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
                 <CheckCircle2 className="w-4 h-4 text-slate-950" /> XÁC NHẬN LƯU CẤU HÌNH & TỰ ĐỘNG ĐỒNG BỘ VỊ TRÍ TOÀN SÀN
               </button>
             </form>
+          )}
+
+          {/* TAB 5: AI CHATBOT AUTO-REPLY & KNOWLEDGE BASE */}
+          {activeTab === 'ai-bot' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              
+              {/* Main AI Bot Switch & Basic Settings */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-purple-500/40 shadow-xl space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3 flex-wrap gap-2">
+                  <div>
+                    <h3 className="text-xs font-black text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                      <Bot className="w-4 h-4 text-purple-400 animate-pulse" /> CẤU HÌNH TRỢ LÝ AI TRẢ LỜI TIN NHẮN TỰ ĐỘNG (AI CHAT BOT)
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-medium">Khi bật, AI sẽ tự động phân tích câu hỏi của khách và trả lời dựa theo Kho tri thức Shop cài đặt</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = { ...aiBotConfig, enabled: !aiBotConfig.enabled };
+                      handleSaveAiBotConfig(updated);
+                    }}
+                    className={`px-4 py-2 rounded-xl font-black text-xs transition cursor-pointer flex items-center gap-2 border ${
+                      aiBotConfig.enabled
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 shadow-purple-900/40 shadow-md'
+                        : 'bg-slate-900 text-slate-500 border-slate-800'
+                    }`}
+                  >
+                    {aiBotConfig.enabled ? (
+                      <>
+                        <ToggleRight className="w-5 h-5 text-purple-400" />
+                        <span>🟢 ĐÃ BẬT TRỢ LÝ AI TỰ ĐỘNG</span>
+                      </>
+                    ) : (
+                      <>
+                        <ToggleLeft className="w-5 h-5 text-slate-500" />
+                        <span>🔒 ĐÃ TẮT AI TỰ ĐỘNG</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Bot Persona Name */}
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Tên Hiển Thị Trợ Lý AI</label>
+                    <input
+                      type="text"
+                      value={aiBotConfig.botName}
+                      onChange={e => setAiBotConfig({ ...aiBotConfig, botName: e.target.value })}
+                      placeholder="VD: 🤖 Trợ Lý AI TQ Studio..."
+                      className="w-full bg-slate-900 border border-slate-700 text-purple-300 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-400"
+                    />
+                  </div>
+
+                  {/* Persona Tone */}
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Tông Giọng & Phong Cách Trả Lời</label>
+                    <select
+                      value={aiBotConfig.tone}
+                      onChange={e => setAiBotConfig({ ...aiBotConfig, tone: e.target.value as any })}
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-100 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-400"
+                    >
+                      <option value="friendly">😊 Thân thiện & Chu đáo (Friendly & Welcoming)</option>
+                      <option value="professional">👔 Chuyên nghiệp & Trọng tâm (Professional & Direct)</option>
+                      <option value="concise">⚡ Nhanh gọn & Ngắn gọn (Concise & Speedy)</option>
+                      <option value="promotional">🎉 Khuyến mãi & Hào hứng (Enthusiastic)</option>
+                    </select>
+                  </div>
+
+                  {/* Delay Time */}
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Thời Gian Chờ Trả Lời (Delay)</label>
+                    <select
+                      value={aiBotConfig.autoDelaySeconds}
+                      onChange={e => setAiBotConfig({ ...aiBotConfig, autoDelaySeconds: Number(e.target.value) })}
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-100 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-purple-400"
+                    >
+                      <option value={0}>⚡ 0 giây (Phản hồi tức thì 0ms)</option>
+                      <option value={1}>⏱️ 1 giây (Tự nhiên như người thật)</option>
+                      <option value={2}>⏱️ 2 giây (Phản hồi vừa phải)</option>
+                      <option value={3}>⏱️ 3 giây (Tránh Spam)</option>
+                    </select>
+                  </div>
+
+                  {/* Welcome Greeting */}
+                  <div className="sm:col-span-3">
+                    <label className="block text-slate-300 font-bold mb-1">Câu Tự Động Chào Khách Ban Đầu (Welcome Greeting)</label>
+                    <input
+                      type="text"
+                      value={aiBotConfig.welcomeGreeting}
+                      onChange={e => setAiBotConfig({ ...aiBotConfig, welcomeGreeting: e.target.value })}
+                      placeholder="Nhập câu chào mừng tự động khi khách mở chat..."
+                      className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-medium rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-purple-400"
+                    />
+                  </div>
+
+                  {/* Escalation Keywords */}
+                  <div className="sm:col-span-3">
+                    <label className="block text-slate-300 font-bold mb-1">Từ Khóa Chuyển Cho Tư Vấn Viên Người Thật (Phân cách bằng dấu phẩy)</label>
+                    <input
+                      type="text"
+                      value={aiBotConfig.escalationKeywords.join(', ')}
+                      onChange={e => {
+                        const kwArr = e.target.value.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+                        setAiBotConfig({ ...aiBotConfig, escalationKeywords: kwArr });
+                      }}
+                      placeholder="VD: gặp nhân viên, tư vấn viên, gặp người thật, khiếu nại, hotline..."
+                      className="w-full bg-slate-900 border border-slate-700 text-rose-300 font-mono rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleSaveAiBotConfig(aiBotConfig)}
+                  className="bg-purple-600 hover:bg-purple-500 text-white font-black px-4 py-2.5 rounded-xl text-xs transition shadow cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-purple-200" /> Lưu Cài Đặt Chung Trợ Lý AI
+                </button>
+              </div>
+
+              {/* Knowledge Base FAQ Setup */}
+              <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-xl">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <div>
+                    <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-amber-400" /> KHO TRI THỨC SHOP (SHOP KNOWLEDGE BASE & FAQ RULES - {aiBotConfig.knowledgeBase.length} MỤC)
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-medium">Thêm các câu hỏi thường gặp, từ khóa nhận diện và câu trả lời mẫu để AI tự động khớp & phản hồi cho khách</p>
+                  </div>
+                </div>
+
+                {/* Add New Rule Form */}
+                <form onSubmit={handleAddKbRule} className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                    <Plus className="w-4 h-4" /> Thêm Quy Tắc Tri Thức Mới Cho AI Chatbot
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-slate-400 font-bold mb-1 text-[10px]">Danh Mục</label>
+                      <select
+                        value={newKbCategory}
+                        onChange={e => setNewKbCategory(e.target.value as any)}
+                        className="w-full bg-slate-950 border border-slate-700 text-slate-200 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="GENERAL">🌐 Thông Tin Chung (General)</option>
+                        <option value="HOURS">⏰ Giờ Mở Cửa & Địa Chỉ (Hours & Loc)</option>
+                        <option value="RENTAL">👗 Quy Trình & Cọc Thuê (Rental & Deposit)</option>
+                        <option value="SHIPPING">🚚 Phí Ship & Vận Chuyển (Shipping)</option>
+                        <option value="PROMO">🎟️ Mã Giảm Giá & Voucher (Promo & Voucher)</option>
+                        <option value="REFUND">🛡️ Bảo Hành & Hoàn Tiền (Refund)</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-slate-400 font-bold mb-1 text-[10px]">Từ Khóa Gợi Nhớ AI Match (Phân cách dấu phẩy)</label>
+                      <input
+                        type="text"
+                        value={newKbKeywords}
+                        onChange={e => setNewKbKeywords(e.target.value)}
+                        placeholder="VD: thuê, cọc, thủ tục, giá thuê, giấy tờ..."
+                        className="w-full bg-slate-950 border border-slate-700 text-amber-400 font-mono font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <label className="block text-slate-400 font-bold mb-1 text-[10px]">Câu Hỏi Gợi Ý Của Khách Hàng</label>
+                      <input
+                        type="text"
+                        value={newKbQuestion}
+                        onChange={e => setNewKbQuestion(e.target.value)}
+                        placeholder="VD: Hồ sơ và thủ tục đặt cọc thuê váy cưới cần những gì?"
+                        className="w-full bg-slate-950 border border-slate-700 text-slate-100 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <label className="block text-slate-400 font-bold mb-1 text-[10px]">Câu Trả Lời AI Mẫu (Blueprint Answer)</label>
+                      <textarea
+                        value={newKbAnswer}
+                        onChange={e => setNewKbAnswer(e.target.value)}
+                        rows={2}
+                        placeholder="Nhập câu trả lời chính xác mà AI sẽ dùng để trả lời cho khách khi bắt gặp các từ khóa trên..."
+                        className="w-full bg-slate-950 border border-slate-700 text-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400 resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black px-4 py-2 rounded-xl text-xs transition shadow cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Plus className="w-4 h-4 text-slate-950" /> Thêm Vào Kho Tri Thức AI
+                  </button>
+                </form>
+
+                {/* Rules List */}
+                <div className="space-y-3 pt-2">
+                  {aiBotConfig.knowledgeBase.map(rule => (
+                    <div
+                      key={rule.id}
+                      className={`p-4 rounded-2xl border transition space-y-2 ${
+                        rule.isActive
+                          ? 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                          : 'bg-slate-950 border-slate-900 opacity-60'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-black px-2 py-0.5 rounded uppercase">
+                            {rule.category}
+                          </span>
+                          <h4 className="font-bold text-slate-100 text-xs">{rule.question}</h4>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleKbRule(rule.id)}
+                            className={`text-[10px] font-black px-2.5 py-1 rounded-lg transition cursor-pointer border ${
+                              rule.isActive
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                : 'bg-slate-800 text-slate-400 border-slate-700'
+                            }`}
+                          >
+                            {rule.isActive ? '🟢 ĐANG DÙNG' : '🔒 ĐÃ KHÓA'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteKbRule(rule.id)}
+                            className="text-rose-400 hover:bg-rose-500/20 p-1 rounded-lg transition cursor-pointer"
+                            title="Xóa quy tắc tri thức này"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-slate-300 text-xs leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+                        💬 <strong className="text-purple-300">AI Trả lời:</strong> "{rule.answerBlueprint}"
+                      </p>
+
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] text-slate-400 font-bold">Từ khóa nhận diện:</span>
+                        {rule.keywords.map((kw, kIdx) => (
+                          <span key={kIdx} className="bg-slate-800 text-amber-300 font-mono text-[10px] font-bold px-2 py-0.5 rounded border border-slate-700">
+                            #{kw}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
           )}
 
         </div>

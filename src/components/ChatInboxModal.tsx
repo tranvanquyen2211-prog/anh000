@@ -237,36 +237,83 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
 
     addToast(`💬 Đã gửi tin nhắn đồng bộ tới [${activeThread.contactName}]`, 'info');
 
-    // Auto simulated response from Shop if messaging preset shop
+    // Auto AI Bot Knowledge Base response from Shop if messaging a Shop
     if (activeThread.contactRole === 'SHOP') {
-      setTimeout(async () => {
-        const autoResp: ChatMessageItem = {
-          id: `msg_resp_${Date.now()}`,
-          threadId: activeThreadId,
-          senderName: activeThread.contactName,
-          senderRole: 'SHOP',
-          text: `Dạ ${activeThread.contactName} đã nhận được tin nhắn: "${msgText}". Shop hỗ trợ anh/chị ngay đây ạ!`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        };
-
-        setMessagesMap(prev => {
-          const nextMap = {
-            ...prev,
-            [activeThreadId]: [...(prev[activeThreadId] || []), autoResp]
-          };
-          localStorage.setItem('tq_chat_messages_map', JSON.stringify(nextMap));
-          return nextMap;
-        });
-
-        // Broadcast simulated response too
+      const shopName = activeThread.contactName;
+      const savedConfigStr = localStorage.getItem(`tq_ai_bot_config_${shopName}`);
+      let botConfig: any = null;
+      if (savedConfigStr) {
         try {
-          await supabase.channel('public:messages').send({
-            type: 'broadcast',
-            event: 'new_chat_message',
-            payload: autoResp
-          });
+          botConfig = JSON.parse(savedConfigStr);
         } catch (e) {}
-      }, 1200);
+      }
+
+      // Check if AI Bot is active for this Shop
+      if (!botConfig || botConfig.enabled !== false) {
+        const lowerPrompt = msgText.toLowerCase();
+        const delayMs = (botConfig?.autoDelaySeconds ?? 1) * 1000;
+        const botName = botConfig?.botName || `🤖 Trợ Lý AI ${shopName}`;
+        const tone = botConfig?.tone || 'friendly';
+
+        // Check Escalation Keywords first
+        const escalationKws: string[] = botConfig?.escalationKeywords || ['gặp nhân viên', 'tư vấn viên', 'khiếu nại'];
+        const isEscalation = escalationKws.some(kw => lowerPrompt.includes(kw));
+
+        let replyText = '';
+        if (isEscalation) {
+          replyText = `🤖 Dạ em đã nhận được yêu cầu kết nối với Tư vấn viên người thật của Shop! Đã chuyển tiếp tin nhắn tới nhân viên trực tổng đài, bộ phận KCS sẽ phản hồi ngay ạ. Hotline hỗ trợ khẩn cấp: 0367818343.`;
+        } else {
+          // Match Knowledge Base rules
+          const kbRules: any[] = (botConfig?.knowledgeBase || []).filter((r: any) => r.isActive !== false);
+          const matchedRule = kbRules.find((rule: any) =>
+            (rule.keywords || []).some((kw: string) => lowerPrompt.includes(kw.toLowerCase()))
+          );
+
+          if (matchedRule) {
+            if (tone === 'promotional') {
+              replyText = `🎉 ${matchedRule.answerBlueprint} 🔥 Shop đang có nhiều Voucher giảm cực sốc hôm nay, anh/chị đừng bỏ lỡ nhé ạ!`;
+            } else if (tone === 'concise') {
+              replyText = `⚡ ${matchedRule.answerBlueprint}`;
+            } else if (tone === 'professional') {
+              replyText = `👔 [Kính gửi Quý khách] ${matchedRule.answerBlueprint} Trân trọng cảm ơn Quý khách!`;
+            } else {
+              replyText = `😊 Dạ ${matchedRule.answerBlueprint} Nếu cần hỗ trợ thêm thông tin gì anh/chị cứ nhắn em nhé ạ!`;
+            }
+          } else {
+            // General Fallback AI Answer
+            replyText = `🤖 Dạ em là Trợ lý AI tự động của ${shopName}. Em đã ghi nhận thắc mắc "${msgText}" của anh/chị và thông báo tới Shop. Anh/chị có thể tham khảo danh mục sản phẩm nổi bật hoặc xem bảng giá niêm yết của Shop ạ!`;
+          }
+        }
+
+        setTimeout(async () => {
+          const autoResp: ChatMessageItem = {
+            id: `msg_resp_${Date.now()}`,
+            threadId: activeThreadId,
+            senderName: botName,
+            senderRole: 'SHOP',
+            text: replyText,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          };
+
+          setMessagesMap(prev => {
+            const nextMap = {
+              ...prev,
+              [activeThreadId]: [...(prev[activeThreadId] || []), autoResp]
+            };
+            localStorage.setItem('tq_chat_messages_map', JSON.stringify(nextMap));
+            return nextMap;
+          });
+
+          // Broadcast simulated response too
+          try {
+            await supabase.channel('public:messages').send({
+              type: 'broadcast',
+              event: 'new_chat_message',
+              payload: autoResp
+            });
+          } catch (e) {}
+        }, delayMs);
+      }
     }
   };
 

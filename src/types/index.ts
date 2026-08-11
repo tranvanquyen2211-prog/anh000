@@ -184,3 +184,23 @@ export interface Voucher {
   status: 'active' | 'disabled' | 'expired';
   createdAt: string;
 }
+
+export interface KnowledgeBaseRule {
+  id: string;
+  category: 'GENERAL' | 'HOURS' | 'RENTAL' | 'SHIPPING' | 'REFUND' | 'PROMO';
+  keywords: string[];
+  question: string;
+  answerBlueprint: string;
+  isActive: boolean;
+}
+
+export interface ShopAiBotConfig {
+  shopName: string;
+  enabled: boolean;
+  botName: string;
+  tone: 'friendly' | 'professional' | 'concise' | 'promotional';
+  welcomeGreeting: string;
+  autoDelaySeconds: number;
+  escalationKeywords: string[];
+  knowledgeBase: KnowledgeBaseRule[];
+}
