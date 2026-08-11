@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme, DEFAULT_MASTER_SWITCHES } from '../context/ThemeContext';
+import { useTheme, DEFAULT_MASTER_SWITCHES, DEFAULT_HOMEPAGE_SECTIONS } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import { recordAuditLog } from '../lib/auditLogger';
-import type { UserProfile, Product, CoinTransaction, WalletTransaction, AuditLog, Voucher } from '../types';
+import type { UserProfile, Product, CoinTransaction, WalletTransaction, AuditLog, Voucher, HomepageSectionConfig } from '../types';
 import {
   Crown,
   UserCheck,
@@ -51,7 +51,9 @@ import {
   Store,
   Truck,
   Package,
-  Wrench
+  Wrench,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -119,6 +121,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'wallet-approvals'
     | 'audit-logs'
     | 'customer-orders'
+    | 'homepage-sections'
   >('users');
 
   // Users list state
@@ -526,6 +529,76 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [maintTitle, setMaintTitle] = useState(() => masterSwitches.maintenanceTitle || '🚧 HỆ THỐNG ĐANG BẢO TRÌ & NÂNG CẤP ĐỊNH KỲ');
   const [maintMessage, setMaintMessage] = useState(() => masterSwitches.maintenanceMessage || 'Hệ thống TQ Marketplace đang tiến hành nâng cấp hạ tầng máy chủ đám mây Supabase Realtime và tối ưu hóa tốc độ. Vui lòng quay lại sau!');
   const [maintDurationHours, setMaintDurationHours] = useState<number>(1);
+
+  // Module 22: Homepage Layout Sections State
+  const sectionsList: HomepageSectionConfig[] = (theme.homepageSections && theme.homepageSections.length > 0)
+    ? theme.homepageSections
+    : DEFAULT_HOMEPAGE_SECTIONS;
+
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [editSectionTitle, setEditSectionTitle] = useState('');
+  const [editSectionSubtitle, setEditSectionSubtitle] = useState('');
+
+  const handleMoveSection = (id: string, direction: 'UP' | 'DOWN') => {
+    const sorted = [...sectionsList].sort((a, b) => a.order - b.order);
+    const index = sorted.findIndex(s => s.id === id);
+    if (index === -1) return;
+
+    if (direction === 'UP' && index > 0) {
+      const prev = sorted[index - 1];
+      const curr = sorted[index];
+      const tempOrder = curr.order;
+      curr.order = prev.order;
+      prev.order = tempOrder;
+    } else if (direction === 'DOWN' && index < sorted.length - 1) {
+      const next = sorted[index + 1];
+      const curr = sorted[index];
+      const tempOrder = curr.order;
+      curr.order = next.order;
+      next.order = tempOrder;
+    }
+
+    const updated = sorted.sort((a, b) => a.order - b.order);
+    updateTheme({ homepageSections: updated });
+    recordAuditLog(
+      user?.name || 'Super Admin',
+      'SUPER_ADMIN',
+      'Di Chuyển Vị Trí Khung Giao Diện',
+      id,
+      `Super Admin đã di chuyển vị trí khung "${id}" theo hướng ${direction} trên toàn hệ thống`,
+      'SUCCESS'
+    );
+    addToast('⚡ Đã cập nhật và đồng bộ vị trí khung hiển thị trên toàn hệ thống!', 'success');
+  };
+
+  const handleToggleSectionVisibility = (id: string) => {
+    const updated = sectionsList.map(s => s.id === id ? { ...s, visible: !s.visible } : s);
+    updateTheme({ homepageSections: updated });
+    recordAuditLog(
+      user?.name || 'Super Admin',
+      'SUPER_ADMIN',
+      'Ẩn/Hiện Khung Hiển Thị Trang Chủ',
+      id,
+      `Super Admin đã thay đổi trạng thái hiển thị khung "${id}" trên toàn hệ thống`,
+      'WARNING'
+    );
+    addToast('⚡ Đã cập nhật và đồng bộ trạng thái ẩn/hiện khung trên toàn hệ thống!', 'success');
+  };
+
+  const handleSaveSectionEdit = (id: string) => {
+    const updated = sectionsList.map(s => s.id === id ? { ...s, title: editSectionTitle, subtitle: editSectionSubtitle || '' } : s);
+    updateTheme({ homepageSections: updated });
+    setEditingSectionId(null);
+    recordAuditLog(
+      user?.name || 'Super Admin',
+      'SUPER_ADMIN',
+      'Sửa Tiêu Đề Khung Hiển Thị',
+      id,
+      `Super Admin đã cập nhật tiêu đề khung "${id}" thành "${editSectionTitle}"`,
+      'SUCCESS'
+    );
+    addToast('✏️ Đã sửa tiêu đề khung và đồng bộ hóa thành công trên toàn hệ thống!', 'success');
+  };
 
   // Curated Featured Shops & Search Suggested Products State
   const [featuredShops, setFeaturedShops] = useState<string[]>(() => {
@@ -1625,6 +1698,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             >
               <span className="flex items-center gap-2.5"><ShoppingBag className="w-4 h-4 text-emerald-400 animate-pulse" /> 21. 🛍️ Lịch Sử Mua Hàng Khách</span>
               <span className="bg-emerald-500 text-slate-950 text-[9px] px-1.5 py-0.2 rounded font-black">{allPlatformOrders.length}</span>
+            </button>
+
+            <button
+              onClick={() => setAdminTab('homepage-sections')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'homepage-sections' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Sliders className="w-4 h-4 text-pink-400 animate-bounce" /> 22. 🧩 Vị Trí Khung & Sửa Nội Dung
             </button>
           </aside>
 
@@ -4241,6 +4323,178 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                           ))}
                       </tbody>
                     </table>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 22: HOMEPAGE SECTION LAYOUT ORDER & LIVE CONTENT EDITOR */}
+            {adminTab === 'homepage-sections' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <div className="bg-slate-950 p-6 rounded-3xl border border-pink-500/40 shadow-2xl space-y-6">
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                      <h3 className="text-lg font-black text-pink-400 uppercase tracking-wider flex items-center gap-2">
+                        🧩 MODULE 22: QUẢN LÝ VỊ TRÍ KHUNG HIỂN THỊ & SỬA NỘI DUNG WEB (REALTIME SYNCHRONIZED)
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Super Admin có quyền đổi thứ tự hiển thị (Lên/Xuống), sửa tiêu đề, mô tả và bật/tắt bất kỳ khung hiển thị nào trên Website. <strong className="text-amber-300">Tất cả thay đổi đều đồng bộ hóa 0ms trên toàn hệ thống!</strong>
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateTheme({ homepageSections: DEFAULT_HOMEPAGE_SECTIONS });
+                        addToast('🔄 Đã khôi phục bố cục giao diện mặc định ban đầu thành công!', 'info');
+                      }}
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold px-3.5 py-2 rounded-xl text-xs transition border border-slate-700 cursor-pointer flex items-center gap-1.5 shrink-0"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-amber-400" /> Khôi Phục Bố Cục Mặc Định
+                    </button>
+                  </div>
+
+                  {/* Sections Reordering & Content Editing List */}
+                  <div className="space-y-4">
+                    {([...sectionsList].sort((a, b) => a.order - b.order)).map((sec, idx, arr) => (
+                      <div
+                        key={sec.id}
+                        className={`p-4 rounded-2xl border transition-all space-y-3 ${
+                          sec.visible
+                            ? 'bg-slate-900 border-slate-700 hover:border-pink-500/50'
+                            : 'bg-slate-950/60 border-slate-800 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                          <div className="flex items-center gap-3">
+                            <span className="w-8 h-8 rounded-xl bg-pink-500/20 text-pink-400 border border-pink-500/40 flex items-center justify-center font-mono font-black text-sm">
+                              #{sec.order}
+                            </span>
+
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-extrabold text-slate-100 text-sm">{sec.title}</h4>
+                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
+                                  sec.visible
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                }`}>
+                                  {sec.visible ? '🟢 ĐANG HIỂN THỊ' : '🔒 ĐÃ ẨN KHUNG'}
+                                </span>
+                              </div>
+                              {sec.subtitle && (
+                                <p className="text-xs text-slate-400 mt-0.5 font-medium">{sec.subtitle}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Control Buttons */}
+                          <div className="flex items-center gap-2">
+                            {/* Move Up */}
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveSection(sec.id, 'UP')}
+                              className={`p-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer border ${
+                                idx === 0
+                                  ? 'bg-slate-950 text-slate-600 border-slate-800 cursor-not-allowed'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700'
+                              }`}
+                              title="Di chuyển khung này LÊN TRÊN"
+                            >
+                              <ArrowUp className="w-4 h-4" /> ⬆️ Lên
+                            </button>
+
+                            {/* Move Down */}
+                            <button
+                              type="button"
+                              disabled={idx === arr.length - 1}
+                              onClick={() => handleMoveSection(sec.id, 'DOWN')}
+                              className={`p-2 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer border ${
+                                idx === arr.length - 1
+                                  ? 'bg-slate-950 text-slate-600 border-slate-800 cursor-not-allowed'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-amber-400 border-slate-700'
+                              }`}
+                              title="Di chuyển khung này XUỐNG DƯỚI"
+                            >
+                              <ArrowDown className="w-4 h-4" /> ⬇️ Xuống
+                            </button>
+
+                            {/* Edit Content */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingSectionId(editingSectionId === sec.id ? null : sec.id);
+                                setEditSectionTitle(sec.title);
+                                setEditSectionSubtitle(sec.subtitle || '');
+                              }}
+                              className="bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-slate-950 border border-amber-400/40 text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer"
+                            >
+                              ✏️ Sửa Nội Dung
+                            </button>
+
+                            {/* Toggle Visibility */}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSectionVisibility(sec.id)}
+                              className={`px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                                sec.visible
+                                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-600 hover:text-white'
+                                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500 hover:text-slate-950'
+                              }`}
+                            >
+                              {sec.visible ? '🔒 Ẩn Khung' : '🟢 Hiện Khung'}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Inline Content Edit Form */}
+                        {editingSectionId === sec.id && (
+                          <div className="bg-slate-950 p-4 rounded-xl border border-amber-500/40 space-y-3 mt-3 animate-in fade-in">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-slate-300 font-bold mb-1">Tiêu Đề Khung Hiển Thị</label>
+                                <input
+                                  type="text"
+                                  value={editSectionTitle}
+                                  onChange={e => setEditSectionTitle(e.target.value)}
+                                  className="w-full bg-slate-900 border border-slate-700 text-amber-400 font-bold rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-slate-300 font-bold mb-1">Mô Tả Phụ (Subtitle)</label>
+                                <input
+                                  type="text"
+                                  value={editSectionSubtitle}
+                                  onChange={e => setEditSectionSubtitle(e.target.value)}
+                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-medium rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-amber-400"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-1">
+                              <button
+                                type="button"
+                                onClick={() => setEditingSectionId(null)}
+                                className="bg-slate-800 text-slate-400 px-3 py-1.5 rounded-xl font-bold hover:bg-slate-700 transition cursor-pointer"
+                              >
+                                Hủy
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSaveSectionEdit(sec.id)}
+                                className="bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black px-4 py-1.5 rounded-xl transition shadow cursor-pointer"
+                              >
+                                ⚡ LƯU & ĐỒNG BỘ NGHỆ AN 0MS
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
                 </div>

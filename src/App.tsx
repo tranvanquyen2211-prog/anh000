@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import { ThemeProvider, useTheme, DEFAULT_MASTER_SWITCHES } from './context/ThemeContext';
+import { ThemeProvider, useTheme, DEFAULT_MASTER_SWITCHES, DEFAULT_HOMEPAGE_SECTIONS } from './context/ThemeContext';
 import { MaintenanceOverlay } from './components/MaintenanceOverlay';
 import { ToastContainer } from './components/Toast';
 import { Header } from './components/Header';
@@ -502,201 +502,226 @@ function MainApp() {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-6 md:pb-8 space-y-8">
-        {(vis?.showHeroBanner !== false) && (
-          <HeroBanner onSelectCategory={(cat) => { setSelectedCategory(cat); setActiveTab('shop'); }} />
-        )}
+        {/* Dynamic Homepage Sections Reordered & Synchronized Realtime */}
+        {((theme.homepageSections && theme.homepageSections.length > 0)
+          ? theme.homepageSections
+          : DEFAULT_HOMEPAGE_SECTIONS)
+          .filter(sec => sec.visible)
+          .sort((a, b) => a.order - b.order)
+          .map((sec) => {
+            if (sec.id === 'hero') {
+              return (vis?.showHeroBanner !== false) ? (
+                <HeroBanner key={sec.id} onSelectCategory={(cat) => { setSelectedCategory(cat); setActiveTab('shop'); }} />
+              ) : null;
+            }
 
-        {/* 📱 SHOPEE MOBILE ICON GRID MENU (Mobile First App UI) */}
-        <ShopeeMobileIconGrid
-          onSelectCategory={(cat) => setSelectedCategory(cat)}
-          onOpenAiMixMatchModal={() => setIsAiMixMatchModalOpen(true)}
-          onOpenWalletDepositWithdrawModal={() => setIsWalletModalOpen(true)}
-          onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
-        />
+            if (sec.id === 'mobile_grid') {
+              return (
+                <ShopeeMobileIconGrid
+                  key={sec.id}
+                  onSelectCategory={(cat) => setSelectedCategory(cat)}
+                  onOpenAiMixMatchModal={() => setIsAiMixMatchModalOpen(true)}
+                  onOpenWalletDepositWithdrawModal={() => setIsWalletModalOpen(true)}
+                  onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
+                />
+              );
+            }
 
-        {/* ⚡ SHOPEE FLASH SALE COUNTDOWN SECTION */}
-        <ShopeeFlashSaleSection
-          products={products}
-          onOpenProductDetail={(p) => setSelectedProductForDetail(p)}
-        />
+            if (sec.id === 'flash_sale') {
+              return (
+                <ShopeeFlashSaleSection
+                  key={sec.id}
+                  products={products}
+                  onOpenProductDetail={(p) => setSelectedProductForDetail(p)}
+                />
+              );
+            }
 
-        {/* 🏬 TẤT CẢ GIAN HÀNG & SẢN PHẨM GỢI Ý HÔM NAY */}
-        <section className="space-y-4 pt-2">
-          <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-            <div>
-              <h2 className="text-xl md:text-2xl font-black text-navy tracking-wide uppercase flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#ee4d2d]"></span>
-                GỢI Ý HÔM NAY - TẤT CẢ GIAN HÀNG {selectedProvince !== 'ALL' ? `- ${selectedProvince.toUpperCase()}` : ''}
-              </h2>
-              <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Supabase Realtime Marketplace • Chuẩn Shopee Web PC Desktop & Mobile App
-              </p>
-            </div>
-            <span className="text-xs font-extrabold bg-[#ee4d2d]/10 text-[#ee4d2d] px-3.5 py-1.5 rounded-full border border-[#ee4d2d]/30">
-              Hiển thị: {filteredProducts.length} mặt hàng
-            </span>
-          </div>
-
-          {/* Shopee Desktop PC Layout Grid: Sidebar Filters (3 cols) + Product List (9 cols) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            {/* 🔍 SHOPEE DESKTOP FILTER SIDEBAR (Left Column - 3 Cols on PC) */}
-            <aside className="hidden lg:block lg:col-span-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs space-y-6 sticky top-24">
-              <div className="border-b border-gray-100 pb-3">
-                <h3 className="font-black text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  🔍 BỘ LỌC TÌM KIẾM
-                </h3>
-              </div>
-
-              {/* Category Tree */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Tất Cả Danh Mục</h4>
-                <div className="space-y-1 text-xs font-bold text-gray-700">
-                  <div
-                    onClick={() => setSelectedCategory('ALL')}
-                    className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
-                      selectedCategory === 'ALL' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <span>✨ Tất Cả Sản Phẩm</span>
+            if (sec.id === 'all_shops') {
+              return (
+                <section key={sec.id} className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                    <div>
+                      <h2 className="text-xl md:text-2xl font-black text-navy tracking-wide uppercase flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#ee4d2d]"></span>
+                        {sec.title || 'GỢI Ý HÔM NAY - TẤT CẢ GIAN HÀNG'} {selectedProvince !== 'ALL' ? `- ${selectedProvince.toUpperCase()}` : ''}
+                      </h2>
+                      <p className="text-xs text-gray-500 font-medium mt-0.5">
+                        {sec.subtitle || 'Supabase Realtime Marketplace • Chuẩn Shopee Web PC Desktop & Mobile App'}
+                      </p>
+                    </div>
+                    <span className="text-xs font-extrabold bg-[#ee4d2d]/10 text-[#ee4d2d] px-3.5 py-1.5 rounded-full border border-[#ee4d2d]/30">
+                      Hiển thị: {filteredProducts.length} mặt hàng
+                    </span>
                   </div>
 
-                  <div
-                    onClick={() => setSelectedCategory('RENTAL')}
-                    className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
-                      selectedCategory === 'RENTAL' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <span>👗 Cho Thuê Trang Phục</span>
+                  {/* Shopee Desktop PC Layout Grid: Sidebar Filters (3 cols) + Product List (9 cols) */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    
+                    {/* 🔍 SHOPEE DESKTOP FILTER SIDEBAR (Left Column - 3 Cols on PC) */}
+                    <aside className="hidden lg:block lg:col-span-3 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs space-y-6 sticky top-24">
+                      <div className="border-b border-gray-100 pb-3">
+                        <h3 className="font-black text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                          🔍 BỘ LỌC TÌM KIẾM
+                        </h3>
+                      </div>
+
+                      {/* Category Tree */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Tất Cả Danh Mục</h4>
+                        <div className="space-y-1 text-xs font-bold text-gray-700">
+                          <div
+                            onClick={() => setSelectedCategory('ALL')}
+                            className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
+                              selectedCategory === 'ALL' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            <span>✨ Tất Cả Sản Phẩm</span>
+                          </div>
+
+                          <div
+                            onClick={() => setSelectedCategory('RENTAL')}
+                            className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
+                              selectedCategory === 'RENTAL' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            <span>👗 Cho Thuê Trang Phục</span>
+                          </div>
+
+                          <div
+                            onClick={() => setSelectedCategory('RETAIL')}
+                            className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
+                              selectedCategory === 'RETAIL' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            <span>🛍️ Shopee Mall Bán Đồ</span>
+                          </div>
+
+                          <div
+                            onClick={() => setSelectedCategory('FNB')}
+                            className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
+                              selectedCategory === 'FNB' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            <span>🧋 ShopeeFood Đồ Ăn</span>
+                          </div>
+
+                          <div
+                            onClick={() => setSelectedCategory('BEAUTY')}
+                            className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
+                              selectedCategory === 'BEAUTY' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            <span>💄 Spa Làm Đẹp</span>
+                          </div>
+
+                          <div
+                            onClick={() => setSelectedCategory('TAXI')}
+                            className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
+                              selectedCategory === 'TAXI' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            <span>🚖 Gọi Taxi Đặt Xe</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Price Filter Box */}
+                      <div className="space-y-2 border-t border-gray-100 pt-4">
+                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Khoảng Giá (VNĐ)</h4>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <input
+                            type="number"
+                            placeholder="TỪ đ"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-[#ee4d2d]"
+                          />
+                          <input
+                            type="number"
+                            placeholder="ĐẾN đ"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-[#ee4d2d]"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          className="w-full bg-[#ee4d2d] hover:bg-[#d0011b] text-white text-xs font-black py-2 rounded-xl uppercase tracking-wider shadow-xs transition cursor-pointer"
+                        >
+                          ÁP DỤNG KHOẢNG GIÁ
+                        </button>
+                      </div>
+
+                      {/* Rating Filter Box */}
+                      <div className="space-y-2 border-t border-gray-100 pt-4">
+                        <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Đánh Giá Của Khách</h4>
+                        <div className="space-y-1.5 text-xs text-amber-500 font-bold">
+                          <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg">
+                            <span>⭐⭐⭐⭐⭐</span>
+                            <span className="text-gray-600 text-[11px]">5 Sao</span>
+                          </div>
+                          <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg">
+                            <span>⭐⭐⭐⭐</span>
+                            <span className="text-gray-600 text-[11px]">Từ 4 Sao trở lên</span>
+                          </div>
+                        </div>
+                      </div>
+                    </aside>
+
+                    {/* 🛍️ MAIN PRODUCT LIST & SHOPEE SORT BAR (Right Column - 9 Cols on PC) */}
+                    <div className="col-span-1 lg:col-span-9 space-y-4">
+                      
+                      {/* Shopee PC Desktop Sorting Control Bar */}
+                      <div className="bg-gray-100 p-3 rounded-2xl border border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-600 font-black">Sắp xếp theo:</span>
+                          <button className="bg-[#ee4d2d] text-white px-3.5 py-1.5 rounded-xl shadow-xs">Liên Quan</button>
+                          <button className="bg-white hover:bg-gray-200 text-gray-800 px-3.5 py-1.5 rounded-xl transition">Mới Nhất</button>
+                          <button className="bg-white hover:bg-gray-200 text-gray-800 px-3.5 py-1.5 rounded-xl transition">Bán Chạy</button>
+                        </div>
+                        <div className="text-xs text-gray-500 font-semibold">
+                          Trang 1 / 1
+                        </div>
+                      </div>
+
+                      {/* Product Cards Grid: 2-col on Mobile, 4-col on PC */}
+                      {filteredProducts.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-2.5 sm:gap-4 md:gap-4">
+                          {filteredProducts.map(product => (
+                            <ProductCard
+                              key={product.id}
+                              product={product}
+                              onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+                              onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
+                              onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="py-16 text-center text-gray-400 bg-white rounded-3xl border border-gray-200 p-8 space-y-2">
+                          <div className="text-4xl mb-2">📍</div>
+                          <h4 className="font-extrabold text-sm text-navy">Không có gian hàng hoặc sản phẩm nào ở {selectedProvince}</h4>
+                          <p className="text-xs text-gray-500">Thử chọn Tỉnh/Thành khác hoặc xóa bộ lọc khu vực.</p>
+                        </div>
+                      )}
+                    </div>
+
                   </div>
+                </section>
+              );
+            }
 
-                  <div
-                    onClick={() => setSelectedCategory('RETAIL')}
-                    className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
-                      selectedCategory === 'RETAIL' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <span>🛍️ Shopee Mall Bán Đồ</span>
-                  </div>
+            if (sec.id === 'location_filter') {
+              return (vis?.showLocationFilter !== false) ? (
+                <LocationFilter
+                  key={sec.id}
+                  selectedProvince={selectedProvince}
+                  onSelectProvince={setSelectedProvince}
+                  selectedDistrict={selectedDistrict}
+                  onSelectDistrict={setSelectedDistrict}
+                />
+              ) : null;
+            }
 
-                  <div
-                    onClick={() => setSelectedCategory('FNB')}
-                    className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
-                      selectedCategory === 'FNB' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <span>🧋 ShopeeFood Đồ Ăn</span>
-                  </div>
-
-                  <div
-                    onClick={() => setSelectedCategory('BEAUTY')}
-                    className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
-                      selectedCategory === 'BEAUTY' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <span>💄 Spa Làm Đẹp</span>
-                  </div>
-
-                  <div
-                    onClick={() => setSelectedCategory('TAXI')}
-                    className={`p-2 rounded-xl cursor-pointer flex items-center justify-between transition ${
-                      selectedCategory === 'TAXI' ? 'bg-[#ee4d2d] text-white' : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <span>🚖 Gọi Taxi Đặt Xe</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Price Filter Box */}
-              <div className="space-y-2 border-t border-gray-100 pt-4">
-                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Khoảng Giá (VNĐ)</h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <input
-                    type="number"
-                    placeholder="TỪ đ"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-[#ee4d2d]"
-                  />
-                  <input
-                    type="number"
-                    placeholder="ĐẾN đ"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-[#ee4d2d]"
-                  />
-                </div>
-                <button
-                  type="button"
-                  className="w-full bg-[#ee4d2d] hover:bg-[#d0011b] text-white text-xs font-black py-2 rounded-xl uppercase tracking-wider shadow-xs transition cursor-pointer"
-                >
-                  ÁP DỤNG KHOẢNG GIÁ
-                </button>
-              </div>
-
-              {/* Rating Filter Box */}
-              <div className="space-y-2 border-t border-gray-100 pt-4">
-                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Đánh Giá Của Khách</h4>
-                <div className="space-y-1.5 text-xs text-amber-500 font-bold">
-                  <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg">
-                    <span>⭐⭐⭐⭐⭐</span>
-                    <span className="text-gray-600 text-[11px]">5 Sao</span>
-                  </div>
-                  <div className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg">
-                    <span>⭐⭐⭐⭐</span>
-                    <span className="text-gray-600 text-[11px]">Từ 4 Sao trở lên</span>
-                  </div>
-                </div>
-              </div>
-            </aside>
-
-            {/* 🛍️ MAIN PRODUCT LIST & SHOPEE SORT BAR (Right Column - 9 Cols on PC) */}
-            <div className="col-span-1 lg:col-span-9 space-y-4">
-              
-              {/* Shopee PC Desktop Sorting Control Bar */}
-              <div className="bg-gray-100 p-3 rounded-2xl border border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600 font-black">Sắp xếp theo:</span>
-                  <button className="bg-[#ee4d2d] text-white px-3.5 py-1.5 rounded-xl shadow-xs">Liên Quan</button>
-                  <button className="bg-white hover:bg-gray-200 text-gray-800 px-3.5 py-1.5 rounded-xl transition">Mới Nhất</button>
-                  <button className="bg-white hover:bg-gray-200 text-gray-800 px-3.5 py-1.5 rounded-xl transition">Bán Chạy</button>
-                </div>
-                <div className="text-xs text-gray-500 font-semibold">
-                  Trang 1 / 1
-                </div>
-              </div>
-
-              {/* Product Cards Grid: 2-col on Mobile, 4-col on PC */}
-              {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-2.5 sm:gap-4 md:gap-4">
-                  {filteredProducts.map(product => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
-                      onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
-                      onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-16 text-center text-gray-400 bg-white rounded-3xl border border-gray-200 p-8 space-y-2">
-                  <div className="text-4xl mb-2">📍</div>
-                  <h4 className="font-extrabold text-sm text-navy">Không có gian hàng hoặc sản phẩm nào ở {selectedProvince}</h4>
-                  <p className="text-xs text-gray-500">Thử chọn Tỉnh/Thành khác hoặc xóa bộ lọc khu vực.</p>
-                </div>
-              )}
-            </div>
-
-          </div>
-        </section>
-
-        {/* Vietnam Province & District Location Filter Bar */}
-        {(vis?.showLocationFilter !== false) && (
-          <LocationFilter
-            selectedProvince={selectedProvince}
-            onSelectProvince={setSelectedProvince}
-            selectedDistrict={selectedDistrict}
-            onSelectDistrict={setSelectedDistrict}
-          />
-        )}
+            return null;
+          })}
       </main>
 
       {(vis?.showLiveChatWidget !== false) && (

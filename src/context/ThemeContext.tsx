@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { ThemeConfig, FeatureVisibilityConfig, SystemMasterSwitches } from '../types';
+import type { ThemeConfig, FeatureVisibilityConfig, SystemMasterSwitches, HomepageSectionConfig } from '../types';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
 import { useToast } from './ToastContext';
 
@@ -29,6 +29,43 @@ export const DEFAULT_MASTER_SWITCHES: SystemMasterSwitches = {
   enableRetailBuying: true,
   enableShopProductAddition: true,
 };
+export const DEFAULT_HOMEPAGE_SECTIONS: HomepageSectionConfig[] = [
+  {
+    id: 'hero',
+    title: 'Banner Quảng Cáo & Ưu Đãi Đầu Trang',
+    subtitle: 'Khám phá Bộ sưu tập Đa mô hình',
+    visible: true,
+    order: 1
+  },
+  {
+    id: 'mobile_grid',
+    title: 'Danh Mục Icon Phối Đồ & Menu Nhanh',
+    subtitle: 'Lối tắt truy cập nhanh trên thiết bị di động',
+    visible: true,
+    order: 2
+  },
+  {
+    id: 'flash_sale',
+    title: '⚡ FLASH SALE GIỜ VÀNG GIẢM GIÁ BỎNG TAY',
+    subtitle: 'Chương trình ưu đãi giới hạn thời gian',
+    visible: true,
+    order: 3
+  },
+  {
+    id: 'all_shops',
+    title: '🏬 GỢI Ý HÔM NAY - TẤT CẢ GIAN HÀNG & SẢN PHẨM',
+    subtitle: 'Supabase Realtime Marketplace • Tất cả mặt hàng',
+    visible: true,
+    order: 4
+  },
+  {
+    id: 'location_filter',
+    title: '📍 BỘ LỌC KHU VỰC TỈNH / THÀNH PHỐ VIỆT NAM',
+    subtitle: 'Tìm gian hàng gần nhất xung quanh bạn',
+    visible: true,
+    order: 5
+  }
+];
 
 export const DEFAULT_THEME: ThemeConfig = {
   siteName: 'TQ Store',
@@ -45,7 +82,8 @@ export const DEFAULT_THEME: ThemeConfig = {
   walletDiscountRate: 2,
   coinCashbackRate: 3,
   featureVisibility: DEFAULT_FEATURE_VISIBILITY,
-  masterSwitches: DEFAULT_MASTER_SWITCHES
+  masterSwitches: DEFAULT_MASTER_SWITCHES,
+  homepageSections: DEFAULT_HOMEPAGE_SECTIONS
 };
 
 export const PRESET_THEMES = [

@@ -118,6 +118,14 @@ export interface SystemMasterSwitches {
   enableShopProductAddition: boolean;
 }
 
+export interface HomepageSectionConfig {
+  id: string;
+  title: string;
+  subtitle?: string;
+  visible: boolean;
+  order: number;
+}
+
 export interface ThemeConfig {
   siteName: string;
   tagline: string;
@@ -134,6 +142,7 @@ export interface ThemeConfig {
   coinCashbackRate: number;
   featureVisibility?: FeatureVisibilityConfig;
   masterSwitches?: SystemMasterSwitches;
+  homepageSections?: HomepageSectionConfig[];
 }
 
 export interface CoinTransaction {
