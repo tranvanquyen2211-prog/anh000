@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { Product } from '../types';
 import { ProductCard } from './ProductCard';
 import { Search, ArrowLeft, X, SlidersHorizontal } from 'lucide-react';
@@ -26,6 +26,11 @@ export const SearchResultsModal: React.FC<SearchResultsModalProps> = ({
 }) => {
   const [sortBy, setSortBy] = useState<'RELEVANCE' | 'NEWEST' | 'PRICE_LOW' | 'PRICE_HIGH' | 'SOLD'>('RELEVANCE');
   const [inputVal, setInputVal] = useState(searchQuery);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setInputVal(searchQuery);
+  }, [searchQuery]);
 
   if (!isOpen) return null;
 
@@ -53,6 +58,11 @@ export const SearchResultsModal: React.FC<SearchResultsModalProps> = ({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // 📱 Automatically collapse/hide mobile virtual keyboard on search submission
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+    (document.activeElement as HTMLElement)?.blur();
     onSearchChange(inputVal);
   };
 
@@ -76,6 +86,7 @@ export const SearchResultsModal: React.FC<SearchResultsModalProps> = ({
             <div className="flex-1 bg-white rounded-xl flex items-center px-3 py-2 text-gray-800 shadow-inner">
               <Search className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
               <input
+                ref={inputRef}
                 type="text"
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
@@ -85,7 +96,11 @@ export const SearchResultsModal: React.FC<SearchResultsModalProps> = ({
               {inputVal && (
                 <button
                   type="button"
-                  onClick={() => { setInputVal(''); onSearchChange(''); }}
+                  onClick={() => {
+                    setInputVal('');
+                    onSearchChange('');
+                    if (inputRef.current) inputRef.current.focus();
+                  }}
                   className="text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
                 >
                   <X className="w-4 h-4" />

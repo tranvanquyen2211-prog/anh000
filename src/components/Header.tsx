@@ -131,6 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
               onSubmit={(e) => {
                 e.preventDefault();
                 setIsSearchFocused(false);
+                (document.activeElement as HTMLElement)?.blur();
                 if (onSubmitSearch) onSubmitSearch();
               }}
               className="w-full bg-white rounded-xl flex items-center px-3 py-2 shadow-inner text-gray-800 border border-gray-200"
