@@ -62,6 +62,12 @@ export interface ChatMessage {
   sender_type: 'customer' | 'support' | 'shop';
 }
 
+export interface BankInfo {
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+}
+
 export interface UserProfile {
   id: string;
   email?: string;
@@ -73,9 +79,10 @@ export interface UserProfile {
   walletBalance?: number;
   coins?: number;
   status?: 'active' | 'locked';
-  shopType?: 'RENTAL' | 'RETAIL' | 'FNB' | 'BEAUTY';
+  shopType?: 'RENTAL' | 'RETAIL' | 'FNB' | 'BEAUTY' | 'TAXI';
   isGrandOpeningShop?: boolean;
   openingDate?: string;
+  depositBankInfo?: BankInfo;
 }
 
 export interface ToastMessage {
@@ -120,5 +127,19 @@ export interface CoinTransaction {
   amount: number;
   type: 'WATCH_VIDEO' | 'REVIEW_BONUS' | 'ADMIN_GRANT' | 'PURCHASE_CASHBACK' | 'ORDER_REDEEM';
   sourceDescription: string;
+  timestamp: string;
+}
+
+export interface WalletTransaction {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhone?: string;
+  userEmail?: string;
+  amount: number;
+  type: 'DEPOSIT' | 'WITHDRAW';
+  bankInfo: BankInfo;
+  transferSyntax?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   timestamp: string;
 }

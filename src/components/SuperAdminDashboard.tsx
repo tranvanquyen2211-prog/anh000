@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
-import type { UserProfile, Product, CoinTransaction } from '../types';
+import type { UserProfile, Product, CoinTransaction, WalletTransaction } from '../types';
 import {
   Crown,
   UserCheck,
@@ -39,7 +39,10 @@ import {
   ToggleRight,
   Tv,
   Coins,
-  History
+  History,
+  Wallet,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -101,6 +104,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'feature-visibility'
     | 'watch-to-earn'
     | 'coin-audit'
+    | 'wallet-approvals'
   >('users');
 
   // Users list state
@@ -270,6 +274,93 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
   const [coinAuditSearch, setCoinAuditSearch] = useState('');
   const [coinAuditFilterType, setCoinAuditFilterType] = useState<string>('ALL');
+
+  // Module 18: Wallet Deposit/Withdrawal Pending Approvals State
+  const [walletTxs, setWalletTxs] = useState<WalletTransaction[]>(() => {
+    const saved = localStorage.getItem('tq_wallet_transactions');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    const fetchWalletTxs = async () => {
+      try {
+        const { data, error } = await supabase.from('wallet_transactions').select('*').order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          const formatted: WalletTransaction[] = data.map((t: any) => ({
+            id: t.id,
+            userId: t.user_id || t.userId,
+            userName: t.user_name || t.userName,
+            userPhone: t.user_phone || t.userPhone,
+            userEmail: t.user_email || t.userEmail,
+            amount: t.amount,
+            type: t.type,
+            bankInfo: t.bank_info || t.bankInfo,
+            transferSyntax: t.transfer_syntax || t.transferSyntax,
+            status: t.status,
+            timestamp: t.timestamp || t.created_at
+          }));
+          setWalletTxs(formatted);
+          localStorage.setItem('tq_wallet_transactions', JSON.stringify(formatted));
+        }
+      } catch (e) {}
+    };
+    fetchWalletTxs();
+  }, [adminTab]);
+
+  const handleApproveWalletTx = async (tx: WalletTransaction) => {
+    const updated = walletTxs.map(t => t.id === tx.id ? { ...t, status: 'APPROVED' as const } : t);
+    setWalletTxs(updated);
+    localStorage.setItem('tq_wallet_transactions', JSON.stringify(updated));
+
+    if (tx.type === 'DEPOSIT') {
+      const savedUsers: UserProfile[] = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+      const targetUser = savedUsers.find(u => u.phone === tx.userPhone || u.id === tx.userId);
+      if (targetUser) {
+        targetUser.walletBalance = (targetUser.walletBalance || 0) + tx.amount;
+        localStorage.setItem('tq_phone_users', JSON.stringify(savedUsers));
+      }
+
+      const currentUserStr = localStorage.getItem('tq_user_profile');
+      if (currentUserStr) {
+        const curr = JSON.parse(currentUserStr);
+        if (curr.id === tx.userId || curr.phone === tx.userPhone) {
+          curr.walletBalance = (curr.walletBalance || 0) + tx.amount;
+          localStorage.setItem('tq_user_profile', JSON.stringify(curr));
+        }
+      }
+
+      try {
+        await supabase.from('profiles').upsert([{ id: tx.userId, wallet_balance: (targetUser?.walletBalance || 0) }]);
+      } catch (e) {}
+    }
+
+    try {
+      await supabase.from('wallet_transactions').upsert([{ id: tx.id, status: 'APPROVED' }]);
+    } catch (e) {}
+
+    addToast(`🎉 Đã duyệt Lệnh ${tx.type === 'DEPOSIT' ? 'NẠP' : 'RÚT'} ${tx.amount.toLocaleString('vi-VN')}đ thành công!`, 'success');
+  };
+
+  const handleRejectWalletTx = async (tx: WalletTransaction) => {
+    const updated = walletTxs.map(t => t.id === tx.id ? { ...t, status: 'REJECTED' as const } : t);
+    setWalletTxs(updated);
+    localStorage.setItem('tq_wallet_transactions', JSON.stringify(updated));
+
+    if (tx.type === 'WITHDRAW') {
+      const savedUsers: UserProfile[] = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+      const targetUser = savedUsers.find(u => u.phone === tx.userPhone || u.id === tx.userId);
+      if (targetUser) {
+        targetUser.walletBalance = (targetUser.walletBalance || 0) + tx.amount;
+        localStorage.setItem('tq_phone_users', JSON.stringify(savedUsers));
+      }
+    }
+
+    try {
+      await supabase.from('wallet_transactions').upsert([{ id: tx.id, status: 'REJECTED' }]);
+    } catch (e) {}
+
+    addToast(`❌ Đã từ chối Lệnh ${tx.type === 'DEPOSIT' ? 'NẠP' : 'RÚT'} ${tx.amount.toLocaleString('vi-VN')}đ!`, 'info');
+  };
 
   // Sync coin audit transactions from storage
   useEffect(() => {
@@ -923,6 +1014,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               }`}
             >
               <Coins className="w-4 h-4 text-amber-400 animate-bounce" /> 17. 🪙 Lịch Sử Nguồn Gốc Xu TQ
+            </button>
+
+            <button
+              onClick={() => setAdminTab('wallet-approvals')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'wallet-approvals' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Wallet className="w-4 h-4 text-emerald-400 animate-pulse" /> 18. 💳 Duyệt Lệnh Nạp/Rút Ví TQ
             </button>
           </aside>
 
@@ -2292,6 +2392,109 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                               </td>
                             </tr>
                           ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 18: DUYỆT LỆNH NẠP / RÚT TIỀN VÍ TQ PAY (DEPOSIT & WITHDRAW APPROVALS) */}
+            {adminTab === 'wallet-approvals' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <div className="bg-slate-900 border border-emerald-500/40 p-6 rounded-3xl shadow-2xl space-y-6">
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                      <h3 className="text-base font-black text-emerald-300 uppercase tracking-wider flex items-center gap-2">
+                        💳 MODULE 18: PHÊ DUYỆT LỆNH NẠP & RÚT TIỀN VÍ TQ PAY (REALTIME APPROVALS)
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Kiểm duyệt giao dịch nạp chuyển khoản VietQR & Khóa rút tiền chính chủ đối soát ngân hàng
+                      </p>
+                    </div>
+
+                    <div className="bg-emerald-400/20 text-emerald-300 px-3.5 py-1.5 rounded-2xl border border-emerald-400/40 text-xs font-black flex items-center gap-1.5">
+                      <Wallet className="w-4 h-4 text-emerald-400" /> {walletTxs.filter(t => t.status === 'PENDING').length} Lệnh Chờ Duyệt
+                    </div>
+                  </div>
+
+                  {/* Pending Transactions Table */}
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 uppercase font-black">
+                          <th className="p-3">Thành Viên</th>
+                          <th className="p-3">Loại Lệnh</th>
+                          <th className="p-3">Số Tiền</th>
+                          <th className="p-3">Ngân Hàng Đối Soát</th>
+                          <th className="p-3">Nội Dung CK / Cú Pháp</th>
+                          <th className="p-3">Trạng Thái</th>
+                          <th className="p-3 text-right">Thao Tác Duyệt</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60 font-medium">
+                        {walletTxs.map(tx => (
+                          <tr key={tx.id} className="hover:bg-slate-950/50 transition">
+                            <td className="p-3">
+                              <span className="font-bold text-slate-100 block">{tx.userName}</span>
+                              <span className="text-[10px] text-slate-400 font-mono block">{tx.userPhone || tx.userEmail || tx.userId}</span>
+                            </td>
+
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                                tx.type === 'DEPOSIT' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                              }`}>
+                                {tx.type === 'DEPOSIT' ? '📥 NẠP TIỀN' : '📤 RÚT TIỀN'}
+                              </span>
+                            </td>
+
+                            <td className="p-3 font-mono font-black text-sm text-emerald-400">
+                              {tx.amount.toLocaleString('vi-VN')} VNĐ
+                            </td>
+
+                            <td className="p-3 text-slate-300 text-[11px]">
+                              <p className="font-bold text-slate-100">{tx.bankInfo?.bankName}</p>
+                              <p className="font-mono text-amber-400 font-bold">STK: {tx.bankInfo?.accountNumber}</p>
+                              <p className="text-[10px] text-slate-400">Chủ TK: {tx.bankInfo?.accountHolder}</p>
+                            </td>
+
+                            <td className="p-3 font-mono text-amber-300 text-[11px]">
+                              {tx.transferSyntax || '---'}
+                            </td>
+
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                                tx.status === 'APPROVED' ? 'bg-emerald-600 text-white' : tx.status === 'REJECTED' ? 'bg-rose-600 text-white' : 'bg-amber-400 text-slate-950 animate-pulse'
+                              }`}>
+                                {tx.status === 'APPROVED' ? '✓ Đã Phê Duyệt' : tx.status === 'REJECTED' ? '✕ Từ Chối' : '⏳ Chờ Duyệt'}
+                              </span>
+                            </td>
+
+                            <td className="p-3 text-right space-x-1.5">
+                              {tx.status === 'PENDING' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleApproveWalletTx(tx)}
+                                    className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-[10px] px-2.5 py-1 rounded-lg transition cursor-pointer"
+                                  >
+                                    <CheckCircle2 className="w-3 h-3 inline mr-1" /> DUYỆT LỆNH
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleRejectWalletTx(tx)}
+                                    className="bg-rose-500/20 text-rose-300 hover:bg-rose-500 hover:text-white font-bold text-[10px] px-2.5 py-1 rounded-lg transition cursor-pointer"
+                                  >
+                                    <XCircle className="w-3 h-3 inline mr-1" /> TỪ CHỐI
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-[10px] text-slate-500 italic">Đã xử lý</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>

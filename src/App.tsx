@@ -31,6 +31,7 @@ import { LiveChatWidget } from './components/LiveChatWidget';
 import { AiShoppingAssistant } from './components/AiShoppingAssistant';
 import { WatchToEarnModal } from './components/WatchToEarnModal';
 import { UserCoinsHistoryModal } from './components/UserCoinsHistoryModal';
+import { WalletDepositWithdrawModal } from './components/WalletDepositWithdrawModal';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
 import { detectProvinceFromShopInfo } from './data/vietnamLocations';
@@ -98,6 +99,7 @@ function MainApp() {
   const [isFakeReviewOpen, setIsFakeReviewOpen] = useState(false);
   const [isWatchToEarnOpen, setIsWatchToEarnOpen] = useState(false);
   const [isUserCoinsModalOpen, setIsUserCoinsModalOpen] = useState(false);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
 
   // Selected product & shop state
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
@@ -345,6 +347,7 @@ function MainApp() {
         onOpenChatInbox={() => setIsChatInboxOpen(true)}
         onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
         onOpenUserCoinsModal={() => setIsUserCoinsModalOpen(true)}
+        onOpenWalletDepositWithdrawModal={() => setIsWalletModalOpen(true)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenAiDesignStudio={() => setIsAdminAiDesignStudioOpen(true)}
         onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
@@ -584,6 +587,11 @@ function MainApp() {
       <AdminAiDesignStudio
         isOpen={isAdminAiDesignStudioOpen}
         onClose={() => setIsAdminAiDesignStudioOpen(false)}
+      />
+
+      <WalletDepositWithdrawModal
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
       />
     </div>
   );

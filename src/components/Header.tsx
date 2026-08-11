@@ -13,6 +13,7 @@ interface HeaderProps {
   onOpenChatInbox: () => void;
   onOpenWatchToEarnModal?: () => void;
   onOpenUserCoinsModal?: () => void;
+  onOpenWalletDepositWithdrawModal?: () => void;
   onOpenThemeCustomizer?: () => void;
   onOpenAiDesignStudio?: () => void;
   onOpenChangePassword?: () => void;
@@ -42,6 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenChatInbox,
   onOpenWatchToEarnModal,
   onOpenUserCoinsModal,
+  onOpenWalletDepositWithdrawModal,
   onOpenThemeCustomizer,
   onOpenAiDesignStudio,
   onOpenChangePassword,
@@ -224,14 +226,15 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              {/* Wallet Badge */}
-              <div
-                className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-xs hidden md:flex items-center gap-1.5 cursor-pointer hover:scale-105 transition"
-                title="Ví TQ Pay"
+              {/* Wallet Balance Badge */}
+              <button
+                onClick={onOpenWalletDepositWithdrawModal}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold px-3 py-1.5 rounded-full shadow-xs hidden sm:flex items-center gap-1.5 cursor-pointer hover:scale-105 transition"
+                title="Bấm để Nạp / Rút tiền Ví TQ Pay"
               >
                 <Wallet className="w-3.5 h-3.5 text-emerald-200" />
                 <span>{(user.walletBalance || 0).toLocaleString('vi-VN')} đ</span>
-              </div>
+              </button>
 
               {/* Coins Badge */}
               <button
