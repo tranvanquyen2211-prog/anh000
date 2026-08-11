@@ -106,8 +106,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onSelectCategory }) => {
           >
             <div className="z-10">
               <span className="bg-amber-300 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded uppercase">VOUCHER 0Đ</span>
-              <h4 className="font-black text-sm mt-1">Thuê Đồ Cưới & Thử AI Studio 1-Click</h4>
-              <p className="text-[10px] text-pink-100 mt-0.5">Phối đồ thông minh AI ngẫu nhiên</p>
+              <h4 className="font-black text-sm mt-1">Thuê Đồ Cưới & Trang Phục Cao Cấp</h4>
+              <p className="text-[10px] text-pink-100 mt-0.5">Hàng ngàn mẫu váy cưới & đầm dự tiệc hot 2026</p>
             </div>
             <div className="z-10 text-xs font-bold text-amber-300 flex items-center gap-1 mt-2">
               Khám phá ngay ➔
