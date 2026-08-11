@@ -25,15 +25,15 @@ export const ShopeeMobileIconGrid: React.FC<ShopeeMobileIconGridProps> = ({
     },
     {
       id: 'retail',
-      title: 'Shopee Mall',
-      badge: '100%',
+      title: 'Shop Bán Đồ',
+      badge: 'Chính Hãng',
       icon: '🛍️',
       bgGradient: 'from-red-500 to-rose-600',
       action: () => onSelectCategory('RETAIL')
     },
     {
       id: 'fnb',
-      title: 'ShopeeFood',
+      title: 'Đồ Ăn Uống',
       badge: 'Giao 15p',
       icon: '🧋',
       bgGradient: 'from-orange-500 to-amber-600',

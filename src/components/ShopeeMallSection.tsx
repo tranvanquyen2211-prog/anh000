@@ -19,7 +19,7 @@ export const ShopeeMallSection: React.FC<ShopeeMallSectionProps> = ({
       <div className="flex items-center justify-between border-b border-gray-100 pb-2">
         <div className="flex items-center gap-2">
           <span className="bg-[#d0011b] text-white text-[11px] font-black px-2 py-0.5 rounded tracking-widest uppercase flex items-center gap-1 shadow-xs">
-            <ShieldCheck className="w-3.5 h-3.5" /> SHOPEE MALL
+            <ShieldCheck className="w-3.5 h-3.5" /> GIAN HÀNG CHÍNH HÃNG
           </span>
           <span className="text-[11px] text-gray-500 font-medium hidden sm:inline">100% Hàng Chính Hãng • Miễn Phí Trả Hàng 7 Ngày</span>
         </div>

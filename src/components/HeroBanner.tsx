@@ -14,20 +14,20 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onSelectCategory }) => {
   const bannerSlides = [
     {
       title: theme.heroTitle || 'CHÀO XUÂN 2026 - MUA SẮM RỘN RÀNG',
-      subtitle: theme.heroSubtitle || 'Thuê đồ thời trang, Shopee Mall chính hãng, ShopeeFood giao 15p & Spa làm đẹp.',
+      subtitle: theme.heroSubtitle || 'Thuê đồ thời trang, Mall chính hãng, Giao đồ ăn 15p & Spa làm đẹp.',
       discount: theme.heroDiscount || 'GIẢM ĐẾN 50%',
       img: theme.heroImgUrl || 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80',
       category: 'RENTAL' as ShopType
     },
     {
-      title: 'SHOPEE MALL CHÍNH HÃNG 100%',
+      title: 'GIAN HÀNG CHÍNH HÃNG 100%',
       subtitle: 'Hàng ngàn deal thời trang, đầm cưới cao cấp & mỹ phẩm làm đẹp chính hãng bảo hành 7 ngày.',
       discount: 'FREESHIP EXTRA 0Đ',
       img: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?auto=format&fit=crop&w=1200&q=80',
       category: 'RETAIL' as ShopType
     },
     {
-      title: 'SHOPEEFOOD GIAO NHANH 15 PHÚT',
+      title: 'ĐỒ ĂN GIAO NHANH 15 PHÚT',
       subtitle: 'Thưởng thức trà sữa ô long, gà rán, pizza hot hỏa tốc tận nhà tích TQ Xu!',
       discount: 'MUA 1 TẶNG 1',
       img: 'https://images.unsplash.com/photo-1558857563-b371033873b8?auto=format&fit=crop&w=1200&q=80',
@@ -122,7 +122,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onSelectCategory }) => {
           >
             <div className="z-10">
               <span className="bg-white text-orange-700 text-[9px] font-black px-2 py-0.5 rounded uppercase">GIAO 15P</span>
-              <h4 className="font-black text-sm mt-1">ShopeeFood & Trà Sữa Giảm 50%</h4>
+              <h4 className="font-black text-sm mt-1">Đồ Ăn & Trà Sữa Giảm 50%</h4>
               <p className="text-[10px] text-amber-100 mt-0.5">Hoàn 100% TQ Xu cho đơn ví</p>
             </div>
             <div className="z-10 text-xs font-bold text-yellow-100 flex items-center gap-1 mt-2">
