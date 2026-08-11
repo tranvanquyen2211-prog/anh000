@@ -914,6 +914,13 @@ function MainApp() {
         targetRole={exportTargetRole}
         shopName={exportShopName}
       />
+
+      {/* 🤖 AI TIQI SMART SHOPPING ASSISTANT & AUTOMATED CUSTOMER SUPPORT WIDGET */}
+      <AiShoppingAssistant
+        products={products}
+        onOpenProductDetail={p => setSelectedProductForDetail(p)}
+        onOpenShopStorefront={sName => setSelectedShopNameForStorefront(sName)}
+      />
     </div>
   );
 }

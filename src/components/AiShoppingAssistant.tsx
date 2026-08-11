@@ -12,7 +12,6 @@ import {
   ExternalLink,
   Zap,
   RefreshCw,
-  Move,
   Mic,
   MicOff,
   Volume2,
@@ -50,22 +49,6 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
   const [isSoundEnabled, setIsSoundEnabled] = useState(true);
   const [isListening, setIsListening] = useState(false);
 
-  // 📍 Draggable Position State (default: bottom right floating)
-  const [position, setPosition] = useState(() => {
-    const saved = localStorage.getItem('tq_ai_assistant_pos');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return { x: window.innerWidth - 100, y: window.innerHeight - 180 };
-  });
-
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartPos = useRef({ x: 0, y: 0 });
-  const elementStartPos = useRef({ x: 0, y: 0 });
-  const hasMovedRef = useRef(false);
-
   // Chat State
   const [inputText, setInputText] = useState('');
   const [isAiThinking, setIsAiThinking] = useState(false);
@@ -86,10 +69,7 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
     }
   }, [chatMessages, isOpen]);
 
-  // Save position to localStorage
-  useEffect(() => {
-    localStorage.setItem('tq_ai_assistant_pos', JSON.stringify(position));
-  }, [position]);
+
 
   // 🔊 Text-To-Speech Response Output in Vietnamese
   const speakAiResponse = (textToSpeak: string) => {
@@ -164,83 +144,15 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
     }
   };
 
-  // Handle Drag Start
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    hasMovedRef.current = false;
-    dragStartPos.current = { x: e.clientX, y: e.clientY };
-    elementStartPos.current = { ...position };
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      setIsDragging(true);
-      hasMovedRef.current = false;
-      dragStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      elementStartPos.current = { ...position };
-    }
-  };
-
-  // Handle Drag Move
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      const dx = e.clientX - dragStartPos.current.x;
-      const dy = e.clientY - dragStartPos.current.y;
-
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-        hasMovedRef.current = true;
-      }
-
-      const newX = Math.min(Math.max(10, elementStartPos.current.x + dx), window.innerWidth - 90);
-      const newY = Math.min(Math.max(10, elementStartPos.current.y + dy), window.innerHeight - 90);
-      setPosition({ x: newX, y: newY });
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!isDragging || e.touches.length !== 1) return;
-      const dx = e.touches[0].clientX - dragStartPos.current.x;
-      const dy = e.touches[0].clientY - dragStartPos.current.y;
-
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-        hasMovedRef.current = true;
-      }
-
-      const newX = Math.min(Math.max(10, elementStartPos.current.x + dx), window.innerWidth - 90);
-      const newY = Math.min(Math.max(10, elementStartPos.current.y + dy), window.innerHeight - 90);
-      setPosition({ x: newX, y: newY });
-    };
-
-    const handleDragEnd = () => {
-      setIsDragging(false);
-    };
-
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleDragEnd);
-      window.addEventListener('touchmove', handleTouchMove);
-      window.addEventListener('touchend', handleDragEnd);
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleDragEnd);
-      window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchend', handleDragEnd);
-    };
-  }, [isDragging]);
-
   const handleAvatarClick = () => {
-    if (!hasMovedRef.current) {
-      setIsOpen(prev => {
-        const next = !prev;
-        if (next && isSoundEnabled) {
-          speakAiResponse('Hế lô bạn nè! Tớ là AI TiQi siêu cute 🐰, cần tớ phối đồ hay tìm món gì không?');
-        }
-        return next;
-      });
-      setShowHint(false);
-    }
+    setIsOpen(prev => {
+      const next = !prev;
+      if (next && isSoundEnabled) {
+        speakAiResponse('Hế lô bạn nè! Tớ là AI TiQi siêu cute 🐰, cần tớ phối đồ hay tìm món gì không?');
+      }
+      return next;
+    });
+    setShowHint(false);
   };
 
   // 🤖 AI Personalization & Matching Engine
@@ -350,11 +262,8 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
 
   return (
     <>
-      {/* 🤖 FLOATING DRAGGABLE CUTE AI RABBIT (CON THỎ) MASCOT WIDGET */}
-      <div
-        style={{ left: `${position.x}px`, top: `${position.y}px` }}
-        className="fixed z-50 select-none touch-none cursor-grab active:cursor-grabbing transition-shadow"
-      >
+      {/* 🤖 FIXED FLOATING CUTE AI RABBIT (CON THỎ) MASCOT WIDGET */}
+      <div className="fixed bottom-6 right-6 z-50 select-none">
         {/* Floating Cute Speech Hint Bubble */}
         {showHint && !isOpen && (
           <div className="absolute -top-16 right-0 bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 text-white text-[11px] font-bold py-2 px-3.5 rounded-2xl shadow-2xl border border-pink-400/60 whitespace-nowrap animate-bounce flex items-center gap-2">
@@ -371,10 +280,8 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
 
         {/* Floating Cute Rabbit Mascot Avatar Trigger Button */}
         <div
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
           onClick={handleAvatarClick}
-          className="relative group"
+          className="relative group cursor-pointer"
         >
           {/* Glowing Pastel Pink & Gold Aura Effect */}
           <div className="absolute -inset-2 bg-gradient-to-r from-pink-500 via-rose-400 to-amber-400 rounded-full blur-lg opacity-80 group-hover:opacity-100 animate-pulse"></div>
@@ -387,11 +294,6 @@ export const AiShoppingAssistant: React.FC<AiShoppingAssistantProps> = ({
               <span className="text-[7px] font-black text-amber-300 uppercase tracking-tighter mt-0.5">
                 AI TiQi
               </span>
-            </div>
-
-            {/* Move / Drag Indicator Badge */}
-            <div className="absolute top-1 right-1 w-4 h-4 bg-slate-950 text-pink-300 rounded-full flex items-center justify-center border border-pink-400/60 shadow">
-              <Move className="w-2.5 h-2.5" />
             </div>
           </div>
         </div>
