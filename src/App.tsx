@@ -7,9 +7,7 @@ import { MaintenanceOverlay } from './components/MaintenanceOverlay';
 import { ToastContainer } from './components/Toast';
 import { Header } from './components/Header';
 import { HeroBanner } from './components/HeroBanner';
-import { CategoryFilters } from './components/CategoryFilters';
 import { LocationFilter } from './components/LocationFilter';
-import { SmartRecommenderSection } from './components/SmartRecommenderSection';
 import { ProductCard } from './components/ProductCard';
 import { ProductDetailModal } from './components/ProductDetailModal';
 import { ShopStorefrontModal } from './components/ShopStorefrontModal';
@@ -690,14 +688,6 @@ function MainApp() {
           </div>
         </section>
 
-        {(vis?.showCategoryFilters !== false) && (
-          <CategoryFilters
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-            onQuickSearch={(q) => setSearchQuery(q)}
-          />
-        )}
-
         {/* Vietnam Province & District Location Filter Bar */}
         {(vis?.showLocationFilter !== false) && (
           <LocationFilter
@@ -705,18 +695,6 @@ function MainApp() {
             onSelectProvince={setSelectedProvince}
             selectedDistrict={selectedDistrict}
             onSelectDistrict={setSelectedDistrict}
-          />
-        )}
-
-        {/* 🤖 Smart Recommendation Section (New / Grand Opening Shops & Products & Keyword Match) */}
-        {(vis?.showSmartRecommender !== false) && (
-          <SmartRecommenderSection
-            products={products}
-            searchQuery={searchQuery}
-            onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
-            onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
-            onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
-            onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
           />
         )}
       </main>
