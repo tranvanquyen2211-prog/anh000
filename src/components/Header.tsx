@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType, Product } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -29,8 +29,8 @@ interface HeaderProps {
   onSelectCategory: (cat: ShopType | 'ALL') => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  activeTab: 'shop' | 'orders' | 'chat';
-  setActiveTab: (tab: 'shop' | 'orders' | 'chat') => void;
+  activeTab?: 'shop' | 'orders' | 'chat';
+  setActiveTab?: (tab: 'shop' | 'orders' | 'chat') => void;
 
   // Notification Props
   unreadNotificationsCount: number;
@@ -63,7 +63,6 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectCategory,
   searchQuery,
   onSearchChange,
-  activeTab,
   setActiveTab,
   unreadNotificationsCount,
   onToggleNotifications,
@@ -313,7 +312,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="hidden md:flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 items-center justify-between gap-4 relative">
         {/* Brand Logo */}
         <div
-          onClick={() => setActiveTab('shop')}
+          onClick={() => { if (setActiveTab) setActiveTab('shop'); }}
           className="flex items-center gap-2.5 cursor-pointer group shrink-0"
         >
           <div className="w-10 h-10 bg-navy rounded-xl flex items-center justify-center text-amber-400 font-extrabold text-xl shadow-md group-hover:scale-105 transition-transform">
@@ -633,84 +632,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="bg-navy text-white shadow-inner border-t border-navy-light">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center space-x-1 overflow-x-auto scrollbar-none text-xs font-semibold py-1.5">
-          <button
-            onClick={() => { setActiveTab('shop'); onSelectCategory('ALL'); }}
-            className={`px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
-              activeTab === 'shop' && selectedCategory === 'ALL' ? 'bg-orange text-white font-extrabold' : 'hover:bg-navy-light text-gray-200'
-            }`}
-          >
-            Trang chủ
-          </button>
-          <button
-            onClick={() => { setActiveTab('shop'); onSelectCategory('RENTAL'); }}
-            className={`px-3.5 py-2 rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'shop' && selectedCategory === 'RENTAL' ? 'bg-orange text-white font-extrabold' : 'hover:bg-navy-light text-gray-200'
-            }`}
-          >
-            👗 Cho Thuê Đồ
-          </button>
-          <button
-            onClick={() => { setActiveTab('shop'); onSelectCategory('RETAIL'); }}
-            className={`px-3.5 py-2 rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'shop' && selectedCategory === 'RETAIL' ? 'bg-orange text-white font-extrabold' : 'hover:bg-navy-light text-gray-200'
-            }`}
-          >
-            🛍️ Shop Bán Đồ
-          </button>
-          <button
-            onClick={() => { setActiveTab('shop'); onSelectCategory('FNB'); }}
-            className={`px-3.5 py-2 rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'shop' && selectedCategory === 'FNB' ? 'bg-orange text-white font-extrabold' : 'hover:bg-navy-light text-gray-200'
-            }`}
-          >
-            🧋 Đồ Ăn & Uống
-          </button>
-          <button
-            onClick={() => { setActiveTab('shop'); onSelectCategory('BEAUTY'); }}
-            className={`px-3.5 py-2 rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'shop' && selectedCategory === 'BEAUTY' ? 'bg-orange text-white font-extrabold' : 'hover:bg-navy-light text-gray-200'
-            }`}
-          >
-            💄 Làm Đẹp & Spa
-          </button>
-          <button
-            onClick={() => { setActiveTab('shop'); onSelectCategory('TAXI'); }}
-            className={`px-3.5 py-2 rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'shop' && selectedCategory === 'TAXI' ? 'bg-amber-400 text-slate-950 font-black' : 'hover:bg-navy-light text-gray-200'
-            }`}
-          >
-            🚖 Gọi Taxi & Đặt Xe
-          </button>
-
-          <button
-            onClick={onOpenOrderHistory}
-            className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1 text-amber-300 font-extrabold cursor-pointer hover:bg-navy-light`}
-          >
-            <Package className="w-3.5 h-3.5" /> Lịch sử Đơn Hàng
-          </button>
-
-          {/* Chat Inbox Navigation Shortcut */}
-          <button
-            onClick={onOpenChatInbox}
-            className={`px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1 text-emerald-300 font-extrabold cursor-pointer hover:bg-navy-light`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" /> Tin Nhắn Với Shop
-          </button>
-
-          {/* Extra Admin Control Shortcut */}
-          {user && user.role === 'SUPER_ADMIN' && onOpenSuperAdminDashboard && (
-            <button
-              onClick={onOpenSuperAdminDashboard}
-              className="px-3.5 py-2 rounded-lg transition-colors flex items-center gap-1 text-yellow-400 font-extrabold cursor-pointer hover:bg-navy-light ml-auto"
-            >
-              <Crown className="w-3.5 h-3.5" /> Bảng Điều Hành Admin
-            </button>
-          )}
-        </div>
-      </nav>
+      {/* Navigation Links Bar Removed to Maximize Screen Viewing Area */}
 
       {/* Bottom Navigation Dock Bar Hidden to Maximize Mobile Screen Space */}
     </header>
