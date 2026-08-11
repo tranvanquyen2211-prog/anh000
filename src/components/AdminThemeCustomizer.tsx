@@ -2,7 +2,26 @@ import React, { useState } from 'react';
 import { useTheme, PRESET_THEMES } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { X, Sparkles, Image, RefreshCw, Layout, Type, Wand2, Bot, Flame, Gift, CheckCircle2 } from 'lucide-react';
+import {
+  X,
+  Sparkles,
+  Image,
+  RefreshCw,
+  Layout,
+  Type,
+  Wand2,
+  Bot,
+  Flame,
+  Gift,
+  CheckCircle2,
+  Smartphone,
+  Monitor,
+  Search,
+  Home,
+  ShoppingBag,
+  MessageSquare,
+  Bell
+} from 'lucide-react';
 
 interface AdminThemeCustomizerProps {
   isOpen: boolean;
@@ -28,6 +47,9 @@ export const AdminThemeCustomizer: React.FC<AdminThemeCustomizerProps> = ({ isOp
   const [promoBarText, setPromoBarText] = useState(theme.promoBarText);
   const [walletDiscountRate, setWalletDiscountRate] = useState(theme.walletDiscountRate);
   const [coinCashbackRate, setCoinCashbackRate] = useState(theme.coinCashbackRate);
+
+  // Device Simulator State
+  const [simulatedDevice, setSimulatedDevice] = useState<'mobile' | 'desktop'>('mobile');
 
   // AI Prompt Customizer State
   const [aiPrompt, setAiPrompt] = useState('');
@@ -133,33 +155,36 @@ export const AdminThemeCustomizer: React.FC<AdminThemeCustomizerProps> = ({ isOp
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/80 backdrop-blur-sm flex justify-end">
-      <div className="w-full max-w-xl bg-slate-900 border-l border-amber-500/30 text-slate-100 flex flex-col h-full shadow-2xl animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/85 backdrop-blur-md flex justify-center items-center p-3 sm:p-5">
+      <div className="w-full max-w-6xl h-[92vh] bg-slate-900 border border-amber-500/40 rounded-3xl text-slate-100 flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
         
-        {/* Header */}
-        <div className="p-5 bg-slate-950 border-b border-amber-500/30 flex items-center justify-between shrink-0">
+        {/* Header Bar */}
+        <div className="p-4 sm:p-5 bg-slate-950 border-b border-amber-500/30 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 bg-gradient-to-r from-amber-400 to-orange rounded-xl flex items-center justify-center text-slate-950 font-black shadow-md">
               <Wand2 className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-black text-sm text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                Chỉnh Sửa Giao Diện & AI Theme Generator
+                STUDIO THIẾT KẾ GIAO DIỆN REALTIME & MÔ PHỎNG MOBILE WEB APP
               </h3>
-              <p className="text-[10px] text-slate-400">Đặc quyền Super Admin Overlord Panel</p>
+              <p className="text-[10px] text-slate-400">Xem trực tiếp thay đổi trên điện thoại & máy tính • Super Admin Overlord Studio</p>
             </div>
           </div>
           
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content Form */}
-        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-5 space-y-6 text-xs custom-scrollbar">
+        {/* 2-Column Studio Main Body */}
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          
+          {/* LEFT COLUMN: Controls Form (Flexible Width) */}
+          <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-5 space-y-6 text-xs custom-scrollbar">
           
           {/* SECTION 0: AI THEME GENERATOR BY ADMIN PROMPT */}
           <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-amber-950/40 p-4 rounded-2xl border border-amber-500/50 space-y-3 shadow-lg">
@@ -459,26 +484,157 @@ export const AdminThemeCustomizer: React.FC<AdminThemeCustomizerProps> = ({ isOp
             </div>
           </div>
 
+          {/* Footer Save & Reset Action Buttons */}
+          <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={resetToDefault}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Khôi Phục Mặc Định
+            </button>
+            
+            <button
+              type="submit"
+              className="flex-1 bg-gradient-to-r from-amber-500 to-orange hover:from-amber-600 text-slate-950 font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4 text-slate-950" /> 🚀 LƯU & PHÁT SÓNG GIAO DIỆN REALTIME
+            </button>
+          </div>
+
         </form>
 
-        {/* Footer Actions */}
-        <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={resetToDefault}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Khôi phục Mặc định
-          </button>
+        {/* RIGHT COLUMN: Interactive Smartphone & Tablet Simulator Frame */}
+        <div className="w-full lg:w-[420px] bg-slate-950 p-6 flex flex-col items-center justify-center border-l border-slate-800 shrink-0 overflow-y-auto">
           
-          <button
-            type="button"
-            onClick={handleSave}
-            className="flex-1 bg-gradient-to-r from-amber-500 to-orange hover:from-amber-600 hover:to-orange-hover text-slate-950 font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <CheckCircle2 className="w-4 h-4 text-slate-950" /> 💾 Lưu & Áp Dụng Theme AI
-          </button>
+          {/* Device View Selector Controls */}
+          <div className="flex items-center gap-2 mb-4 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
+            <button
+              type="button"
+              onClick={() => setSimulatedDevice('mobile')}
+              className={`px-4 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5 transition cursor-pointer ${
+                simulatedDevice === 'mobile' ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Smartphone className="w-4 h-4" /> 📱 Mobile Web App
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSimulatedDevice('desktop')}
+              className={`px-4 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5 transition cursor-pointer ${
+                simulatedDevice === 'desktop' ? 'bg-amber-400 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Monitor className="w-4 h-4" /> 🖥️ Desktop PC
+            </button>
+          </div>
+
+          {/* Smartphone Frame Wrapper */}
+          <div className={`relative bg-slate-900 border-[6px] border-slate-700 rounded-[38px] shadow-2xl overflow-hidden transition-all duration-300 ${
+            simulatedDevice === 'mobile' ? 'w-[320px] h-[580px]' : 'w-[390px] h-[520px] rounded-2xl'
+          }`}>
+
+            {/* Dynamic Island / iPhone Notch */}
+            {simulatedDevice === 'mobile' && (
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-4 bg-slate-950 rounded-full z-30 flex items-center justify-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-slate-800"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-900"></div>
+              </div>
+            )}
+
+            {/* Live Preview UI Screen Content */}
+            <div className="w-full h-full bg-slate-950 overflow-y-auto custom-scrollbar flex flex-col text-slate-100 pt-6">
+              
+              {/* Promo Marquee Bar Preview */}
+              <div className="bg-amber-400 text-slate-950 px-2 py-1 text-[9px] font-black tracking-tight flex items-center gap-1 overflow-hidden shrink-0">
+                <Flame className="w-3 h-3 shrink-0" />
+                <span className="truncate">{promoBarText || 'Khuyến mãi hot hôm nay'}</span>
+              </div>
+
+              {/* Header Preview */}
+              <div style={{ backgroundColor: primaryColor }} className="p-3 shadow-md space-y-2 shrink-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-sm text-white uppercase tracking-wider">{logoText || siteName}</span>
+                  <div className="flex items-center gap-2 text-white">
+                    <Bell className="w-3.5 h-3.5" />
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div className="bg-white/20 backdrop-blur-md px-2.5 py-1.5 rounded-xl flex items-center gap-2 text-white text-[10px]">
+                  <Search className="w-3 h-3" />
+                  <span>Tìm kiếm áo quần, spa, trà sữa...</span>
+                </div>
+              </div>
+
+              {/* Hero Banner Preview */}
+              <div className="relative h-32 bg-slate-900 overflow-hidden shrink-0">
+                <img src={heroImgUrl || 'https://images.unsplash.com/photo-1548625361-18a7a922d56e'} alt="Banner" className="w-full h-full object-cover opacity-70" />
+                <div className="absolute inset-0 p-3 bg-gradient-to-t from-slate-950 via-transparent to-transparent flex flex-col justify-end">
+                  <span className="bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded w-fit mb-1">{heroDiscount}</span>
+                  <h5 className="font-black text-white text-xs line-clamp-1">{heroTitle}</h5>
+                  <p className="text-[9px] text-slate-300 line-clamp-1">{heroSubtitle}</p>
+                </div>
+              </div>
+
+              {/* Sample Product Grid Preview */}
+              <div className="p-2 space-y-2 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-amber-400 uppercase">🔥 GỢI Ý HOT</span>
+                  <span className="text-[9px] text-slate-400">Xem tất cả</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-slate-900 p-2 rounded-xl border border-slate-800 space-y-1">
+                    <div className="h-16 bg-slate-800 rounded-lg overflow-hidden">
+                      <img src="https://images.unsplash.com/photo-1594552072238-b8a33785b261?auto=format&fit=crop&w=300&q=80" alt="Product" className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-[9px] font-bold text-slate-200 line-clamp-1">Váy Cưới Luxury Royal</p>
+                    <span style={{ color: accentColor }} className="text-[9px] font-mono font-black block">500.000đ</span>
+                  </div>
+
+                  <div className="bg-slate-900 p-2 rounded-xl border border-slate-800 space-y-1">
+                    <div className="h-16 bg-slate-800 rounded-lg overflow-hidden">
+                      <img src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=300&q=80" alt="Product" className="w-full h-full object-cover" />
+                    </div>
+                    <p className="text-[9px] font-bold text-slate-200 line-clamp-1">Áo Sơ Mi Nam Smart</p>
+                    <span style={{ color: accentColor }} className="text-[9px] font-mono font-black block">250.000đ</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile App Bottom Navigation Bar Preview */}
+              {simulatedDevice === 'mobile' && (
+                <div className="bg-slate-950 border-t border-slate-800 px-3 py-2 grid grid-cols-5 gap-1 text-[8px] font-bold text-center text-slate-400 shrink-0">
+                  <div className="flex flex-col items-center gap-0.5 text-amber-400">
+                    <Home className="w-3.5 h-3.5" />
+                    <span>Trang Chủ</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <Layout className="w-3.5 h-3.5" />
+                    <span>Danh Mục</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <ShoppingBag className="w-3.5 h-3.5" />
+                    <span>Giỏ Hàng</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Chat</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>Tôi</span>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
         </div>
+
+      </div>
 
       </div>
     </div>
