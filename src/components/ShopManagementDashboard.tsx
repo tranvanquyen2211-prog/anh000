@@ -22,6 +22,7 @@ import {
   Sparkles,
   Phone,
   CheckCircle2,
+  FileSpreadsheet,
   LocateFixed
 } from 'lucide-react';
 
@@ -29,6 +30,7 @@ interface ShopManagementDashboardProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenAddProductModal: () => void;
+  onOpenExportStatement?: (role: 'SUPER_ADMIN' | 'SHOP', sName?: string) => void;
   products: Product[];
   onDeleteProduct: (prodId: string | number) => void;
 }
@@ -37,6 +39,7 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   isOpen,
   onClose,
   onOpenAddProductModal,
+  onOpenExportStatement,
   products,
   onDeleteProduct
 }) => {
@@ -478,9 +481,19 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
           {/* TAB 2: SHOP ORDERS WITH PER-ORDER PLATFORM FEES */}
           {activeTab === 'orders' && (
             <div className="space-y-4">
-              <h3 className="text-xs font-black text-amber-400 uppercase">
-                DANH SÁCH ĐƠN HÀNG CỬA HÀNG & PHÍ SÀN TÍNH THEO TỪNG ĐƠN ({shopOrders.length})
-              </h3>
+              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 className="text-xs font-black text-amber-400 uppercase">
+                  DANH SÁCH ĐƠN HÀNG CỬA HÀNG & PHÍ SÀN TÍNH THEO TỪNG ĐƠN ({shopOrders.length})
+                </h3>
+
+                <button
+                  type="button"
+                  onClick={() => onOpenExportStatement && onOpenExportStatement('SHOP', user.name)}
+                  className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-3.5 py-1.5 rounded-xl transition shadow flex items-center gap-1.5 cursor-pointer border border-emerald-400"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-200" /> 📊 XUẤT SAO KÊ DOANH THU SHOP
+                </button>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>

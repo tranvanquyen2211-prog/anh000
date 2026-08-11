@@ -69,6 +69,7 @@ interface SuperAdminDashboardProps {
   onOpenThemeCustomizer: () => void;
   onOpenFakeReviewModal?: () => void;
   onOpenShopStorefront?: (shopName: string) => void;
+  onOpenExportStatement?: (role: 'SUPER_ADMIN' | 'SHOP', sName?: string) => void;
   products?: Product[];
   onToggleGrandOpeningProduct?: (productId: number | string) => void;
 }
@@ -79,6 +80,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   onOpenThemeCustomizer,
   onOpenFakeReviewModal,
   onOpenShopStorefront,
+  onOpenExportStatement,
   products = [],
   onToggleGrandOpeningProduct
 }) => {
@@ -879,6 +881,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1">
               <RefreshCw className="w-3 h-3 animate-spin text-emerald-400" /> Cloud Sync 100%
             </span>
+            <button
+              onClick={() => onOpenExportStatement && onOpenExportStatement('SUPER_ADMIN')}
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5 cursor-pointer border border-emerald-400"
+              title="Xuất Báo Cáo Sao Kê Doanh Thu Toàn Sàn (PDF / Excel)"
+            >
+              📊 XUẤT SAO KÊ DOANH THU
+            </button>
             <button
               onClick={onOpenThemeCustomizer}
               className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5 cursor-pointer"

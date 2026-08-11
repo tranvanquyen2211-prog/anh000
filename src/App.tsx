@@ -33,6 +33,7 @@ import { WatchToEarnModal } from './components/WatchToEarnModal';
 import { UserCoinsHistoryModal } from './components/UserCoinsHistoryModal';
 import { WalletDepositWithdrawModal } from './components/WalletDepositWithdrawModal';
 import { AiMixMatchStudioModal } from './components/AiMixMatchStudioModal';
+import { ExportStatementModal } from './components/ExportStatementModal';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
 import { detectProvinceFromShopInfo } from './data/vietnamLocations';
@@ -102,6 +103,15 @@ function MainApp() {
   const [isUserCoinsModalOpen, setIsUserCoinsModalOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isAiMixMatchModalOpen, setIsAiMixMatchModalOpen] = useState(false);
+  const [isExportStatementOpen, setIsExportStatementOpen] = useState(false);
+  const [exportTargetRole, setExportTargetRole] = useState<'SUPER_ADMIN' | 'SHOP'>('SHOP');
+  const [exportShopName, setExportShopName] = useState<string | undefined>(undefined);
+
+  const handleOpenExportStatement = (role: 'SUPER_ADMIN' | 'SHOP', sName?: string) => {
+    setExportTargetRole(role);
+    setExportShopName(sName);
+    setIsExportStatementOpen(true);
+  };
 
   // Selected product & shop state
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
@@ -548,6 +558,7 @@ function MainApp() {
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenFakeReviewModal={() => setIsFakeReviewOpen(true)}
         onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
+        onOpenExportStatement={(role, sName) => handleOpenExportStatement(role, sName)}
         products={products}
         onToggleGrandOpeningProduct={handleToggleGrandOpeningProduct}
       />
@@ -572,6 +583,7 @@ function MainApp() {
         isOpen={isShopManagementOpen}
         onClose={() => setIsShopManagementOpen(false)}
         onOpenAddProductModal={() => { setIsShopManagementOpen(false); setIsAddProductOpen(true); }}
+        onOpenExportStatement={(role, sName) => handleOpenExportStatement(role, sName)}
         products={products}
         onDeleteProduct={handleDeleteProduct}
       />
@@ -602,6 +614,13 @@ function MainApp() {
         onClose={() => setIsAiMixMatchModalOpen(false)}
         products={products}
         onOpenProductDetail={p => setSelectedProductForDetail(p)}
+      />
+
+      <ExportStatementModal
+        isOpen={isExportStatementOpen}
+        onClose={() => setIsExportStatementOpen(false)}
+        targetRole={exportTargetRole}
+        shopName={exportShopName}
       />
     </div>
   );
