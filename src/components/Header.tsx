@@ -112,13 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
       isHeaderVisible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
     }`}>
       
-      {/* Top Announcement Promo Bar */}
-      {(theme.featureVisibility?.showPromoBar !== false) && (
-        <div className="bg-gradient-to-r from-navy via-navy-light to-indigo-950 text-white text-[11px] font-bold py-1.5 px-4 text-center border-b border-navy-light flex items-center justify-center gap-2">
-          <span>⚡ {theme.promoBarText || 'ƯU ĐÃI VÍ CÁ NHÂN TQ PAY: GIẢM THÊM 2% CHO MỌI ĐƠN HÀNG'}</span>
-          <span className="bg-amber-400 text-slate-950 px-2 py-0.2 rounded-full text-[9px] font-black uppercase">HOT</span>
-        </div>
-      )}
+      {/* Top Announcement Promo Bar Removed */}
 
       {/* Impersonation Banner */}
       {isImpersonating && (
