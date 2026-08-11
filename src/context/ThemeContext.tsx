@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ThemeConfig, FeatureVisibilityConfig } from '../types';
-import { supabase } from '../lib/supabase';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
 import { useToast } from './ToastContext';
 
 export const DEFAULT_FEATURE_VISIBILITY: FeatureVisibilityConfig = {
@@ -117,20 +117,53 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const fetchRemoteTheme = async () => {
       try {
-        const { data, error } = await supabase.from('site_settings').select('*').limit(1);
-        if (!error && data && data.length > 0 && data[0].config) {
-          const cloudConfig = data[0].config;
-          setTheme(prev => ({
-            ...prev,
-            ...cloudConfig,
-            featureVisibility: {
-              ...DEFAULT_FEATURE_VISIBILITY,
-              ...(prev.featureVisibility || {}),
-              ...(cloudConfig.featureVisibility || {})
+        // Tier 1: Supabase JS Client query
+        const { data, error } = await supabase.from('site_settings').select('*');
+        if (!error && data && data.length > 0) {
+          const row = data.find((r: any) => r.config) || data[0];
+          if (row && row.config) {
+            const cloudConfig = row.config;
+            setTheme(prev => ({
+              ...prev,
+              ...cloudConfig,
+              featureVisibility: {
+                ...DEFAULT_FEATURE_VISIBILITY,
+                ...(prev.featureVisibility || {}),
+                ...(cloudConfig.featureVisibility || {})
+              }
+            }));
+            localStorage.setItem('tq_site_theme', JSON.stringify(cloudConfig));
+            localStorage.setItem('tq_global_active_theme', JSON.stringify(cloudConfig));
+            return;
+          }
+        }
+
+        // Tier 2: Direct Supabase REST API Fallback
+        const response = await fetch(
+          `${SUPABASE_URL}/rest/v1/site_settings?select=*`,
+          {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
             }
-          }));
-          localStorage.setItem('tq_site_theme', JSON.stringify(cloudConfig));
-          localStorage.setItem('tq_global_active_theme', JSON.stringify(cloudConfig));
+          }
+        );
+        if (response.ok) {
+          const restData = await response.json();
+          if (restData && restData.length > 0 && restData[0].config) {
+            const cloudConfig = restData[0].config;
+            setTheme(prev => ({
+              ...prev,
+              ...cloudConfig,
+              featureVisibility: {
+                ...DEFAULT_FEATURE_VISIBILITY,
+                ...(prev.featureVisibility || {}),
+                ...(cloudConfig.featureVisibility || {})
+              }
+            }));
+            localStorage.setItem('tq_site_theme', JSON.stringify(cloudConfig));
+            localStorage.setItem('tq_global_active_theme', JSON.stringify(cloudConfig));
+          }
         }
       } catch (err) {
         console.warn('Local theme config fallback active');
@@ -153,6 +186,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             }
           }));
           localStorage.setItem('tq_site_theme', JSON.stringify(newTheme));
+          localStorage.setItem('tq_global_active_theme', JSON.stringify(newTheme));
           addToast(`🎨 REALTIME: Super Admin vừa cập nhật giao diện mới "${newTheme.siteName}" cho toàn hệ thống!`, 'info');
         }
       })
@@ -182,19 +216,23 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ...(newConfig.featureVisibility || {})
       }
     };
+
+    // 1. Immediately update React State & Local Device Cache
     setTheme(updated);
     localStorage.setItem('tq_site_theme', JSON.stringify(updated));
+    localStorage.setItem('tq_global_active_theme', JSON.stringify(updated));
 
-    // Save to Supabase Cloud DB Table 'site_settings'
+    // 2. Persist to Supabase Cloud DB Table 'site_settings' (Upsert both Id: 1 and Id: 'theme_config')
     try {
       await supabase.from('site_settings').upsert([
-        { id: 1, config: updated, updated_at: new Date().toISOString() }
+        { id: 1, config: updated, updated_at: new Date().toISOString() },
+        { id: 'theme_config', config: updated, updated_at: new Date().toISOString() }
       ]);
     } catch (err) {
       console.warn('Supabase site_settings upsert fallback active');
     }
 
-    // 📡 Realtime Broadcast live to ALL connected users across the entire system!
+    // 3. 📡 Realtime Broadcast live to ALL connected users across the entire system!
     window.dispatchEvent(new CustomEvent('tq_theme_updated', { detail: updated }));
 
     try {
