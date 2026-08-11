@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useTheme, DEFAULT_MASTER_SWITCHES } from '../context/ThemeContext';
 import { X, CheckCircle, CreditCard, Wallet, Truck, ShieldCheck, MapPin } from 'lucide-react';
 
 interface CheckoutModalProps {
@@ -11,10 +12,21 @@ interface CheckoutModalProps {
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose }) => {
   const { cart, subtotalPrice, checkout } = useCart();
   const { user } = useAuth();
+  const { theme } = useTheme();
+
+  const masterSwitches = theme.masterSwitches || DEFAULT_MASTER_SWITCHES;
+  const isWalletEnabled = masterSwitches.enableWalletPayment !== false;
+  const isCodEnabled = masterSwitches.enableCODPayment !== false;
+  const isVietQREnabled = masterSwitches.enableVietQRPayment !== false;
 
   const selectedItems = cart.filter(i => i.selected !== false);
-  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'cash' | 'transfer'>('wallet');
-  const [address, setAddress] = useState('123 Tôn Đức Thắng, Phường Ben Nghé, Quận 1, TP. Hồ Chí Minh');
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'cash' | 'transfer'>(() => {
+    if (isWalletEnabled) return 'wallet';
+    if (isVietQREnabled) return 'transfer';
+    if (isCodEnabled) return 'cash';
+    return 'wallet';
+  });
+  const [address, setAddress] = useState('123 Tôn Đức Thắng, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -22,6 +34,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose })
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!address.trim()) return;
+
+    if (paymentMethod === 'wallet' && !isWalletEnabled) {
+      alert('🔒 Super Admin đã tạm khóa phương thức Thanh Toán Ví TQ Pay trên toàn hệ thống!');
+      return;
+    }
+    if (paymentMethod === 'cash' && !isCodEnabled) {
+      alert('🔒 Super Admin đã tạm khóa phương thức Thanh Toán COD trên toàn hệ thống!');
+      return;
+    }
+    if (paymentMethod === 'transfer' && !isVietQREnabled) {
+      alert('🔒 Super Admin đã tạm khóa phương thức Chuyển Khoản Ngân Hàng VietQR trên toàn hệ thống!');
+      return;
+    }
 
     setIsSubmitting(true);
     const success = await checkout(paymentMethod, address);
@@ -88,8 +113,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose })
             <label className="block text-xs font-bold text-gray-700 mb-2">Hình thức thanh toán</label>
             <div className="space-y-2">
               <label
-                className={`flex items-center justify-between p-3 border rounded-2xl cursor-pointer transition ${
-                  paymentMethod === 'wallet' ? 'border-emerald-500 bg-emerald-50/70 shadow-xs' : 'border-gray-200 hover:bg-gray-50'
+                className={`flex items-center justify-between p-3 border rounded-2xl transition ${
+                  !isWalletEnabled ? 'opacity-50 bg-gray-100 border-gray-300 cursor-not-allowed' : paymentMethod === 'wallet' ? 'border-emerald-500 bg-emerald-50/70 shadow-xs cursor-pointer' : 'border-gray-200 hover:bg-gray-50 cursor-pointer'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
@@ -97,15 +122,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose })
                     type="radio"
                     name="payment"
                     value="wallet"
+                    disabled={!isWalletEnabled}
                     checked={paymentMethod === 'wallet'}
-                    onChange={() => setPaymentMethod('wallet')}
+                    onChange={() => isWalletEnabled && setPaymentMethod('wallet')}
                     className="text-emerald-600 focus:ring-emerald-500"
                   />
                   <div>
                     <span className="font-extrabold text-xs text-navy block flex items-center gap-1">
                       <Wallet className="w-3.5 h-3.5 text-emerald-600" /> Ví số dư TQ Pay
                     </span>
-                    <span className="text-[10px] text-emerald-700 font-semibold">Ưu đãi giảm 2% trực tiếp</span>
+                    <span className="text-[10px] text-emerald-700 font-semibold">
+                      {isWalletEnabled ? 'Ưu đãi giảm 2% trực tiếp' : '🔒 Super Admin đã tạm khóa phương thức này'}
+                    </span>
                   </div>
                 </div>
                 <span className="text-xs font-mono font-bold text-emerald-800">
@@ -114,39 +142,55 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({ isOpen, onClose })
               </label>
 
               <label
-                className={`flex items-center gap-2.5 p-3 border rounded-2xl cursor-pointer transition ${
-                  paymentMethod === 'cash' ? 'border-navy bg-navy/5 shadow-xs' : 'border-gray-200 hover:bg-gray-50'
+                className={`flex items-center justify-between p-3 border rounded-2xl transition ${
+                  !isCodEnabled ? 'opacity-50 bg-gray-100 border-gray-300 cursor-not-allowed' : paymentMethod === 'cash' ? 'border-navy bg-navy/5 shadow-xs cursor-pointer' : 'border-gray-200 hover:bg-gray-50 cursor-pointer'
                 }`}
               >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="cash"
-                  checked={paymentMethod === 'cash'}
-                  onChange={() => setPaymentMethod('cash')}
-                  className="text-navy focus:ring-navy"
-                />
-                <span className="font-extrabold text-xs text-navy flex items-center gap-1">
-                  <Truck className="w-3.5 h-3.5 text-navy" /> Thanh toán tiền mặt khi nhận hàng (COD)
-                </span>
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="cash"
+                    disabled={!isCodEnabled}
+                    checked={paymentMethod === 'cash'}
+                    onChange={() => isCodEnabled && setPaymentMethod('cash')}
+                    className="text-navy focus:ring-navy"
+                  />
+                  <div>
+                    <span className="font-extrabold text-xs text-navy flex items-center gap-1">
+                      <Truck className="w-3.5 h-3.5 text-navy" /> Thanh toán tiền mặt khi nhận hàng (COD)
+                    </span>
+                    {!isCodEnabled && (
+                      <span className="text-[10px] text-rose-600 font-bold block">🔒 Super Admin đã tạm khóa COD toàn sàn</span>
+                    )}
+                  </div>
+                </div>
               </label>
 
               <label
-                className={`flex items-center gap-2.5 p-3 border rounded-2xl cursor-pointer transition ${
-                  paymentMethod === 'transfer' ? 'border-navy bg-navy/5 shadow-xs' : 'border-gray-200 hover:bg-gray-50'
+                className={`flex items-center justify-between p-3 border rounded-2xl transition ${
+                  !isVietQREnabled ? 'opacity-50 bg-gray-100 border-gray-300 cursor-not-allowed' : paymentMethod === 'transfer' ? 'border-navy bg-navy/5 shadow-xs cursor-pointer' : 'border-gray-200 hover:bg-gray-50 cursor-pointer'
                 }`}
               >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="transfer"
-                  checked={paymentMethod === 'transfer'}
-                  onChange={() => setPaymentMethod('transfer')}
-                  className="text-navy focus:ring-navy"
-                />
-                <span className="font-extrabold text-xs text-navy flex items-center gap-1">
-                  <CreditCard className="w-3.5 h-3.5 text-navy" /> Chuyển khoản Ngân hàng (VietQR)
-                </span>
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="transfer"
+                    disabled={!isVietQREnabled}
+                    checked={paymentMethod === 'transfer'}
+                    onChange={() => isVietQREnabled && setPaymentMethod('transfer')}
+                    className="text-navy focus:ring-navy"
+                  />
+                  <div>
+                    <span className="font-extrabold text-xs text-navy flex items-center gap-1">
+                      <CreditCard className="w-3.5 h-3.5 text-navy" /> Chuyển khoản Ngân hàng (VietQR)
+                    </span>
+                    {!isVietQREnabled && (
+                      <span className="text-[10px] text-rose-600 font-bold block">🔒 Super Admin đã tạm khóa Chuyển khoản VietQR</span>
+                    )}
+                  </div>
+                </div>
               </label>
             </div>
           </div>

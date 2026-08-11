@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
+import { useTheme, DEFAULT_MASTER_SWITCHES } from '../context/ThemeContext';
 import type { Product } from '../types';
 import {
   Store,
@@ -23,7 +24,8 @@ import {
   Phone,
   CheckCircle2,
   FileSpreadsheet,
-  LocateFixed
+  LocateFixed,
+  Lock
 } from 'lucide-react';
 
 interface ShopManagementDashboardProps {
@@ -46,6 +48,11 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const { user } = useAuth();
   const { orders } = useCart();
   const { addToast } = useToast();
+  const { theme } = useTheme();
+
+  const masterSwitches = theme.masterSwitches || DEFAULT_MASTER_SWITCHES;
+  const isProductAdditionEnabled = masterSwitches.enableShopProductAddition !== false;
+  const isWithdrawalEnabled = masterSwitches.enableShopWithdrawals !== false;
 
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'earnings' | 'config'>('products');
 
@@ -242,6 +249,11 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
   const handleRequestWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!isWithdrawalEnabled) {
+      addToast('🔒 Super Admin đã khóa tính năng Rút Tiền Doanh Thu trên toàn hệ thống!', 'error');
+      return;
+    }
+
     if (!isWithdrawalDay) {
       addToast(`⚠️ Hôm nay là Ngày ${currentDay}. Cổng rút tiền chỉ mở vào Ngày 14 và Ngày 25 hàng tháng!`, 'error');
       return;
@@ -322,10 +334,23 @@ export const ShopManagementDashboard: React.FC<ShopManagementDashboardProps> = (
 
           <div className="flex items-center gap-2">
             <button
-              onClick={onOpenAddProductModal}
-              className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5 cursor-pointer"
+              onClick={() => {
+                if (!isProductAdditionEnabled) {
+                  addToast('🔒 Super Admin đã khóa tính năng Đăng Sản Phẩm Mới trên toàn hệ thống!', 'error');
+                  return;
+                }
+                onOpenAddProductModal();
+              }}
+              disabled={!isProductAdditionEnabled}
+              className={`font-black text-xs px-3.5 py-2 rounded-xl transition shadow flex items-center gap-1.5 ${
+                !isProductAdditionEnabled
+                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white cursor-pointer'
+              }`}
+              title={isProductAdditionEnabled ? 'Đăng bán / cho thuê sản phẩm dịch vụ mới' : '🔒 Super Admin đã khóa đăng sản phẩm mới'}
             >
-              <PlusCircle className="w-4 h-4 text-emerald-200" /> + ĐĂNG SP MỚI
+              {isProductAdditionEnabled ? <PlusCircle className="w-4 h-4 text-emerald-200" /> : <Lock className="w-4 h-4 text-rose-400" />}
+              {isProductAdditionEnabled ? '+ ĐĂNG SP MỚI' : '🔒 ĐÃ KHÓA ĐĂNG SP'}
             </button>
             <button
               onClick={onClose}

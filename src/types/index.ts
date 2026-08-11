@@ -101,6 +101,19 @@ export interface FeatureVisibilityConfig {
   showPromoBar: boolean;
 }
 
+export interface SystemMasterSwitches {
+  enableWalletPayment: boolean;
+  enableVietQRPayment: boolean;
+  enableCODPayment: boolean;
+  enableReviewCoins: boolean;
+  enableWatchVideoCoins: boolean;
+  enableVoucherDiscounts: boolean;
+  enableShopWithdrawals: boolean;
+  enableRentalBooking: boolean;
+  enableRetailBuying: boolean;
+  enableShopProductAddition: boolean;
+}
+
 export interface ThemeConfig {
   siteName: string;
   tagline: string;
@@ -116,6 +129,7 @@ export interface ThemeConfig {
   walletDiscountRate: number;
   coinCashbackRate: number;
   featureVisibility?: FeatureVisibilityConfig;
+  masterSwitches?: SystemMasterSwitches;
 }
 
 export interface CoinTransaction {

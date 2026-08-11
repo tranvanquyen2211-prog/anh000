@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme, DEFAULT_MASTER_SWITCHES } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import { recordAuditLog } from '../lib/auditLogger';
@@ -47,7 +47,10 @@ import {
   FileText,
   ShieldAlert,
   Download,
-  Store
+  Store,
+  Truck,
+  ShoppingBag,
+  Package
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -90,11 +93,12 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   onToggleGrandOpeningProduct
 }) => {
   const { user, impersonateShop } = useAuth();
-  const { theme, updateTheme, toggleFeatureVisibility } = useTheme();
+  const { theme, updateTheme, toggleFeatureVisibility, toggleMasterSwitch } = useTheme();
   const { addToast } = useToast();
 
   const [adminTab, setAdminTab] = useState<
     | 'users'
+    | 'master-control'
     | 'password-resets'
     | 'financial-analytics'
     | 'withdrawals'
@@ -1122,6 +1126,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             </button>
 
             <button
+              onClick={() => setAdminTab('master-control')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'master-control' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Zap className="w-4 h-4 text-amber-400 animate-bounce" /> 20. 🎛️ Master Control (Bật/Tắt Hệ Thống)
+            </button>
+
+            <button
               onClick={() => setAdminTab('audit-logs')}
               className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
                 adminTab === 'audit-logs' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
@@ -1463,6 +1476,160 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 20: SUPER ADMIN MASTER CONTROL SWITCHES */}
+            {adminTab === 'master-control' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <div className="bg-slate-950 p-6 rounded-3xl border border-amber-500/40 shadow-2xl space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                      <h3 className="text-lg font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        🎛️ MODULE 20: QUẢN LÝ LỆNH BẬT / TẮT TOÀN HỆ THỐNG (SUPER ADMIN MASTER CONTROL)
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Super Admin có quyền bóp nghẹt hoặc mở khóa bất kỳ phương thức nào trên toàn hệ thống. Toàn bộ Shop & Khách Hàng bắt buộc tuân theo thời gian thực!
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-900 px-3.5 py-2 rounded-2xl border border-amber-400/40 text-right shrink-0">
+                      <span className="text-[9px] text-slate-400 font-bold uppercase block">TRẠNG THÁI QUYỀN LỰC OVERLORD:</span>
+                      <span className="text-xs font-black text-emerald-400 flex items-center gap-1">
+                        <Zap className="w-3.5 h-3.5 text-amber-400 animate-bounce" /> 100% REALTIME WEBSOCKET ACTIVE
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 10 Master Switches Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      {
+                        key: 'enableWalletPayment' as const,
+                        label: '1. 💳 Thanh Toán Qua Ví TQ Pay',
+                        desc: 'Bật/tắt thanh toán bằng số dư Ví TQ Pay đối với tất cả đơn hàng trên toàn sàn.',
+                        icon: Wallet
+                      },
+                      {
+                        key: 'enableVietQRPayment' as const,
+                        label: '2. 🏦 Thanh Toán Chuyển Khoản VietQR',
+                        desc: 'Bật/tắt phương thức chuyển khoản tự động qua mã VietQR khi mua/thuê đồ.',
+                        icon: CreditCard
+                      },
+                      {
+                        key: 'enableCODPayment' as const,
+                        label: '3. 🚚 Thanh Toán COD (Nhận Hàng Trả Tiền)',
+                        desc: 'Bật/tắt thanh toán tiền mặt COD trực tiếp cho shipper khi giao nhận hàng.',
+                        icon: Truck
+                      },
+                      {
+                        key: 'enableReviewCoins' as const,
+                        label: '4. 🪙 Tích TQ Xu Khi Đánh Giá Sản Phẩm',
+                        desc: 'Bật/tắt chương trình thưởng TQ Xu hoàn tiền cho người dùng viết review đánh giá.',
+                        icon: Coins
+                      },
+                      {
+                        key: 'enableWatchVideoCoins' as const,
+                        label: '5. 📺 Thưởng TQ Xu Xem Video YouTube',
+                        desc: 'Bật/tắt tính năng xem video tích lũy TQ Xu kiếm tiền thụ động.',
+                        icon: Tv
+                      },
+                      {
+                        key: 'enableVoucherDiscounts' as const,
+                        label: '6. 🎟️ Mã Giảm Giá Voucher Toàn Sàn',
+                        desc: 'Bật/tắt cho phép áp dụng Mã Giảm Giá Voucher trong màn hình thanh toán.',
+                        icon: Sparkles
+                      },
+                      {
+                        key: 'enableShopWithdrawals' as const,
+                        label: '7. 💰 Rút Tiền Doanh Thu Cửa Hàng Shop',
+                        desc: 'Bật/tắt cho phép Cửa hàng Shop tạo Lệnh Rút Tiền Doanh Thu về tài khoản ngân hàng.',
+                        icon: TrendingUp
+                      },
+                      {
+                        key: 'enableRentalBooking' as const,
+                        label: '8. 👗 Tính Năng Cho Thuê Đồ (Rental)',
+                        desc: 'Bật/tắt nút "Thuê Ngay" và lịch chọn ngày thuê cho toàn bộ sản phẩm thuê đồ.',
+                        icon: ShoppingBag
+                      },
+                      {
+                        key: 'enableRetailBuying' as const,
+                        label: '9. 🛍️ Tính Năng Mua Hàng Trực Tiếp (Retail)',
+                        desc: 'Bật/tắt nút "Mua Ngay" và giỏ hàng cho tất cả sản phẩm bán lẻ.',
+                        icon: Package
+                      },
+                      {
+                        key: 'enableShopProductAddition' as const,
+                        label: '10. ➕ Cho Phép Shop Thêm Sản Phẩm Mới',
+                        desc: 'Bật/tắt quyền đăng tải và niêm yết sản phẩm dịch vụ mới của các Cửa Hàng Shop.',
+                        icon: Plus
+                      }
+                    ].map(sw => {
+                      const masterSwitches = theme.masterSwitches || DEFAULT_MASTER_SWITCHES;
+                      const isEnabled = masterSwitches[sw.key] !== false;
+                      const IconComp = sw.icon;
+
+                      return (
+                        <div
+                          key={sw.key}
+                          className={`p-4 rounded-2xl border transition-all flex items-start justify-between gap-3 shadow-md ${
+                            isEnabled
+                              ? 'bg-slate-900 border-slate-700 hover:border-amber-500/50'
+                              : 'bg-rose-950/20 border-rose-500/50'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`p-2.5 rounded-xl shrink-0 ${
+                              isEnabled ? 'bg-slate-800 text-amber-400' : 'bg-rose-900/40 text-rose-400'
+                            }`}>
+                              <IconComp className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-extrabold text-slate-100 text-sm">{sw.label}</h4>
+                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
+                                  isEnabled ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                }`}>
+                                  {isEnabled ? '🟢 ĐANG MỞ' : '🔒 ĐÃ KHÓA SÀN'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-400 mt-1 font-medium leading-relaxed">{sw.desc}</p>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              toggleMasterSwitch(sw.key);
+                              recordAuditLog(
+                                user.name,
+                                'SUPER_ADMIN',
+                                `${isEnabled ? 'Khóa' : 'Mở Khóa'} Master Control`,
+                                sw.label,
+                                `Super Admin đã ${isEnabled ? 'KHÓA' : 'MỞ KHÓA'} phương thức "${sw.label}" trên toàn hệ thống thời gian thực`,
+                                isEnabled ? 'WARNING' : 'SUCCESS'
+                              );
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 border flex items-center gap-1.5 ${
+                              isEnabled
+                                ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-500 shadow-sm'
+                                : 'bg-emerald-500 hover:bg-emerald-600 text-slate-950 border-emerald-400 shadow-sm'
+                            }`}
+                          >
+                            {isEnabled ? (
+                              <>
+                                <Lock className="w-3.5 h-3.5" /> 🔒 KHÓA NGAY
+                              </>
+                            ) : (
+                              <>
+                                <Unlock className="w-3.5 h-3.5" /> 🔓 MỞ LẠI
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

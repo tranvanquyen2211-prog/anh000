@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useTheme, DEFAULT_MASTER_SWITCHES } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import {
   Tv,
@@ -12,7 +13,8 @@ import {
   Sparkles,
   Zap,
   Gift,
-  Coins
+  Coins,
+  Lock
 } from 'lucide-react';
 
 export interface WatchVideoItem {
@@ -33,6 +35,10 @@ interface WatchToEarnModalProps {
 export const WatchToEarnModal: React.FC<WatchToEarnModalProps> = ({ isOpen, onClose }) => {
   const { user, updateCoins } = useAuth();
   const { addToast } = useToast();
+  const { theme } = useTheme();
+
+  const masterSwitches = theme.masterSwitches || DEFAULT_MASTER_SWITCHES;
+  const isWatchVideoEnabled = masterSwitches.enableWatchVideoCoins !== false;
 
   // Load videos list from localStorage or defaults
   const [videos, setVideos] = useState<WatchVideoItem[]>(() => {
@@ -223,11 +229,23 @@ export const WatchToEarnModal: React.FC<WatchToEarnModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
-          
-          {/* Active Video Player Screen */}
-          {activeVideo ? (
-            <div className="bg-slate-950 p-4 rounded-2xl border border-amber-400/50 space-y-4 shadow-2xl">
+        {!isWatchVideoEnabled ? (
+          <div className="p-8 text-center space-y-4 my-auto">
+            <div className="w-16 h-16 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto border border-rose-500/40 shadow-lg">
+              <Lock className="w-8 h-8 text-rose-400" />
+            </div>
+            <div>
+              <h4 className="text-lg font-black text-rose-400 uppercase tracking-wider">CHƯƠNG TRÌNH ĐANG TẠM KHÓA TOÀN SÀN</h4>
+              <p className="text-xs text-slate-400 max-w-md mx-auto mt-1 leading-relaxed">
+                🔒 Super Admin đã kích hoạt Lệnh Khóa Master Control đối với tính năng Xem Video Thưởng TQ Xu trên toàn hệ thống.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
+            {/* Active Video Player Screen */}
+            {activeVideo ? (
+              <div className="bg-slate-950 p-4 rounded-2xl border border-amber-400/50 space-y-4 shadow-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
                   <Play className="w-4 h-4 animate-bounce" /> Đang phát: <span className="text-slate-100">{activeVideo.title}</span>
@@ -350,8 +368,9 @@ export const WatchToEarnModal: React.FC<WatchToEarnModalProps> = ({ isOpen, onCl
               })}
             </div>
           </div>
-
         </div>
+      )}
+
       </div>
     </div>
   );

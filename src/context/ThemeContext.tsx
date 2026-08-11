@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { ThemeConfig, FeatureVisibilityConfig } from '../types';
+import type { ThemeConfig, FeatureVisibilityConfig, SystemMasterSwitches } from '../types';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
 import { useToast } from './ToastContext';
 
@@ -11,6 +11,19 @@ export const DEFAULT_FEATURE_VISIBILITY: FeatureVisibilityConfig = {
   showQuickButtons: true,
   showLiveChatWidget: true,
   showPromoBar: true,
+};
+
+export const DEFAULT_MASTER_SWITCHES: SystemMasterSwitches = {
+  enableWalletPayment: true,
+  enableVietQRPayment: true,
+  enableCODPayment: true,
+  enableReviewCoins: true,
+  enableWatchVideoCoins: true,
+  enableVoucherDiscounts: true,
+  enableShopWithdrawals: true,
+  enableRentalBooking: true,
+  enableRetailBuying: true,
+  enableShopProductAddition: true,
 };
 
 export const DEFAULT_THEME: ThemeConfig = {
@@ -27,7 +40,8 @@ export const DEFAULT_THEME: ThemeConfig = {
   promoBarText: 'ƯU ĐÃI VÍ CÁ NHÂN TQ PAY: GIẢM THÊM 2% CHO MỌI ĐƠN HÀNG',
   walletDiscountRate: 2,
   coinCashbackRate: 3,
-  featureVisibility: DEFAULT_FEATURE_VISIBILITY
+  featureVisibility: DEFAULT_FEATURE_VISIBILITY,
+  masterSwitches: DEFAULT_MASTER_SWITCHES
 };
 
 export const PRESET_THEMES = [
@@ -69,6 +83,7 @@ interface ThemeContextType {
   applyPreset: (preset: typeof PRESET_THEMES[0]) => Promise<void>;
   resetToDefault: () => Promise<void>;
   toggleFeatureVisibility: (key: keyof FeatureVisibilityConfig) => Promise<void>;
+  toggleMasterSwitch: (key: keyof SystemMasterSwitches) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -257,6 +272,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await updateTheme({ featureVisibility: newVis });
   };
 
+  const toggleMasterSwitch = async (key: keyof SystemMasterSwitches) => {
+    const currentSwitches = theme.masterSwitches || DEFAULT_MASTER_SWITCHES;
+    const newSwitches = {
+      ...currentSwitches,
+      [key]: !currentSwitches[key]
+    };
+    await updateTheme({ masterSwitches: newSwitches });
+  };
+
   const applyPreset = async (preset: typeof PRESET_THEMES[0]) => {
     await updateTheme({
       primaryColor: preset.primaryColor,
@@ -271,7 +295,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, updateTheme, applyPreset, resetToDefault, toggleFeatureVisibility }}>
+    <ThemeContext.Provider value={{ theme, updateTheme, applyPreset, resetToDefault, toggleFeatureVisibility, toggleMasterSwitch }}>
       {children}
     </ThemeContext.Provider>
   );
