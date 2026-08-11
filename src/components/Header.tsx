@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType, Product } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, Wallet, Coins, Palette, Crown, PlusCircle, Store, Bell, MessageSquare, Wand2 } from 'lucide-react';
+import { ShoppingCart, Search, User, Wallet, Coins, Palette, Crown, PlusCircle, Store, Bell, MessageSquare, Wand2, Flame } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -103,6 +103,11 @@ export const Header: React.FC<HeaderProps> = ({
     return titleMatch || shopMatch || detailsMatch || tagsMatch;
   }).slice(0, 5);
 
+  const suggestedProductIds: (string | number)[] = JSON.parse(localStorage.getItem('tq_search_suggested_products') || '[]');
+  const searchSuggestedProducts = suggestedProductIds.length > 0
+    ? (products || []).filter(p => suggestedProductIds.includes(p.id) || suggestedProductIds.includes(String(p.id)))
+    : (products || []).slice(0, 5);
+
   return (
     <header className={`bg-white shadow-sm sticky top-0 z-40 border-b border-gray-100 transition-transform duration-300 ease-in-out ${
       isHeaderVisible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
@@ -165,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </form>
 
-            {/* 🔍 REALTIME LIVE AUTOCOMPLETE SEARCH DROPDOWN (MOBILE) */}
+            {/* 🔍 REALTIME LIVE AUTOCOMPLETE SEARCH DROPDOWN */}
             {isSearchFocused && q.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white text-slate-900 rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden text-xs">
                 <div
@@ -209,6 +214,43 @@ export const Header: React.FC<HeaderProps> = ({
                     Không thấy sản phẩm chứa từ khóa "{searchQuery}"
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* 🔍 SUPER ADMIN CURATED HOT SEARCH SUGGESTIONS (WHEN FOCUSED & EMPTY) */}
+            {isSearchFocused && q.length === 0 && searchSuggestedProducts.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white text-slate-900 rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden text-xs animate-in fade-in duration-200">
+                <div className="p-2.5 bg-gradient-to-r from-[#0F2C59] via-navy-light to-[#ee4d2d] text-white flex items-center justify-between">
+                  <span className="font-extrabold text-xs flex items-center gap-1.5">
+                    <Flame className="w-4 h-4 text-amber-300 animate-bounce" /> 🔥 GỢI Ý TÌM KIẾM HOT TỪ SUPER ADMIN
+                  </span>
+                  <span className="text-[9px] text-amber-200 font-bold uppercase">Đề Xuất Hàng Đầu</span>
+                </div>
+
+                <div className="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                  {searchSuggestedProducts.slice(0, 5).map((p) => (
+                    <div
+                      key={p.id}
+                      onMouseDown={() => {
+                        setIsSearchFocused(false);
+                        if (onOpenProductDetail) onOpenProductDetail(p);
+                      }}
+                      className="p-2.5 flex items-center gap-2.5 hover:bg-amber-50/80 transition cursor-pointer group"
+                    >
+                      <img src={p.img} alt={p.title} className="w-10 h-10 rounded-lg object-cover border border-amber-200 shrink-0 group-hover:scale-105 transition" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="bg-[#ee4d2d] text-white text-[8px] font-black px-1.5 py-0.2 rounded uppercase shrink-0">HOT DEAL</span>
+                          <h5 className="font-bold text-slate-800 text-xs line-clamp-1 group-hover:text-[#ee4d2d] transition">{p.title}</h5>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[#ee4d2d] font-black font-mono text-xs">{p.price.toLocaleString('vi-VN')} đ</span>
+                          <span className="text-[9px] text-gray-500 font-medium truncate">{p.shopName}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

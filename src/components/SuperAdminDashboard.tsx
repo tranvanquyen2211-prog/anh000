@@ -365,6 +365,53 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     ];
   });
 
+  // Curated Featured Shops & Search Suggested Products State
+  const [featuredShops, setFeaturedShops] = useState<string[]>(() => {
+    const saved = localStorage.getItem('tq_featured_shops');
+    return saved ? JSON.parse(saved) : ['TQ Rental Studio', 'TQ Tea & Coffee'];
+  });
+
+  const [searchSuggestedProductIds, setSearchSuggestedProductIds] = useState<(string | number)[]>(() => {
+    const saved = localStorage.getItem('tq_search_suggested_products');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const toggleFeaturedShop = (shopName: string) => {
+    const isFeatured = featuredShops.includes(shopName);
+    const updated = isFeatured
+      ? featuredShops.filter(s => s !== shopName)
+      : [...featuredShops, shopName];
+    setFeaturedShops(updated);
+    localStorage.setItem('tq_featured_shops', JSON.stringify(updated));
+    recordAuditLog(
+      user?.name || 'Super Admin',
+      'SUPER_ADMIN',
+      `${isFeatured ? 'Gỡ' : 'Gắn'} Tag Shop Nổi Bật`,
+      shopName,
+      `Super Admin đã ${isFeatured ? 'GỠ' : 'GẮN'} Tag 🏆 Shop Nổi Bật cho gian hàng "${shopName}"`,
+      'INFO'
+    );
+    addToast(`🏆 Đã ${isFeatured ? 'gỡ' : 'gắn'} Tag Shop Nổi Bật cho "${shopName}"!`, 'success');
+  };
+
+  const toggleSearchSuggestedProduct = (prodId: string | number, prodTitle: string) => {
+    const isSuggested = searchSuggestedProductIds.includes(prodId) || searchSuggestedProductIds.includes(String(prodId));
+    const updated = isSuggested
+      ? searchSuggestedProductIds.filter(id => id !== prodId && id !== String(prodId))
+      : [...searchSuggestedProductIds, prodId];
+    setSearchSuggestedProductIds(updated);
+    localStorage.setItem('tq_search_suggested_products', JSON.stringify(updated));
+    recordAuditLog(
+      user?.name || 'Super Admin',
+      'SUPER_ADMIN',
+      `${isSuggested ? 'Bỏ' : 'Thêm'} Đề Xuất Tìm Kiếm Hot`,
+      prodTitle,
+      `Super Admin đã ${isSuggested ? 'BỎ' : 'THÊM'} sản phẩm "${prodTitle}" vào Ô Gợi Ý Tìm Kiếm Hot`,
+      'INFO'
+    );
+    addToast(`🔍 Đã ${isSuggested ? 'gỡ' : 'thêm'} "${prodTitle}" vào Gợi Ý Tìm Kiếm Hot!`, 'success');
+  };
+
   const [auditSearch, setAuditSearch] = useState('');
   const [auditFilterSeverity, setAuditFilterSeverity] = useState<string>('ALL');
   const [auditFilterRole, setAuditFilterRole] = useState<string>('ALL');
@@ -2362,81 +2409,133 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               </div>
             )}
 
-            {/* MODULE 14: SMART RECOMMENDER & TRENDS MANAGEMENT */}
+            {/* MODULE 14: SMART RECOMMENDER & FEATURED SHOP/PRODUCT CURATION */}
             {adminTab === 'smart-recommender' && (
-              <div className="space-y-6">
+              <div className="space-y-6 animate-in fade-in duration-200">
                 
-                {/* 1. Shop Khai Trương Management Panel */}
+                {/* 1. Đề Xuất Cửa Hàng (Shop Nổi Bật & Shop Mới Khai Trương) */}
                 <div className="bg-slate-950 p-5 rounded-2xl border border-amber-500/40 space-y-4 shadow-xl">
                   <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
-                      <PartyPopper className="w-4 h-4 text-amber-400 animate-bounce" /> 1. QUẢN LÝ TẮT/BẬT TAG SHOP KHAI TRƯƠNG & GIAN HÀNG MỚI
-                    </h3>
-                    <span className="text-[10px] text-slate-400 font-bold">Hiển thị nổi bật trên banner trang chủ</span>
+                    <div>
+                      <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        <PartyPopper className="w-4 h-4 text-amber-400 animate-bounce" /> 1. ĐỀ XUẤT CỬA HÀNG (SHOP NỔI BẬT & MỚI KHAI TRƯƠNG)
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-medium">Gắn huy hiệu VIP và ghim Cửa Hàng lên vị trí hàng đầu trên Banner Trang chủ & Mall</p>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 font-bold">✓ Tự động đồng bộ hệ thống</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {usersList.filter(u => u.role === 'SHOP').map((sUser, idx) => (
-                      <div key={idx} className="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={sUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sUser.name)}&background=0F2C59&color=fff`}
-                            alt={sUser.name}
-                            className="w-10 h-10 rounded-xl border border-amber-400"
-                          />
-                          <div>
-                            <span className="font-bold text-slate-100 text-xs block">{sUser.name}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">{sUser.phone || sUser.email}</span>
+                    {usersList.filter(u => u.role === 'SHOP').map((sUser, idx) => {
+                      const isFeatured = featuredShops.includes(sUser.name);
+
+                      return (
+                        <div key={idx} className="bg-slate-900 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 shadow-sm">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img
+                              src={sUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(sUser.name)}&background=0F2C59&color=fff`}
+                              alt={sUser.name}
+                              className="w-11 h-11 rounded-xl border border-amber-400 object-cover shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-extrabold text-slate-100 text-xs truncate block">{sUser.name}</span>
+                                {isFeatured && (
+                                  <span className="bg-amber-400 text-slate-950 text-[8px] font-black px-1.5 py-0.2 rounded uppercase shrink-0">🏆 VIP</span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-mono truncate block">{sUser.phone || sUser.email}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-1.5 shrink-0">
+                            {/* Toggle 1: Grand Opening Tag */}
+                            <button
+                              type="button"
+                              onClick={() => toggleShopGrandOpeningTag(sUser.phone)}
+                              className={`px-2.5 py-1 rounded-xl font-black text-[9px] uppercase transition cursor-pointer flex items-center gap-1 ${
+                                sUser.isGrandOpeningShop ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <PartyPopper className="w-3 h-3" />
+                              {sUser.isGrandOpeningShop ? '✓ Đang Khai Trương' : '+ Tag Khai Trương'}
+                            </button>
+
+                            {/* Toggle 2: Featured Shop Tag */}
+                            <button
+                              type="button"
+                              onClick={() => toggleFeaturedShop(sUser.name)}
+                              className={`px-2.5 py-1 rounded-xl font-black text-[9px] uppercase transition cursor-pointer flex items-center gap-1 ${
+                                isFeatured ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <Crown className="w-3 h-3" />
+                              {isFeatured ? '🏆 Shop Nổi Bật' : '+ Ghim Nổi Bật'}
+                            </button>
                           </div>
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={() => toggleShopGrandOpeningTag(sUser.phone)}
-                          className={`px-3 py-1.5 rounded-xl font-black text-[10px] uppercase transition cursor-pointer flex items-center gap-1 ${
-                            sUser.isGrandOpeningShop ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          <PartyPopper className="w-3.5 h-3.5" />
-                          {sUser.isGrandOpeningShop ? '✓ Đang Khai Trương' : '+ Gắn Tag Khai Trương'}
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* 2. Sản Phẩm Khai Trương & Tag Mới Management */}
-                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4">
+                {/* 2. Đề Xuất Sản Phẩm Nổi Bật Trang Chủ & Gợi Ý Tìm Kiếm */}
+                <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-xl">
                   <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <h3 className="text-xs font-black text-rose-400 uppercase tracking-wider flex items-center gap-2">
-                      <Flame className="w-4 h-4 text-rose-400" /> 2. DẪN ĐẦU ĐỀ XUẤT SẢN PHẨM KHAI TRƯƠNG & MỚI RA MẮT ({products.length} SẢN PHẨM)
-                    </h3>
+                    <div>
+                      <h3 className="text-xs font-black text-rose-400 uppercase tracking-wider flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-rose-400" /> 2. ĐỀ XUẤT SẢN PHẨM NỔI BẬT TRANG CHỦ & GỢI Ý TÌM KIẾM HOT ({products.length} SP)
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-medium">Chọn sản phẩm ghim lên danh sách Hot Bán Chạy và Ô Gợi Ý Tìm Kiếm ở Header</p>
+                    </div>
                   </div>
 
-                  <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                    {products.map((p, idx) => (
-                      <div key={idx} className="bg-slate-900 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <img src={p.img} alt={p.title} className="w-10 h-10 object-cover rounded-lg shrink-0" />
-                          <div className="min-w-0">
-                            <span className="font-bold text-slate-100 text-xs truncate block">{p.title}</span>
-                            <span className="text-[10px] text-amber-400 font-bold block">{p.shopName} - {p.price.toLocaleString('vi-VN')} đ</span>
+                  <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
+                    {products.map((p, idx) => {
+                      const isSuggested = searchSuggestedProductIds.includes(p.id) || searchSuggestedProductIds.includes(String(p.id));
+
+                      return (
+                        <div key={idx} className="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 shadow-xs">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img src={p.img} alt={p.title} className="w-11 h-11 object-cover rounded-xl shrink-0 border border-slate-700" />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-100 text-xs truncate block">{p.title}</span>
+                                {isSuggested && (
+                                  <span className="bg-rose-500 text-white text-[8px] font-black px-1.5 py-0.2 rounded uppercase shrink-0">🔍 Gợi Ý Hot</span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-amber-400 font-bold block">{p.shopName} • {p.price.toLocaleString('vi-VN')} đ</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {onToggleGrandOpeningProduct && (
+                              <button
+                                type="button"
+                                onClick={() => onToggleGrandOpeningProduct(p.id)}
+                                className={`px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase transition cursor-pointer ${
+                                  p.isGrandOpening ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
+                                }`}
+                              >
+                                {p.isGrandOpening ? '🔥 Đã Đề Xuất Hot' : '+ Đề Xuất Hot'}
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => toggleSearchSuggestedProduct(p.id, p.title)}
+                              className={`px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase transition cursor-pointer flex items-center gap-1 ${
+                                isSuggested ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <Search className="w-3 h-3" />
+                              {isSuggested ? '🔍 Gợi Ý Tìm Kiếm' : '+ Ô Tìm Kiếm'}
+                            </button>
                           </div>
                         </div>
-
-                        {onToggleGrandOpeningProduct && (
-                          <button
-                            type="button"
-                            onClick={() => onToggleGrandOpeningProduct(p.id)}
-                            className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase transition cursor-pointer shrink-0 ${
-                              p.isGrandOpening ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'
-                            }`}
-                          >
-                            {p.isGrandOpening ? '🎉 Đang Đề Xuất Khai Trương' : '+ Tag Khai Trương'}
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
