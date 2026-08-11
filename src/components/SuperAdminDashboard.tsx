@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
-import type { UserProfile, Product } from '../types';
+import type { UserProfile, Product, CoinTransaction } from '../types';
 import {
   Crown,
   UserCheck,
@@ -37,7 +37,9 @@ import {
   Search,
   ToggleLeft,
   ToggleRight,
-  Tv
+  Tv,
+  Coins,
+  History
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -98,6 +100,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'smart-recommender'
     | 'feature-visibility'
     | 'watch-to-earn'
+    | 'coin-audit'
   >('users');
 
   // Users list state
@@ -220,6 +223,69 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [newVidSeconds, setNewVidSeconds] = useState<number>(30);
   const [newVidReward, setNewVidReward] = useState<number>(100);
 
+  // Module 17: Coin Audit Transactions State
+  const [coinTxs, setCoinTxs] = useState<CoinTransaction[]>(() => {
+    const saved = localStorage.getItem('tq_coin_transactions');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      {
+        id: 'tx_demo_1',
+        userId: 'user_1',
+        userName: 'Nguyễn Văn A',
+        userPhone: '0912345678',
+        userEmail: 'nguyenvana@gmail.com',
+        amount: 100,
+        type: 'WATCH_VIDEO',
+        sourceDescription: '📺 Xem video YouTube: "🔥 Video Giới Thiệu Hệ Thống TQ Store & Ưu Đãi Xu TQ Pay"',
+        timestamp: '10:15 11/08/2026'
+      },
+      {
+        id: 'tx_demo_2',
+        userId: 'user_2',
+        userName: 'Trần Thị B',
+        userPhone: '0987654321',
+        userEmail: 'tranthib@gmail.com',
+        amount: 100,
+        type: 'REVIEW_BONUS',
+        sourceDescription: '⭐ Đã gửi đánh giá sản phẩm thành công + Thưởng 100 TQ Coins',
+        timestamp: '09:45 11/08/2026'
+      },
+      {
+        id: 'tx_demo_3',
+        userId: 'user_3',
+        userName: 'Shop Thời Trang TQ',
+        userPhone: '0900000000',
+        userEmail: 'shopthoitrang@tqstore.vn',
+        amount: 500,
+        type: 'ADMIN_GRANT',
+        sourceDescription: '👑 Super Admin cộng thưởng trực tiếp cho tài khoản',
+        timestamp: '08:30 11/08/2026'
+      }
+    ];
+  });
+
+  const [coinAuditSearch, setCoinAuditSearch] = useState('');
+  const [coinAuditFilterType, setCoinAuditFilterType] = useState<string>('ALL');
+
+  // Sync coin audit transactions from storage
+  useEffect(() => {
+    const handleStorage = () => {
+      const saved = localStorage.getItem('tq_coin_transactions');
+      if (saved) {
+        try {
+          setCoinTxs(JSON.parse(saved));
+        } catch (e) {}
+      }
+    };
+    handleStorage();
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [adminTab]);
+
   const extractYoutubeId = (urlOrId: string) => {
     const clean = urlOrId.trim();
     if (clean.includes('v=')) {
@@ -312,8 +378,26 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             return Array.from(map.values());
           });
         }
+
+        // Also fetch Cloud Database coin transactions
+        const { data: cloudTxs, error: txError } = await supabase.from('coin_transactions').select('*').order('timestamp', { ascending: false });
+        if (!txError && cloudTxs && cloudTxs.length > 0) {
+          const formattedTxs: CoinTransaction[] = cloudTxs.map((t: any) => ({
+            id: t.id,
+            userId: t.user_id || t.userId || t.id,
+            userName: t.user_name || t.userName || 'Khách hàng',
+            userPhone: t.user_phone || t.userPhone,
+            userEmail: t.user_email || t.userEmail,
+            amount: t.amount || 0,
+            type: t.type || 'WATCH_VIDEO',
+            sourceDescription: t.source_description || t.sourceDescription || 'Tích xu hệ thống',
+            timestamp: t.timestamp || t.created_at
+          }));
+          setCoinTxs(formattedTxs);
+          localStorage.setItem('tq_coin_transactions', JSON.stringify(formattedTxs));
+        }
       } catch (err) {
-        console.warn('Cloud profiles fallback active:', err);
+        console.warn('Cloud profiles & coin transactions fallback active:', err);
       }
     };
 
@@ -830,6 +914,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               }`}
             >
               <Tv className="w-4 h-4 text-pink-400 animate-pulse" /> 16. 📺 Video YouTube Kiếm Xu
+            </button>
+
+            <button
+              onClick={() => setAdminTab('coin-audit')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition cursor-pointer ${
+                adminTab === 'coin-audit' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <Coins className="w-4 h-4 text-amber-400 animate-bounce" /> 17. 🪙 Lịch Sử Nguồn Gốc Xu TQ
             </button>
           </aside>
 
@@ -2047,6 +2140,159 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                         </tbody>
                       </table>
                     </div>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* MODULE 17: QUẢN LÝ NGUỒN GỐC XU TQ & TRUY VẤN LỊCH SỬ TÍCH ĐIỂM (COIN AUDIT LEDGER) */}
+            {adminTab === 'coin-audit' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <div className="bg-slate-900 border border-amber-400/40 p-6 rounded-3xl shadow-2xl space-y-6">
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                      <h3 className="text-base font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+                        🪙 MODULE 17: QUẢN LÝ NGUỒN GỐC XU TQ & NHẬT KÝ TÍCH ĐIỂM (COIN AUDIT LEDGER)
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Theo dõi minh bạch nguồn gốc tích lũy Xu của từng tài khoản khách hàng & shop (Xem video YouTube, viết Đánh giá, Admin tặng, Hoàn xu đơn hàng...)
+                      </p>
+                    </div>
+
+                    <div className="bg-amber-400/20 text-amber-300 px-3.5 py-1.5 rounded-2xl border border-amber-400/40 text-xs font-black flex items-center gap-1.5">
+                      <History className="w-4 h-4 text-amber-400" /> {coinTxs.length} Giao Dịch
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">📺 Xu từ xem Video YouTube:</span>
+                      <span className="text-lg font-black text-amber-400 font-mono">
+                        +{coinTxs.filter(t => t.type === 'WATCH_VIDEO').reduce((sum, t) => sum + (t.amount > 0 ? t.amount : 0), 0)} Xu
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">⭐ Xu từ Đánh giá sản phẩm:</span>
+                      <span className="text-lg font-black text-emerald-400 font-mono">
+                        +{coinTxs.filter(t => t.type === 'REVIEW_BONUS').reduce((sum, t) => sum + (t.amount > 0 ? t.amount : 0), 0)} Xu
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">👑 Admin cấp thưởng & Khác:</span>
+                      <span className="text-lg font-black text-purple-400 font-mono">
+                        +{coinTxs.filter(t => t.type === 'ADMIN_GRANT' || t.type === 'PURCHASE_CASHBACK').reduce((sum, t) => sum + (t.amount > 0 ? t.amount : 0), 0)} Xu
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Search & Type Filter Bar */}
+                  <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+                    <div className="relative w-full md:w-72">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={coinAuditSearch}
+                        onChange={e => setCoinAuditSearch(e.target.value)}
+                        placeholder="Lọc tên user, SĐT, email..."
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-100 rounded-xl pl-9 pr-3 py-2 focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto scrollbar-none">
+                      <span className="text-slate-400 font-bold text-[11px] shrink-0">Loại tích xu:</span>
+                      {['ALL', 'WATCH_VIDEO', 'REVIEW_BONUS', 'ADMIN_GRANT', 'PURCHASE_CASHBACK'].map(t => (
+                        <button
+                          key={t}
+                          onClick={() => setCoinAuditFilterType(t)}
+                          className={`px-3 py-1 rounded-xl text-[10px] font-extrabold uppercase transition cursor-pointer shrink-0 border ${
+                            coinAuditFilterType === t
+                              ? 'bg-amber-400 text-slate-950 border-amber-400'
+                              : 'bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800'
+                          }`}
+                        >
+                          {t === 'ALL' ? 'TẤT CẢ' : t === 'WATCH_VIDEO' ? '📺 VIDEO' : t === 'REVIEW_BONUS' ? '⭐ ĐÁNH GIÁ' : t === 'ADMIN_GRANT' ? '👑 ADMIN' : '🛍️ HOÀN XU'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Audit Ledger History Table */}
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 uppercase font-black">
+                          <th className="p-3">Thành Viên / Tài Khoản</th>
+                          <th className="p-3">Loại Tích Điểm</th>
+                          <th className="p-3">Số Lượng (+/- Xu)</th>
+                          <th className="p-3">Nguồn Gốc Chi Tiết</th>
+                          <th className="p-3 text-right">Thời Gian</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60 font-medium">
+                        {coinTxs
+                          .filter(tx => {
+                            const matchSearch = coinAuditSearch.trim() === '' ||
+                              tx.userName.toLowerCase().includes(coinAuditSearch.toLowerCase()) ||
+                              (tx.userPhone && tx.userPhone.includes(coinAuditSearch)) ||
+                              (tx.userEmail && tx.userEmail.toLowerCase().includes(coinAuditSearch.toLowerCase()));
+
+                            const matchType = coinAuditFilterType === 'ALL' || tx.type === coinAuditFilterType;
+                            return matchSearch && matchType;
+                          })
+                          .map(tx => (
+                            <tr key={tx.id} className="hover:bg-slate-950/50 transition">
+                              <td className="p-3">
+                                <span className="font-bold text-slate-100 block">{tx.userName}</span>
+                                <span className="text-[10px] text-slate-400 font-mono block">{tx.userPhone || tx.userEmail || 'ID: ' + tx.userId}</span>
+                              </td>
+
+                              <td className="p-3">
+                                {tx.type === 'WATCH_VIDEO' && (
+                                  <span className="bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit">
+                                    <Tv className="w-3 h-3 text-pink-400" /> Xem Video YouTube
+                                  </span>
+                                )}
+                                {tx.type === 'REVIEW_BONUS' && (
+                                  <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit">
+                                    <Star className="w-3 h-3 text-emerald-400" /> Đánh Giá Sản Phẩm
+                                  </span>
+                                )}
+                                {tx.type === 'ADMIN_GRANT' && (
+                                  <span className="bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit">
+                                    <Crown className="w-3 h-3 text-purple-400" /> Admin Cộng Thưởng
+                                  </span>
+                                )}
+                                {tx.type === 'PURCHASE_CASHBACK' && (
+                                  <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 w-fit">
+                                    <Coins className="w-3 h-3 text-amber-400" /> Hoàn Xu Mua Hàng
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="p-3 font-mono font-black text-sm">
+                                {tx.amount >= 0 ? (
+                                  <span className="text-emerald-400">+{tx.amount} Xu</span>
+                                ) : (
+                                  <span className="text-rose-400">{tx.amount} Xu</span>
+                                )}
+                              </td>
+
+                              <td className="p-3 text-slate-300 max-w-md">
+                                <p className="line-clamp-2">{tx.sourceDescription}</p>
+                              </td>
+
+                              <td className="p-3 text-right font-mono text-[11px] text-slate-400">
+                                {tx.timestamp}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
                   </div>
 
                 </div>

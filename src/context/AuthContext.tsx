@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import type { UserProfile } from '../types';
+import type { UserProfile, CoinTransaction } from '../types';
 import { useToast } from './ToastContext';
 
 interface AuthContextType {
@@ -14,7 +14,7 @@ interface AuthContextType {
   registerPhone: (phone: string, pass: string, name?: string) => Promise<boolean>;
   changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
   updateAvatar: (newAvatarUrl: string) => Promise<boolean>;
-  updateCoins: (amount: number, isAddition?: boolean) => Promise<void>;
+  updateCoins: (amount: number, isAddition?: boolean, sourceDescription?: string, type?: CoinTransaction['type']) => Promise<void>;
   impersonateShop: (shopUser: any) => void;
   exitImpersonation: () => void;
   logout: () => Promise<void>;
@@ -420,8 +420,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Realtime update user coins balance across system
-  const updateCoins = async (amount: number, isAddition: boolean = true) => {
+  // Realtime update user coins balance & audit transaction history across system
+  const updateCoins = async (
+    amount: number,
+    isAddition: boolean = true,
+    sourceDescription?: string,
+    type?: CoinTransaction['type']
+  ) => {
     if (!user) return;
 
     const newCoins = isAddition ? (user.coins || 0) + amount : amount;
@@ -443,6 +448,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
+    // Save Audit Transaction Ledger Record
+    const txAmount = isAddition ? amount : (amount - (user.coins || 0));
+    const newTx: CoinTransaction = {
+      id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      userId: user.id,
+      userName: user.name,
+      userPhone: user.phone,
+      userEmail: user.email,
+      amount: txAmount,
+      type: type || 'WATCH_VIDEO',
+      sourceDescription: sourceDescription || 'Thưởng TQ Coins hệ thống',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' ' + new Date().toLocaleDateString('vi-VN')
+    };
+
+    const savedTxs = JSON.parse(localStorage.getItem('tq_coin_transactions') || '[]');
+    const updatedTxs = [newTx, ...savedTxs];
+    localStorage.setItem('tq_coin_transactions', JSON.stringify(updatedTxs));
+
     // Sync to Supabase Cloud DB
     try {
       await supabase.from('profiles').upsert([
@@ -452,8 +475,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updated_at: new Date().toISOString()
         }
       ]);
+      await supabase.from('coin_transactions').insert([newTx]);
     } catch (e) {
-      console.warn('Cloud coin sync active');
+      console.warn('Cloud coin & audit transaction sync active');
     }
   };
 

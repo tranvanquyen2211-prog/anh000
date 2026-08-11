@@ -162,9 +162,9 @@ export const WatchToEarnModal: React.FC<WatchToEarnModalProps> = ({ isOpen, onCl
       return;
     }
 
-    // Award coins to user profile & sync system-wide
+    // Award coins to user profile & sync system-wide with audit trail
     if (user) {
-      updateCoins(video.rewardCoins);
+      updateCoins(video.rewardCoins, true, `Xem Video YouTube: "${video.title}"`, 'WATCH_VIDEO');
 
       // Save completed list
       const newCompleted = [...completedVideoIds, video.id];

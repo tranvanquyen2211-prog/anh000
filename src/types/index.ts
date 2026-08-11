@@ -110,3 +110,15 @@ export interface ThemeConfig {
   coinCashbackRate: number;
   featureVisibility?: FeatureVisibilityConfig;
 }
+
+export interface CoinTransaction {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhone?: string;
+  userEmail?: string;
+  amount: number;
+  type: 'WATCH_VIDEO' | 'REVIEW_BONUS' | 'ADMIN_GRANT' | 'PURCHASE_CASHBACK' | 'ORDER_REDEEM';
+  sourceDescription: string;
+  timestamp: string;
+}
