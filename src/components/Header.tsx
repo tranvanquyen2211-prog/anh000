@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import type { ShopType } from '../types';
 import { NotificationCenter, type SystemNotification } from './NotificationCenter';
-import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2, LayoutGrid } from 'lucide-react';
+import { ShoppingCart, Search, User, LogOut, Wallet, Coins, Package, Palette, Key, Crown, PlusCircle, Store, Camera, Bell, MessageSquare, Tv, Wand2 } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAuthModal: () => void;
@@ -569,88 +569,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </nav>
 
-      {/* 📱 SHOPEE MOBILE BOTTOM NAVIGATION BAR (APP-LIKE DOCK) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-gray-200 text-gray-700 pb-1.5 pt-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] grid grid-cols-5 text-[10px] font-bold text-center">
-        
-        {/* Tab 1: Trang Chủ */}
-        <button
-          onClick={() => { setActiveTab('shop'); onSelectCategory('ALL'); }}
-          className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-            activeTab === 'shop' && selectedCategory === 'ALL' ? 'text-[#ee4d2d] font-extrabold' : 'text-gray-500 hover:text-[#ee4d2d]'
-          }`}
-        >
-          <div className="relative">
-            <span className="text-lg leading-none">🏠</span>
-            {activeTab === 'shop' && selectedCategory === 'ALL' && (
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-[#ee4d2d] rounded-full"></span>
-            )}
-          </div>
-          <span>Trang Chủ</span>
-        </button>
-
-        {/* Tab 2: Danh Mục */}
-        <button
-          onClick={() => {
-            const types: (ShopType | 'ALL')[] = ['ALL', 'RENTAL', 'RETAIL', 'FNB', 'BEAUTY', 'TAXI'];
-            const currentIdx = types.indexOf(selectedCategory);
-            const nextType = types[(currentIdx + 1) % types.length];
-            setActiveTab('shop');
-            onSelectCategory(nextType);
-          }}
-          className={`flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
-            selectedCategory !== 'ALL' ? 'text-[#ee4d2d] font-extrabold' : 'text-gray-500 hover:text-[#ee4d2d]'
-          }`}
-        >
-          <div className="relative">
-            <LayoutGrid className="w-5 h-5" />
-            {selectedCategory !== 'ALL' && (
-              <span className="absolute -top-1 -right-1 bg-[#ee4d2d] w-2 h-2 rounded-full"></span>
-            )}
-          </div>
-          <span>Danh Mục</span>
-        </button>
-
-        {/* Tab 3: Thông Báo */}
-        <button
-          onClick={onToggleNotifications}
-          className="flex flex-col items-center justify-center gap-0.5 text-gray-500 cursor-pointer relative"
-        >
-          <div className="relative">
-            <Bell className="w-5 h-5 text-gray-600" />
-            {unreadNotificationsCount > 0 && (
-              <span className="absolute -top-1 -right-1.5 bg-[#ee4d2d] text-white text-[8px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center">
-                {unreadNotificationsCount}
-              </span>
-            )}
-          </div>
-          <span>Thông Báo</span>
-        </button>
-
-        {/* Tab 4: Giỏ Hàng */}
-        <button
-          onClick={onOpenCartDrawer}
-          className="flex flex-col items-center justify-center gap-0.5 text-gray-500 cursor-pointer relative"
-        >
-          <div className="relative">
-            <ShoppingCart className="w-5 h-5 text-gray-600" />
-            {totalItemsCount > 0 && (
-              <span className="absolute -top-1 -right-1.5 bg-[#ee4d2d] text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow">
-                {totalItemsCount}
-              </span>
-            )}
-          </div>
-          <span>Giỏ Hàng</span>
-        </button>
-
-        {/* Tab 5: Tôi / Tài Khoản */}
-        <button
-          onClick={user ? onOpenOrderHistory : onOpenAuthModal}
-          className="flex flex-col items-center justify-center gap-0.5 text-gray-500 cursor-pointer"
-        >
-          <User className="w-5 h-5 text-gray-600" />
-          <span>{user ? (user.name.split(' ')[0] || 'Tôi') : 'Tôi'}</span>
-        </button>
-      </div>
+      {/* Bottom Navigation Dock Bar Hidden to Maximize Mobile Screen Space */}
     </header>
   );
 };
