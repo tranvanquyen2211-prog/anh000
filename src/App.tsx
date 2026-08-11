@@ -126,6 +126,70 @@ function MainApp() {
   const [selectedProductForEditSales, setSelectedProductForEditSales] = useState<Product | null>(null);
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
 
+  // 📱 NATIVE MOBILE SWIPE FROM LEFT TO RIGHT TO GO BACK / CLOSE MODAL
+  useEffect(() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.changedTouches.length === 1) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = Math.abs(touchEndY - touchStartY);
+
+        // Detect swipe from left to right: horizontal swipe deltaX > 75px, vertical deltaY < 60px, starting from left half of screen
+        if (deltaX > 75 && deltaY < 60 && touchStartX < window.innerWidth * 0.4) {
+          // Priority order for closing active overlays/modals
+          if (selectedProductForDetail) {
+            setSelectedProductForDetail(null);
+          } else if (isSearchResultsModalOpen) {
+            setIsSearchResultsModalOpen(false);
+          } else if (isUserProfileModalOpen) {
+            setIsUserProfileModalOpen(false);
+          } else if (isCartOpen) {
+            setIsCartOpen(false);
+          } else if (isAuthOpen) {
+            setIsAuthOpen(false);
+          } else if (isOrderHistoryOpen) {
+            setIsOrderHistoryOpen(false);
+          } else if (isChatInboxOpen) {
+            setIsChatInboxOpen(false);
+          } else if (selectedShopNameForStorefront) {
+            setSelectedShopNameForStorefront(null);
+          } else if (window.history.length > 1) {
+            window.history.back();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [
+    selectedProductForDetail,
+    isSearchResultsModalOpen,
+    isUserProfileModalOpen,
+    isCartOpen,
+    isAuthOpen,
+    isOrderHistoryOpen,
+    isChatInboxOpen,
+    selectedShopNameForStorefront
+  ]);
+
   const unreadNotificationsCount = notifications.filter(n => !n.isRead).length;
 
   const pushNewNotification = (notifItem: Omit<SystemNotification, 'id' | 'timestamp' | 'isRead'>) => {
