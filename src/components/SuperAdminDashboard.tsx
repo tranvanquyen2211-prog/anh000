@@ -53,7 +53,10 @@ import {
   Package,
   Wrench,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Clock,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 interface ResetRequest {
@@ -122,6 +125,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     | 'audit-logs'
     | 'customer-orders'
     | 'homepage-sections'
+    | 'new-registrations'
   >('users');
 
   // Users list state
@@ -621,6 +625,60 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       'SUCCESS'
     );
     addToast('⚡ Đã cập nhật & đồng bộ hóa giao diện Footer 4 cột trên toàn hệ thống!', 'success');
+  };
+
+  // Module 23 State & Helpers (Tài Khoản Đăng Ký Mới & Trạng Thái Hoạt Động Live)
+  const [registrationSearch, setRegistrationSearch] = useState('');
+  const [registrationRoleFilter, setRegistrationRoleFilter] = useState<string>('ALL');
+
+  const getOnlineUserCount = () => {
+    return usersList.filter(u => {
+      if (u.isOnline) return true;
+      if (u.lastActiveAt) {
+        const diffMs = Date.now() - new Date(u.lastActiveAt).getTime();
+        return diffMs < 5 * 60 * 1000;
+      }
+      return false;
+    }).length;
+  };
+
+  const formatRelativeLastSeen = (u: UserProfile) => {
+    const isOnline = u.isOnline || (u.lastActiveAt && (Date.now() - new Date(u.lastActiveAt).getTime()) < 5 * 60 * 1000);
+    if (isOnline) {
+      return (
+        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5 w-fit">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          🟢 Đang hoạt động (Online)
+        </span>
+      );
+    }
+
+    if (!u.lastActiveAt) {
+      return <span className="text-slate-500 font-medium italic">Chưa ghi nhận hoạt động</span>;
+    }
+
+    const diffMs = Date.now() - new Date(u.lastActiveAt).getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    let text = '';
+    if (diffMins < 1) {
+      text = 'Vừa mới thoát';
+    } else if (diffMins < 60) {
+      text = `Hoạt động ${diffMins} phút trước`;
+    } else if (diffHours < 24) {
+      text = `Hoạt động ${diffHours} giờ trước`;
+    } else {
+      text = `Hoạt động ${diffDays} ngày trước`;
+    }
+
+    return (
+      <span className="text-slate-400 font-medium flex items-center gap-1.5 text-[11px]">
+        <Clock className="w-3 h-3 text-slate-500" />
+        {text}
+      </span>
+    );
   };
 
   // Curated Featured Shops & Search Suggested Products State
@@ -1730,6 +1788,16 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
               }`}
             >
               <Sliders className="w-4 h-4 text-pink-400 animate-bounce" /> 22. 🧩 Vị Trí Khung & Sửa Nội Dung
+            </button>
+
+            <button
+              onClick={() => setAdminTab('new-registrations')}
+              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition cursor-pointer ${
+                adminTab === 'new-registrations' ? 'text-amber-400 bg-amber-500/10 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              <span className="flex items-center gap-2.5"><Users className="w-4 h-4 text-cyan-400 animate-pulse" /> 23. 🆕 Tài Khoản Mới & Trạng Thái Live</span>
+              <span className="bg-cyan-500 text-slate-950 text-[9px] px-1.5 py-0.2 rounded font-black">{usersList.length}</span>
             </button>
           </aside>
 
@@ -4678,6 +4746,233 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   </div>
                 </div>
 
+              </div>
+            )}
+
+            {/* MODULE 23: TÀI KHOẢN ĐĂNG KÝ MỚI NHẤT & TRẠNG THÁI HOẠT ĐỘNG REALTIME */}
+            {adminTab === 'new-registrations' && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                
+                {/* 3 KPI Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  
+                  {/* Card 1: Total Registered Accounts */}
+                  <div className="bg-slate-950 p-5 rounded-3xl border border-cyan-500/30 shadow-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-black text-cyan-400 uppercase tracking-wider block">
+                        TỔNG SỐ TÀI KHOẢN TẠO TOÀN SÀN
+                      </span>
+                      <span className="text-2xl font-black text-white font-mono mt-1 block">
+                        {usersList.length} <span className="text-xs text-slate-400 font-sans font-normal">Tài khoản</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-1 block">Sắp xếp theo thứ tự mới nhất ➡️ cũ nhất</span>
+                    </div>
+                    <div className="w-12 h-12 bg-cyan-500/20 text-cyan-400 rounded-2xl border border-cyan-500/40 flex items-center justify-center font-black text-xl">
+                      <Users className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                  {/* Card 2: Online Active Accounts */}
+                  <div className="bg-slate-950 p-5 rounded-3xl border border-emerald-500/30 shadow-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider block">
+                        TÀI KHOẢN ĐANG TRỰC TUYẾN (ONLINE)
+                      </span>
+                      <span className="text-2xl font-black text-emerald-400 font-mono mt-1 block flex items-center gap-2">
+                        {getOnlineUserCount()} <span className="text-xs text-slate-400 font-sans font-normal">Đang hoạt động</span>
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-bold mt-1 block flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Realtime 0ms Active
+                      </span>
+                    </div>
+                    <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-2xl border border-emerald-500/40 flex items-center justify-center font-black text-xl">
+                      <Wifi className="w-6 h-6 animate-pulse" />
+                    </div>
+                  </div>
+
+                  {/* Card 3: Offline Accounts */}
+                  <div className="bg-slate-950 p-5 rounded-3xl border border-slate-700 shadow-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
+                        TÀI KHOẢN NGOẠI TUYẾN (OFFLINE)
+                      </span>
+                      <span className="text-2xl font-black text-slate-300 font-mono mt-1 block">
+                        {usersList.length - getOnlineUserCount()} <span className="text-xs text-slate-400 font-sans font-normal">Ngoại tuyến</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-1 block">Hiển thị lịch sử lần cuối active</span>
+                    </div>
+                    <div className="w-12 h-12 bg-slate-900 text-slate-400 rounded-2xl border border-slate-800 flex items-center justify-center font-black text-xl">
+                      <WifiOff className="w-6 h-6" />
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Main Registrations Table Container */}
+                <div className="bg-slate-950 p-6 rounded-3xl border border-cyan-500/40 shadow-2xl space-y-5">
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                      <h3 className="text-lg font-black text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+                        🆕 THỐNG KÊ TÀI KHOẢN ĐĂNG KÝ MỚI & TRẠNG THÁI ONLINE REALTIME
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Danh sách sắp xếp chuẩn: <strong className="text-amber-300">Tài khoản tạo Mới Nhất nằm ở đầu bảng</strong>, <strong className="text-slate-400">Tài khoản Cũ Nhất nằm ở cuối bảng</strong>.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono font-black text-xs px-3 py-1.5 rounded-xl">
+                        Tổng: {usersList.length} tài khoản
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Search & Filter Controls */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="md:col-span-2 relative">
+                      <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                      <input
+                        type="text"
+                        placeholder="Tìm theo Tên, Email hoặc Số điện thoại..."
+                        value={registrationSearch}
+                        onChange={e => setRegistrationSearch(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl pl-10 pr-3.5 py-2.5 font-medium focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+
+                    <div>
+                      <select
+                        value={registrationRoleFilter}
+                        onChange={e => setRegistrationRoleFilter(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-bold text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-cyan-400"
+                      >
+                        <option value="ALL">👤 Tất Cả Vai Trò (Role)</option>
+                        <option value="USER">🛍️ Khách Hàng (Customer)</option>
+                        <option value="SHOP">🏪 Gian Hàng (Shop)</option>
+                        <option value="SUPER_ADMIN">👑 Super Admin Overlord</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* New Registrations Table */}
+                  <div className="overflow-x-auto custom-scrollbar pt-2">
+                    <table className="w-full text-left text-xs border-collapse min-w-[900px]">
+                      <thead>
+                        <tr className="bg-slate-900 text-slate-400 font-bold border-b border-slate-800">
+                          <th className="p-3.5"># STT & THỜI GIAN ĐĂNG KÝ</th>
+                          <th className="p-3.5">TÀI KHOẢN & THÔNG TIN KẾT NỐI</th>
+                          <th className="p-3.5">VAI TRÒ (ROLE)</th>
+                          <th className="p-3.5">TRẠNG THÁI HOẠT ĐỘNG REALTIME</th>
+                          <th className="p-3.5">THỜI GIAN HOẠT ĐỘNG LẦN CUỐI</th>
+                          <th className="p-3.5 text-center">THAO TÁC ADMIN</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        {[...usersList]
+                          .sort((a, b) => {
+                            const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                            const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                            return tB - tA; // Newest registered first!
+                          })
+                          .filter(u => {
+                            const q = registrationSearch.toLowerCase().trim();
+                            const matchQ = !q ||
+                              (u.name || '').toLowerCase().includes(q) ||
+                              (u.email || '').toLowerCase().includes(q) ||
+                              (u.phone || '').toLowerCase().includes(q);
+                            const matchRole = registrationRoleFilter === 'ALL' || u.role === registrationRoleFilter;
+                            return matchQ && matchRole;
+                          })
+                          .map((usr, idx) => {
+                            const isOnline = usr.isOnline || (usr.lastActiveAt && (Date.now() - new Date(usr.lastActiveAt).getTime()) < 5 * 60 * 1000);
+                            return (
+                              <tr key={usr.id || idx} className="hover:bg-slate-900/70 transition">
+                                
+                                {/* STT & Registration Time */}
+                                <td className="p-3.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 font-mono font-black text-[11px] flex items-center justify-center shrink-0 border border-cyan-500/30">
+                                      #{idx + 1}
+                                    </span>
+                                    <div>
+                                      <span className="font-mono text-slate-200 font-bold block text-xs">
+                                        {usr.createdAt
+                                          ? new Date(usr.createdAt).toLocaleString('vi-VN')
+                                          : 'Vừa khởi tạo'}
+                                      </span>
+                                      <span className="text-[10px] text-slate-500 font-medium">
+                                        ID: {usr.id || `USR_${idx+1}`}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* Account Info */}
+                                <td className="p-3.5">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-full bg-slate-800 text-amber-400 font-bold flex items-center justify-center border border-slate-700 shrink-0">
+                                      {usr.name ? usr.name.charAt(0).toUpperCase() : 'U'}
+                                    </div>
+                                    <div>
+                                      <span className="font-extrabold text-slate-100 block text-xs">{usr.name || 'Người dùng mới'}</span>
+                                      <span className="text-[11px] font-mono text-slate-400 block">{usr.phone || usr.email || 'N/A'}</span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* Role */}
+                                <td className="p-3.5">
+                                  {usr.role === 'SUPER_ADMIN' && (
+                                    <span className="bg-amber-500/20 text-amber-300 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-500/40 uppercase">
+                                      👑 Super Admin
+                                    </span>
+                                  )}
+                                  {usr.role === 'SHOP' && (
+                                    <span className="bg-purple-500/20 text-purple-300 text-[10px] font-black px-2.5 py-1 rounded-full border border-purple-500/40 uppercase">
+                                      🏪 Shop {usr.shopType || 'Gian Hàng'}
+                                    </span>
+                                  )}
+                                  {usr.role === 'USER' && (
+                                    <span className="bg-blue-500/20 text-blue-300 text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-500/40 uppercase">
+                                      🛍️ Khách Hàng
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Online Status */}
+                                <td className="p-3.5">
+                                  {formatRelativeLastSeen(usr)}
+                                </td>
+
+                                {/* Last Active Time */}
+                                <td className="p-3.5 font-mono text-slate-300 text-xs">
+                                  {usr.lastActiveAt
+                                    ? new Date(usr.lastActiveAt).toLocaleString('vi-VN')
+                                    : (isOnline ? 'Vừa thao tác' : 'Chưa ghi nhận')}
+                                </td>
+
+                                {/* Quick Admin Actions */}
+                                <td className="p-3.5 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => setAdminTab('users')}
+                                      className="bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold px-2.5 py-1 rounded-lg text-[10px] border border-slate-700 transition cursor-pointer"
+                                    >
+                                      ✏️ Quản Lý
+                                    </button>
+                                  </div>
+                                </td>
+
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
               </div>
             )}
 

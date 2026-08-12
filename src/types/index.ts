@@ -83,6 +83,9 @@ export interface UserProfile {
   isGrandOpeningShop?: boolean;
   openingDate?: string;
   depositBankInfo?: BankInfo;
+  createdAt?: string;
+  lastActiveAt?: string;
+  isOnline?: boolean;
 }
 
 export interface ToastMessage {
