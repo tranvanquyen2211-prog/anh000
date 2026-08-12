@@ -6,15 +6,25 @@ interface ShopeeMobileIconGridProps {
   onOpenAiMixMatchModal?: () => void;
   onOpenWalletDepositWithdrawModal?: () => void;
   onOpenWatchToEarnModal?: () => void;
+  onOpenJobMarketModal?: () => void;
 }
 
 export const ShopeeMobileIconGrid: React.FC<ShopeeMobileIconGridProps> = ({
   onSelectCategory,
   onOpenAiMixMatchModal,
   onOpenWalletDepositWithdrawModal,
-  onOpenWatchToEarnModal
+  onOpenWatchToEarnModal,
+  onOpenJobMarketModal
 }) => {
   const quickItems = [
+    {
+      id: 'jobs',
+      title: 'Việc Làm TQ',
+      badge: 'Tuyển Dụng',
+      icon: '💼',
+      bgGradient: 'from-[#059669] to-[#10b981]',
+      action: () => onOpenJobMarketModal && onOpenJobMarketModal()
+    },
     {
       id: 'rental',
       title: 'Thuê Tr.Phục',

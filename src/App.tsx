@@ -35,6 +35,7 @@ import { AiMixMatchStudioModal } from './components/AiMixMatchStudioModal';
 import { ExportStatementModal } from './components/ExportStatementModal';
 import { SearchResultsModal } from './components/SearchResultsModal';
 import { UserProfileModal } from './components/UserProfileModal';
+import { JobMarketModal } from './components/JobMarketModal';
 import { ShopeeMobileIconGrid } from './components/ShopeeMobileIconGrid';
 import { ShopeeFlashSaleSection } from './components/ShopeeFlashSaleSection';
 import { Footer } from './components/Footer';
@@ -136,6 +137,7 @@ function MainApp() {
   const [isExportStatementOpen, setIsExportStatementOpen] = useState(false);
   const [isSearchResultsModalOpen, setIsSearchResultsModalOpen] = useState(false);
   const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState(false);
+  const [isJobMarketModalOpen, setIsJobMarketModalOpen] = useState(false);
   const [exportTargetRole, setExportTargetRole] = useState<'SUPER_ADMIN' | 'SHOP'>('SHOP');
   const [exportShopName, setExportShopName] = useState<string | undefined>(undefined);
 
@@ -475,6 +477,7 @@ function MainApp() {
         onOpenUserCoinsModal={() => setIsUserCoinsModalOpen(true)}
         onOpenWalletDepositWithdrawModal={() => setIsWalletModalOpen(true)}
         onOpenAiMixMatchModal={() => setIsAiMixMatchModalOpen(true)}
+        onOpenJobMarketModal={() => setIsJobMarketModalOpen(true)}
         onOpenThemeCustomizer={() => setIsAdminThemeOpen(true)}
         onOpenAiDesignStudio={() => setIsAdminAiDesignStudioOpen(true)}
         onOpenSuperAdminDashboard={() => setIsSuperAdminDashboardOpen(true)}
@@ -523,6 +526,7 @@ function MainApp() {
                   onOpenAiMixMatchModal={() => setIsAiMixMatchModalOpen(true)}
                   onOpenWalletDepositWithdrawModal={() => setIsWalletModalOpen(true)}
                   onOpenWatchToEarnModal={() => setIsWatchToEarnOpen(true)}
+                  onOpenJobMarketModal={() => setIsJobMarketModalOpen(true)}
                 />
               );
             }
@@ -910,6 +914,11 @@ function MainApp() {
         onClose={() => setIsExportStatementOpen(false)}
         targetRole={exportTargetRole}
         shopName={exportShopName}
+      />
+
+      <JobMarketModal
+        isOpen={isJobMarketModalOpen}
+        onClose={() => setIsJobMarketModalOpen(false)}
       />
 
       {/* 🤖 AI TIQI SMART SHOPPING ASSISTANT & AUTOMATED CUSTOMER SUPPORT WIDGET */}

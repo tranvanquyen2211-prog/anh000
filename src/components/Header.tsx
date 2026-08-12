@@ -15,6 +15,7 @@ interface HeaderProps {
   onOpenUserCoinsModal?: () => void;
   onOpenWalletDepositWithdrawModal?: () => void;
   onOpenAiMixMatchModal?: () => void;
+  onOpenJobMarketModal?: () => void;
   onOpenThemeCustomizer?: () => void;
   onOpenAiDesignStudio?: () => void;
   onOpenChangePassword?: () => void;
@@ -48,6 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenChatInbox,
   onOpenUserCoinsModal,
   onOpenWalletDepositWithdrawModal,
+  onOpenJobMarketModal,
   onOpenThemeCustomizer,
   onOpenAiDesignStudio,
   onOpenSuperAdminDashboard,
@@ -475,6 +477,18 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Actions & Account */}
         <div className="flex items-center gap-2 sm:gap-3">
+          
+          {/* Job & Employment Portal Quick Button */}
+          {onOpenJobMarketModal && (
+            <button
+              onClick={onOpenJobMarketModal}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-400"
+              title="Cổng Tiện Ích Việc Làm & Tuyển Dụng"
+            >
+              <span>💼</span>
+              <span className="hidden md:inline">Việc Làm TQ</span>
+            </button>
+          )}
           
           {/* AI Mix & Match and Watch Video buttons removed from Desktop Header as requested */}
           
