@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useTheme, DEFAULT_MASTER_SWITCHES, DEFAULT_HOMEPAGE_SECTIONS } from '../context/ThemeContext';
+import { useTheme, DEFAULT_MASTER_SWITCHES, DEFAULT_HOMEPAGE_SECTIONS, DEFAULT_FOOTER_CONFIG } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import { recordAuditLog } from '../lib/auditLogger';
-import type { UserProfile, Product, CoinTransaction, WalletTransaction, AuditLog, Voucher, HomepageSectionConfig } from '../types';
+import type { UserProfile, Product, CoinTransaction, WalletTransaction, AuditLog, Voucher, HomepageSectionConfig, FooterColumnConfig } from '../types';
 import {
   Crown,
   UserCheck,
@@ -598,6 +598,29 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
       'SUCCESS'
     );
     addToast('✏️ Đã sửa tiêu đề khung và đồng bộ hóa thành công trên toàn hệ thống!', 'success');
+  };
+
+  // Footer Admin Control State & Handler
+  const currentFooterConfig = theme.footerConfig || DEFAULT_FOOTER_CONFIG;
+  const [footerState, setFooterState] = useState<FooterColumnConfig>(currentFooterConfig);
+
+  useEffect(() => {
+    if (theme.footerConfig) {
+      setFooterState(theme.footerConfig);
+    }
+  }, [theme.footerConfig]);
+
+  const handleSaveFooterConfig = () => {
+    updateTheme({ footerConfig: footerState });
+    recordAuditLog(
+      user?.name || 'Super Admin',
+      'SUPER_ADMIN',
+      'Cấu Hình Giao Diện Footer 4 Cột',
+      'FOOTER_CONFIG',
+      `Super Admin đã cập nhật nội dung & ẩn/hiện 4 cột Footer trên toàn hệ thống`,
+      'SUCCESS'
+    );
+    addToast('⚡ Đã cập nhật & đồng bộ hóa giao diện Footer 4 cột trên toàn hệ thống!', 'success');
   };
 
   // Curated Featured Shops & Search Suggested Products State
@@ -4498,6 +4521,163 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   </div>
 
                 </div>
+
+                {/* FOOTER CONTROL PANEL (ẨN/HIỆN & SỬA THÔNG TIN 4 CỘT FOOTER) */}
+                <div className="bg-slate-950 p-6 rounded-3xl border border-amber-500/40 shadow-2xl space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                      <h3 className="text-lg font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        🦶 BẢNG ĐIỀU KHIỂN & CHỈNH SỬA FOOTER (4 CỘT CHUYÊN NGHIỆP)
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Tùy chỉnh bật/tắt hiển thị 4 Cột chân trang và chỉnh sửa tiêu đề, hotline, email, địa chỉ & bản quyền.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveFooterConfig}
+                      className="bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl transition shadow-lg flex items-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      ⚡ LƯU & ĐỒNG BỘ FOOTER 0MS
+                    </button>
+                  </div>
+
+                  {/* 4 Columns Visibility Toggles */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFooterState(prev => ({ ...prev, showCol1: !prev.showCol1 }))}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                        footerState.showCol1
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/40'
+                          : 'bg-slate-900 text-slate-500 border-slate-800'
+                      }`}
+                    >
+                      <span>Cột 1: Logo & Giới Thiệu</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        footerState.showCol1 ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {footerState.showCol1 ? '🟢 HIỆN' : '🔒 ẨN'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFooterState(prev => ({ ...prev, showCol2: !prev.showCol2 }))}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                        footerState.showCol2
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/40'
+                          : 'bg-slate-900 text-slate-500 border-slate-800'
+                      }`}
+                    >
+                      <span>Cột 2: Danh Mục Nổi Bật</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        footerState.showCol2 ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {footerState.showCol2 ? '🟢 HIỆN' : '🔒 ẨN'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFooterState(prev => ({ ...prev, showCol3: !prev.showCol3 }))}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                        footerState.showCol3
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/40'
+                          : 'bg-slate-900 text-slate-500 border-slate-800'
+                      }`}
+                    >
+                      <span>Cột 3: Chính Sách & Hỗ Trợ</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        footerState.showCol3 ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {footerState.showCol3 ? '🟢 HIỆN' : '🔒 ẨN'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setFooterState(prev => ({ ...prev, showCol4: !prev.showCol4 }))}
+                      className={`p-3 rounded-2xl border text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                        footerState.showCol4
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/40'
+                          : 'bg-slate-900 text-slate-500 border-slate-800'
+                      }`}
+                    >
+                      <span>Cột 4: P.Thức Thanh Toán & MXH</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        footerState.showCol4 ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {footerState.showCol4 ? '🟢 HIỆN' : '🔒 ẨN'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Form Edit Content Text Fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                    <div>
+                      <label className="block text-slate-300 font-bold mb-1">Tên Thương Hiệu (Cột 1)</label>
+                      <input
+                        type="text"
+                        value={footerState.col1Title}
+                        onChange={e => setFooterState(prev => ({ ...prev, col1Title: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 text-amber-400 font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-300 font-bold mb-1">Hotline CSKH</label>
+                      <input
+                        type="text"
+                        value={footerState.hotline}
+                        onChange={e => setFooterState(prev => ({ ...prev, hotline: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 text-amber-400 font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-300 font-bold mb-1">Email Liên Hệ</label>
+                      <input
+                        type="text"
+                        value={footerState.email}
+                        onChange={e => setFooterState(prev => ({ ...prev, email: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2 lg:col-span-3">
+                      <label className="block text-slate-300 font-bold mb-1">Mô Tả Giới Thiệu Ngắn (Cột 1)</label>
+                      <textarea
+                        rows={2}
+                        value={footerState.col1Desc}
+                        onChange={e => setFooterState(prev => ({ ...prev, col1Desc: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-medium rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-slate-300 font-bold mb-1">Địa Chỉ Trụ Sở</label>
+                      <input
+                        type="text"
+                        value={footerState.address}
+                        onChange={e => setFooterState(prev => ({ ...prev, address: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-medium rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-300 font-bold mb-1">Dòng Bản Quyền (Bottom Bar)</label>
+                      <input
+                        type="text"
+                        value={footerState.copyrightText}
+                        onChange={e => setFooterState(prev => ({ ...prev, copyrightText: e.target.value }))}
+                        className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
               </div>
             )}
 

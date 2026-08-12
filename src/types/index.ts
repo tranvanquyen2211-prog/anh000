@@ -126,6 +126,19 @@ export interface HomepageSectionConfig {
   order: number;
 }
 
+export interface FooterColumnConfig {
+  showCol1: boolean;
+  showCol2: boolean;
+  showCol3: boolean;
+  showCol4: boolean;
+  col1Title: string;
+  col1Desc: string;
+  hotline: string;
+  email: string;
+  address: string;
+  copyrightText: string;
+}
+
 export interface ThemeConfig {
   siteName: string;
   tagline: string;
@@ -143,6 +156,7 @@ export interface ThemeConfig {
   featureVisibility?: FeatureVisibilityConfig;
   masterSwitches?: SystemMasterSwitches;
   homepageSections?: HomepageSectionConfig[];
+  footerConfig?: FooterColumnConfig;
 }
 
 export interface CoinTransaction {

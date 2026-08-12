@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { ThemeConfig, FeatureVisibilityConfig, SystemMasterSwitches, HomepageSectionConfig } from '../types';
+import type { ThemeConfig, FeatureVisibilityConfig, SystemMasterSwitches, HomepageSectionConfig, FooterColumnConfig } from '../types';
 import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from '../lib/supabase';
 import { useToast } from './ToastContext';
 
@@ -67,6 +67,19 @@ export const DEFAULT_HOMEPAGE_SECTIONS: HomepageSectionConfig[] = [
   }
 ];
 
+export const DEFAULT_FOOTER_CONFIG: FooterColumnConfig = {
+  showCol1: true,
+  showCol2: true,
+  showCol3: true,
+  showCol4: true,
+  col1Title: 'TQ Store System',
+  col1Desc: 'Hệ thống thương mại điện tử mua sắm đa mô hình hàng đầu. Tích hợp Cho Thuê Trang Phục Dạ Hội & Cưới, Thời Trang Shopee Mall, Đồ Ăn & Trà Sữa Giao Tận Nơi, Spa & Làm Đẹp Chuyên Nghiệp.',
+  hotline: '1900 6868 - 0988 123 456',
+  email: 'support@tqstore.vn',
+  address: 'Tòa nhà TQ Tower, Số 88 Nguyễn Thị Minh Khai, Quận 1, TP. Hồ Chí Minh',
+  copyrightText: 'Copyright © 2026 TQ Store System. All rights reserved.',
+};
+
 export const DEFAULT_THEME: ThemeConfig = {
   siteName: 'TQ Store',
   tagline: 'Realtime Marketplace Platform',
@@ -83,7 +96,8 @@ export const DEFAULT_THEME: ThemeConfig = {
   coinCashbackRate: 3,
   featureVisibility: DEFAULT_FEATURE_VISIBILITY,
   masterSwitches: DEFAULT_MASTER_SWITCHES,
-  homepageSections: DEFAULT_HOMEPAGE_SECTIONS
+  homepageSections: DEFAULT_HOMEPAGE_SECTIONS,
+  footerConfig: DEFAULT_FOOTER_CONFIG
 };
 
 export const PRESET_THEMES = [
