@@ -13,6 +13,9 @@ interface AuthContextType {
   registerEmail: (email: string, pass: string, name?: string) => Promise<boolean>;
   loginPhone: (phone: string, pass: string) => Promise<boolean>;
   registerPhone: (phone: string, pass: string, name?: string) => Promise<boolean>;
+  registerUnified: (phone: string, email: string, pass: string, name: string) => Promise<boolean>;
+  loginUnified: (emailOrPhone: string, pass: string) => Promise<boolean>;
+  resetPasswordUnified: (emailOrPhone: string, newPass: string) => Promise<boolean>;
   changePassword: (currentPass: string, newPass: string) => Promise<boolean>;
   updateAvatar: (newAvatarUrl: string) => Promise<boolean>;
   updateCoins: (amount: number, isAddition?: boolean, sourceDescription?: string, type?: CoinTransaction['type']) => Promise<void>;
@@ -449,6 +452,199 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Global Unified Registration (Bắt buộc cả SĐT & Gmail)
+  const registerUnified = async (phone: string, email: string, pass: string, name: string): Promise<boolean> => {
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    const cleanEmail = email.trim().toLowerCase();
+    const displayName = name.trim() || cleanEmail.split('@')[0] || `Khách SĐT ${cleanPhone}`;
+
+    if (!cleanPhone || !cleanEmail || !pass) {
+      addToast('Vui lòng nhập đầy đủ Số điện thoại, Email và Mật khẩu!', 'error');
+      return false;
+    }
+
+    const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+    const existing = localAccounts.find((u: any) => 
+      (u.phone && u.phone.replace(/\s+/g, '') === cleanPhone) || 
+      (u.email && u.email.toLowerCase() === cleanEmail)
+    );
+
+    if (existing) {
+      addToast('Số điện thoại hoặc Email này đã được đăng ký! Vui lòng chọn Đăng Nhập.', 'error');
+      return false;
+    }
+
+    const userId = `usr_${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    const isAdmin = isUserAdmin(cleanEmail, cleanPhone);
+
+    const profile: UserProfile = {
+      id: userId,
+      email: cleanEmail,
+      phone: cleanPhone,
+      name: displayName,
+      role: isAdmin ? 'SUPER_ADMIN' : 'USER',
+      isGuest: false,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0F2C59&color=fff`,
+      walletBalance: isAdmin ? 99999999 : 0,
+      coins: isAdmin ? 99999 : 10,
+      status: 'active',
+      createdAt: nowIso,
+      lastActiveAt: nowIso,
+      isOnline: true
+    };
+
+    localAccounts.push({
+      id: userId,
+      phone: cleanPhone,
+      email: cleanEmail,
+      pass,
+      name: displayName,
+      role: profile.role,
+      createdAt: nowIso,
+      lastActiveAt: nowIso,
+      isOnline: true
+    });
+    localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+
+    try {
+      await supabase.auth.signUp({
+        email: cleanEmail,
+        password: pass,
+        options: { data: { full_name: displayName, phone: cleanPhone } }
+      }).catch(() => {});
+
+      await supabase.from('profiles').upsert([{
+        id: userId,
+        email: cleanEmail,
+        phone: cleanPhone,
+        full_name: displayName,
+        created_at: nowIso,
+        updated_at: nowIso
+      }]);
+    } catch (e) {}
+
+    setUser(profile);
+    localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+    recordAuditLog(displayName, profile.role, 'Đăng Ký Tài Khoản Gộp', `Email: ${cleanEmail} | SĐT: ${cleanPhone}`, 'Khách hàng tạo tài khoản gộp SĐT & Gmail thành công', 'SUCCESS');
+    addToast(`🎉 Đăng ký tài khoản thành công! Thưởng 10 TQ Coins. Xin chào ${displayName}.`, 'success');
+    return true;
+  };
+
+  // Global Unified Login (Đăng nhập bằng SĐT hoặc Gmail)
+  const loginUnified = async (emailOrPhone: string, pass: string): Promise<boolean> => {
+    const query = emailOrPhone.trim().toLowerCase();
+    const cleanPhoneQuery = query.replace(/\s+/g, '');
+
+    if (!query || !pass) {
+      addToast('Vui lòng nhập Số điện thoại/Email và Mật khẩu!', 'error');
+      return false;
+    }
+
+    const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+    const matchedUser = localAccounts.find((u: any) => {
+      const matchEmail = u.email && u.email.toLowerCase() === query;
+      const matchPhone = u.phone && u.phone.replace(/\s+/g, '') === cleanPhoneQuery;
+      return matchEmail || matchPhone;
+    });
+
+    if (matchedUser) {
+      if (matchedUser.pass && matchedUser.pass !== pass) {
+        addToast('Mật khẩu không chính xác! Vui lòng kiểm tra lại hoặc chọn Quên mật khẩu.', 'error');
+        return false;
+      }
+
+      const nowIso = new Date().toISOString();
+      const profile: UserProfile = {
+        id: matchedUser.id || `usr_${Date.now()}`,
+        email: matchedUser.email || `${matchedUser.phone}@phone.tqstore.vn`,
+        phone: matchedUser.phone || '',
+        name: matchedUser.name || 'Khách hàng',
+        role: matchedUser.role || (isUserAdmin(matchedUser.email, matchedUser.phone) ? 'SUPER_ADMIN' : 'USER'),
+        isGuest: false,
+        avatar: matchedUser.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(matchedUser.name || 'User')}&background=0F2C59&color=fff`,
+        walletBalance: matchedUser.walletBalance || 0,
+        coins: matchedUser.coins !== undefined ? matchedUser.coins : 0,
+        createdAt: matchedUser.createdAt || nowIso,
+        lastActiveAt: nowIso,
+        isOnline: true
+      };
+
+      matchedUser.lastActiveAt = nowIso;
+      matchedUser.isOnline = true;
+      localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+
+      setUser(profile);
+      localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+      recordAuditLog(profile.name, profile.role, 'Đăng Nhập Gộp (SĐT/Email)', `Query: ${query}`, 'Đăng nhập thành công', 'SUCCESS');
+      addToast(`Xin chào ${profile.name}! Đăng nhập thành công.`, 'success');
+      return true;
+    }
+
+    // Try Supabase Auth Login
+    try {
+      const targetEmail = query.includes('@') ? query : `${cleanPhoneQuery}@phone.tqstore.vn`;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: targetEmail,
+        password: pass,
+      });
+
+      if (!error && data?.user) {
+        const nowIso = new Date().toISOString();
+        const uEmail = data.user.email || query;
+        const uPhone = data.user.user_metadata?.phone || cleanPhoneQuery;
+        const uName = data.user.user_metadata?.full_name || uEmail.split('@')[0];
+
+        const profile = createProfileObject(data.user.id, uEmail, uPhone, uName);
+        profile.lastActiveAt = nowIso;
+        profile.isOnline = true;
+
+        setUser(profile);
+        localStorage.setItem('tq_user_profile', JSON.stringify(profile));
+        addToast(`Xin chào ${profile.name}! Đăng nhập thành công.`, 'success');
+        return true;
+      }
+    } catch (e) {}
+
+    addToast('Tài khoản (Email/SĐT) không tồn tại hoặc mật khẩu không chính xác!', 'error');
+    return false;
+  };
+
+  // Global Password Reset (Quên Mật Khẩu)
+  const resetPasswordUnified = async (emailOrPhone: string, newPass: string): Promise<boolean> => {
+    const query = emailOrPhone.trim().toLowerCase();
+    const cleanPhoneQuery = query.replace(/\s+/g, '');
+
+    if (!query || !newPass) {
+      addToast('Vui lòng nhập đầy đủ Email/SĐT và Mật khẩu mới!', 'error');
+      return false;
+    }
+
+    const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+    const idx = localAccounts.findIndex((u: any) => {
+      const matchEmail = u.email && u.email.toLowerCase() === query;
+      const matchPhone = u.phone && u.phone.replace(/\s+/g, '') === cleanPhoneQuery;
+      return matchEmail || matchPhone;
+    });
+
+    if (idx > -1) {
+      localAccounts[idx].pass = newPass;
+      localAccounts[idx].lastActiveAt = new Date().toISOString();
+      localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+
+      try {
+        await supabase.auth.updateUser({ password: newPass }).catch(() => {});
+      } catch (e) {}
+
+      recordAuditLog(localAccounts[idx].name || 'Khách hàng', 'USER', 'Quên Mật Khẩu', query, 'Đặt lại mật khẩu tài khoản thành công', 'SUCCESS');
+      addToast('🎉 Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại với mật khẩu mới.', 'success');
+      return true;
+    }
+
+    addToast('Không tìm thấy tài khoản nào khớp với Email hoặc Số điện thoại đã nhập!', 'error');
+    return false;
+  };
+
   // Global Password Change Function
   const changePassword = async (_currentPass: string, newPass: string): Promise<boolean> => {
     if (!user) {
@@ -570,6 +766,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       registerEmail,
       loginPhone,
       registerPhone,
+      registerUnified,
+      loginUnified,
+      resetPasswordUnified,
       changePassword,
       updateAvatar,
       updateCoins,
