@@ -29,6 +29,7 @@ export interface ChatMessageItem {
   senderRole: string;
   text: string;
   timestamp: string;
+  status?: 'sent' | 'read';
   productContext?: Product | null;
 }
 
@@ -99,7 +100,8 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
           senderName: 'TQ Rental Studio',
           senderRole: 'SHOP',
           text: 'Xin chào quý khách! TQ Rental Studio chuyên cho thuê trang phục dạ hội & cưới cao cấp.',
-          timestamp: '10:00'
+          timestamp: '10:00',
+          status: 'read'
         },
         {
           id: 'msg_2',
@@ -107,7 +109,8 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
           senderName: user?.name || 'Khách Hàng',
           senderRole: 'USER',
           text: 'Shop cho mình hỏi đầm dạ hội đỏ có sẵn size M không ạ?',
-          timestamp: '10:02'
+          timestamp: '10:02',
+          status: 'read'
         },
         {
           id: 'msg_3',
@@ -115,11 +118,55 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
           senderName: 'TQ Rental Studio',
           senderRole: 'SHOP',
           text: 'Dạ shop sẵn size M trang phục cưới ạ, anh/chị cần ship hỏa tốc không ạ?',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: 'sent'
         }
       ]
     };
   });
+
+  // Helper to mark a thread and its messages as READ (xem rồi)
+  const markThreadAsRead = (threadId: string) => {
+    setThreads(prev => {
+      let changed = false;
+      const updated = prev.map(t => {
+        if (t.id === threadId && t.unreadCount > 0) {
+          changed = true;
+          return { ...t, unreadCount: 0 };
+        }
+        return t;
+      });
+      if (changed) {
+        localStorage.setItem('tq_chat_threads', JSON.stringify(updated));
+        window.dispatchEvent(new Event('tq_chat_unread_updated'));
+      }
+      return updated;
+    });
+
+    setMessagesMap(prev => {
+      const list = prev[threadId];
+      if (!list || list.length === 0) return prev;
+      let hasUnread = false;
+      const updatedList = list.map(m => {
+        if (m.status !== 'read') {
+          hasUnread = true;
+          return { ...m, status: 'read' as const };
+        }
+        return m;
+      });
+      if (!hasUnread) return prev;
+      const nextMap = { ...prev, [threadId]: updatedList };
+      localStorage.setItem('tq_chat_messages_map', JSON.stringify(nextMap));
+      return nextMap;
+    });
+  };
+
+  // Mark active thread as read whenever modal is open or active thread changes
+  useEffect(() => {
+    if (isOpen && activeThreadId) {
+      markThreadAsRead(activeThreadId);
+    }
+  }, [isOpen, activeThreadId]);
 
   // Supabase Realtime WebSocket Connection for Live Messages Sync
   useEffect(() => {
@@ -128,32 +175,40 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
       .on('broadcast', { event: 'new_chat_message' }, (payload) => {
         if (payload?.payload) {
           const incomingMsg: ChatMessageItem = payload.payload;
+          const isCurrentlyActive = isOpen && activeThreadId === incomingMsg.threadId;
 
           // Append incoming message to state
           setMessagesMap(prev => {
             const currentList = prev[incomingMsg.threadId] || [];
             if (currentList.some(m => m.id === incomingMsg.id)) return prev;
 
+            const formattedMsg = {
+              ...incomingMsg,
+              status: isCurrentlyActive ? ('read' as const) : ('sent' as const)
+            };
+
             const nextMap = {
               ...prev,
-              [incomingMsg.threadId]: [...currentList, incomingMsg]
+              [incomingMsg.threadId]: [...currentList, formattedMsg]
             };
             localStorage.setItem('tq_chat_messages_map', JSON.stringify(nextMap));
             return nextMap;
           });
 
-          // Update thread list with last message snippet
+          // Update thread list with last message snippet & unread counter
           setThreads(prev => {
             const updated = prev.map(t =>
               t.id === incomingMsg.threadId
                 ? {
                     ...t,
                     lastMessage: incomingMsg.text,
-                    lastTimestamp: incomingMsg.timestamp
+                    lastTimestamp: incomingMsg.timestamp,
+                    unreadCount: isCurrentlyActive ? 0 : (t.unreadCount || 0) + 1
                   }
                 : t
             );
             localStorage.setItem('tq_chat_threads', JSON.stringify(updated));
+            window.dispatchEvent(new Event('tq_chat_unread_updated'));
             return updated;
           });
         }
@@ -163,7 +218,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
     return () => {
       supabase.removeChannel(chatChannel);
     };
-  }, []);
+  }, [isOpen, activeThreadId]);
 
   if (!isOpen) return null;
 
@@ -186,7 +241,8 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
       senderName: user?.name || 'Tôi',
       senderRole: user?.role || 'USER',
       text: msgText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'read'
     };
 
     // Update local state
@@ -197,7 +253,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
     setMessagesMap(updatedMap);
     localStorage.setItem('tq_chat_messages_map', JSON.stringify(updatedMap));
 
-    // Update last message in thread
+    // Update last message in thread & reset unreadCount to 0
     const updatedThreads = threads.map(t =>
       t.id === activeThreadId
         ? {
@@ -210,6 +266,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
     );
     setThreads(updatedThreads);
     localStorage.setItem('tq_chat_threads', JSON.stringify(updatedThreads));
+    window.dispatchEvent(new Event('tq_chat_unread_updated'));
 
     setInputText('');
 
@@ -356,7 +413,10 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
             {filteredThreads.map(thread => (
               <div
                 key={thread.id}
-                onClick={() => setActiveThreadId(thread.id)}
+                onClick={() => {
+                  setActiveThreadId(thread.id);
+                  markThreadAsRead(thread.id);
+                }}
                 className={`p-3 rounded-2xl transition cursor-pointer flex items-center gap-3 border ${
                   activeThreadId === thread.id
                     ? 'bg-navy text-white border-navy shadow-md'
@@ -375,9 +435,16 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center">
                     <h4 className="font-bold text-xs truncate">{thread.contactName}</h4>
-                    <span className={`text-[9px] font-mono ${activeThreadId === thread.id ? 'text-amber-300' : 'text-gray-400'}`}>
-                      {thread.lastTimestamp}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`text-[9px] font-mono ${activeThreadId === thread.id ? 'text-amber-300' : 'text-gray-400'}`}>
+                        {thread.lastTimestamp}
+                      </span>
+                      {thread.unreadCount > 0 && (
+                        <span className="bg-rose-600 text-white font-black text-[9px] px-1.5 py-0.2 rounded-full shadow-xs animate-pulse">
+                          {thread.unreadCount} mới
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className={`text-[11px] truncate mt-0.5 ${activeThreadId === thread.id ? 'text-gray-300' : 'text-gray-500'}`}>
                     {thread.lastMessage}
@@ -444,6 +511,23 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
                         }`}
                       >
                         {msg.text}
+
+                        {/* Status Indicator (✓ Đã gửi / ✓✓ Đã xem) */}
+                        <div className={`text-[9px] mt-1.5 flex items-center justify-end gap-1 font-bold ${isMe ? 'text-amber-300' : 'text-gray-400'}`}>
+                          {isMe && (
+                            <span className="flex items-center gap-0.5">
+                              {msg.status === 'read' ? (
+                                <span className="text-cyan-300 font-black flex items-center gap-0.5" title="Đã xem">
+                                  ✓✓ Đã xem
+                                </span>
+                              ) : (
+                                <span className="text-gray-300 font-semibold flex items-center gap-0.5" title="Đã gửi">
+                                  ✓ Đã gửi
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );

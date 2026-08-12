@@ -116,6 +116,33 @@ function MainApp() {
   });
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
+  // Unread Chat Counter State & Realtime Listener
+  const calculateUnreadChatCount = (): number => {
+    try {
+      const saved = localStorage.getItem('tq_chat_threads');
+      if (!saved) return 1;
+      const threads: Array<{ unreadCount?: number }> = JSON.parse(saved);
+      return threads.reduce((acc, t) => acc + (t.unreadCount || 0), 0);
+    } catch (e) {
+      return 0;
+    }
+  };
+
+  const [unreadChatCount, setUnreadChatCount] = useState<number>(calculateUnreadChatCount);
+
+  useEffect(() => {
+    const handleUnreadUpdate = () => {
+      setUnreadChatCount(calculateUnreadChatCount());
+    };
+
+    window.addEventListener('tq_chat_unread_updated', handleUnreadUpdate);
+    window.addEventListener('storage', handleUnreadUpdate);
+    return () => {
+      window.removeEventListener('tq_chat_unread_updated', handleUnreadUpdate);
+      window.removeEventListener('storage', handleUnreadUpdate);
+    };
+  }, []);
+
   // Modals state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -497,6 +524,7 @@ function MainApp() {
         onOpenUserProfileModal={() => setIsUserProfileModalOpen(true)}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        unreadChatCount={unreadChatCount}
         unreadNotificationsCount={unreadNotificationsCount}
         onToggleNotifications={handleToggleNotifications}
         isNotificationsOpen={isNotificationsOpen}

@@ -34,7 +34,8 @@ interface HeaderProps {
   activeTab?: 'shop' | 'orders' | 'chat';
   setActiveTab?: (tab: 'shop' | 'orders' | 'chat') => void;
 
-  // Notification Props
+  // Notification & Chat Props
+  unreadChatCount?: number;
   unreadNotificationsCount: number;
   onToggleNotifications: () => void;
   isNotificationsOpen: boolean;
@@ -64,6 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
   searchQuery,
   onSearchChange,
   setActiveTab,
+  unreadChatCount = 0,
   unreadNotificationsCount,
   onToggleNotifications,
   isNotificationsOpen,
@@ -625,12 +627,14 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenChatInbox}
             className="relative flex items-center justify-center p-2.5 text-navy hover:text-orange transition-colors rounded-xl hover:bg-gray-100 cursor-pointer"
-            title="Xem danh sách tin nhắn với các Cửa hàng"
+            title="Xem danh sách tin nhắn với các Cửa hàng & Tuyển dụng"
           >
             <MessageSquare className="w-5 h-5 text-navy" />
-            <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
-              4
-            </span>
+            {unreadChatCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[9px] font-black min-w-[18px] h-4.5 px-1 rounded-full flex items-center justify-center shadow-xs border border-white animate-pulse">
+                {unreadChatCount}
+              </span>
+            )}
           </button>
 
           {/* System Notification Bell Icon Button */}
