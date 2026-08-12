@@ -140,6 +140,10 @@ export interface FooterColumnConfig {
   email: string;
   address: string;
   copyrightText: string;
+  facebookUrl?: string;
+  zaloUrl?: string;
+  youtubeUrl?: string;
+  tiktokUrl?: string;
 }
 
 export interface ThemeConfig {

@@ -4743,6 +4743,58 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                         className="w-full bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-amber-400"
                       />
                     </div>
+
+                    {/* 4 Social Media Link Inputs */}
+                    <div className="sm:col-span-2 lg:col-span-3 border-t border-slate-800 pt-3 space-y-2">
+                      <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                        🌐 CẤU HÌNH ĐƯỜNG LINK 4 MẠNG XÃ HỘI (CHUYỂN TRANG KHI KHÁCH CLICK)
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                          <label className="block text-slate-300 font-bold mb-1 text-[11px]">📘 Link Facebook Fanpage</label>
+                          <input
+                            type="text"
+                            placeholder="https://facebook.com/..."
+                            value={footerState.facebookUrl || ''}
+                            onChange={e => setFooterState(prev => ({ ...prev, facebookUrl: e.target.value }))}
+                            className="w-full bg-slate-900 border border-slate-700 text-blue-400 font-mono rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-bold mb-1 text-[11px]">💬 Link Zalo Official</label>
+                          <input
+                            type="text"
+                            placeholder="https://zalo.me/..."
+                            value={footerState.zaloUrl || ''}
+                            onChange={e => setFooterState(prev => ({ ...prev, zaloUrl: e.target.value }))}
+                            className="w-full bg-slate-900 border border-slate-700 text-cyan-400 font-mono rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-bold mb-1 text-[11px]">🔴 Link YouTube Channel</label>
+                          <input
+                            type="text"
+                            placeholder="https://youtube.com/..."
+                            value={footerState.youtubeUrl || ''}
+                            onChange={e => setFooterState(prev => ({ ...prev, youtubeUrl: e.target.value }))}
+                            className="w-full bg-slate-900 border border-slate-700 text-rose-400 font-mono rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-slate-300 font-bold mb-1 text-[11px]">🎵 Link TikTok Official</label>
+                          <input
+                            type="text"
+                            placeholder="https://tiktok.com/..."
+                            value={footerState.tiktokUrl || ''}
+                            onChange={e => setFooterState(prev => ({ ...prev, tiktokUrl: e.target.value }))}
+                            className="w-full bg-slate-900 border border-slate-700 text-pink-400 font-mono rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

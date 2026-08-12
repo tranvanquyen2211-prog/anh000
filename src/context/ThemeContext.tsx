@@ -78,6 +78,10 @@ export const DEFAULT_FOOTER_CONFIG: FooterColumnConfig = {
   email: 'support@tqstore.vn',
   address: 'Tòa nhà TQ Tower, Số 88 Nguyễn Thị Minh Khai, Quận 1, TP. Hồ Chí Minh',
   copyrightText: 'Copyright © 2026 TQ Store System. All rights reserved.',
+  facebookUrl: 'https://facebook.com',
+  zaloUrl: 'https://zalo.me',
+  youtubeUrl: 'https://youtube.com',
+  tiktokUrl: 'https://tiktok.com',
 };
 
 export const DEFAULT_THEME: ThemeConfig = {

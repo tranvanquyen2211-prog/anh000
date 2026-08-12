@@ -160,30 +160,38 @@ export const Footer: React.FC = () => {
                   </h4>
                   <div className="flex items-center gap-2.5">
                     <a
-                      href="#facebook"
-                      className="w-8 h-8 bg-slate-900 hover:bg-blue-600 text-slate-300 hover:text-white rounded-xl border border-slate-800 flex items-center justify-center font-bold text-xs transition cursor-pointer"
-                      title="Facebook Fanpage"
+                      href={fConfig.facebookUrl || 'https://facebook.com'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-8 h-8 bg-slate-900 hover:bg-blue-600 text-slate-300 hover:text-white rounded-xl border border-slate-800 flex items-center justify-center font-bold text-xs transition cursor-pointer shadow"
+                      title="Facebook Fanpage (Chuyển sang trang chính thức)"
                     >
                       f
                     </a>
                     <a
-                      href="#zalo"
-                      className="w-8 h-8 bg-slate-900 hover:bg-blue-500 text-slate-300 hover:text-white rounded-xl border border-slate-800 flex items-center justify-center font-bold text-[10px] transition cursor-pointer"
-                      title="Zalo Official Account"
+                      href={fConfig.zaloUrl || 'https://zalo.me'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-8 h-8 bg-slate-900 hover:bg-blue-500 text-slate-300 hover:text-white rounded-xl border border-slate-800 flex items-center justify-center font-bold text-[10px] transition cursor-pointer shadow"
+                      title="Zalo Official Account (Chuyển sang trang chính thức)"
                     >
                       Zalo
                     </a>
                     <a
-                      href="#youtube"
-                      className="w-8 h-8 bg-slate-900 hover:bg-rose-600 text-slate-300 hover:text-white rounded-xl border border-slate-800 flex items-center justify-center font-bold text-xs transition cursor-pointer"
-                      title="YouTube Channel"
+                      href={fConfig.youtubeUrl || 'https://youtube.com'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-8 h-8 bg-slate-900 hover:bg-rose-600 text-slate-300 hover:text-white rounded-xl border border-slate-800 flex items-center justify-center font-bold text-xs transition cursor-pointer shadow"
+                      title="YouTube Channel (Chuyển sang trang chính thức)"
                     >
                       YT
                     </a>
                     <a
-                      href="#tiktok"
-                      className="w-8 h-8 bg-slate-900 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-800 flex items-center justify-center font-bold text-[10px] transition cursor-pointer"
-                      title="TikTok Official"
+                      href={fConfig.tiktokUrl || 'https://tiktok.com'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-8 h-8 bg-slate-900 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-800 flex items-center justify-center font-bold text-[10px] transition cursor-pointer shadow"
+                      title="TikTok Official (Chuyển sang trang chính thức)"
                     >
                       TikTok
                     </a>
