@@ -161,6 +161,44 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
     });
   };
 
+  // Re-sync local storage threads & messages whenever modal opens or unread event fires
+  useEffect(() => {
+    const syncLocalChat = () => {
+      const savedThreads = localStorage.getItem('tq_chat_threads');
+      if (savedThreads) {
+        try {
+          const parsed: ChatThread[] = JSON.parse(savedThreads);
+          setThreads(parsed);
+          if (parsed.length > 0) {
+            setActiveThreadId(prev => {
+              if (!prev || !parsed.some(t => t.id === prev)) {
+                return parsed[0].id;
+              }
+              return prev;
+            });
+          }
+        } catch (e) {}
+      }
+      const savedMsgs = localStorage.getItem('tq_chat_messages_map');
+      if (savedMsgs) {
+        try {
+          setMessagesMap(JSON.parse(savedMsgs));
+        } catch (e) {}
+      }
+    };
+
+    if (isOpen) {
+      syncLocalChat();
+    }
+
+    window.addEventListener('tq_chat_unread_updated', syncLocalChat);
+    window.addEventListener('storage', syncLocalChat);
+    return () => {
+      window.removeEventListener('tq_chat_unread_updated', syncLocalChat);
+      window.removeEventListener('storage', syncLocalChat);
+    };
+  }, [isOpen]);
+
   // Mark active thread as read whenever modal is open or active thread changes
   useEffect(() => {
     if (isOpen && activeThreadId) {
@@ -195,18 +233,34 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
             return nextMap;
           });
 
-          // Update thread list with last message snippet & unread counter
+          // Update or Add thread list with last message snippet & unread counter
           setThreads(prev => {
-            const updated = prev.map(t =>
-              t.id === incomingMsg.threadId
-                ? {
-                    ...t,
-                    lastMessage: incomingMsg.text,
-                    lastTimestamp: incomingMsg.timestamp,
-                    unreadCount: isCurrentlyActive ? 0 : (t.unreadCount || 0) + 1
-                  }
-                : t
-            );
+            const exists = prev.some(t => t.id === incomingMsg.threadId);
+            let updated: ChatThread[];
+
+            if (exists) {
+              updated = prev.map(t =>
+                t.id === incomingMsg.threadId
+                  ? {
+                      ...t,
+                      lastMessage: incomingMsg.text,
+                      lastTimestamp: incomingMsg.timestamp,
+                      unreadCount: isCurrentlyActive ? 0 : (t.unreadCount || 0) + 1
+                    }
+                  : t
+              );
+            } else {
+              const newThread: ChatThread = {
+                id: incomingMsg.threadId,
+                contactName: incomingMsg.senderName || 'Người tuyển dụng / Khách hàng',
+                contactRole: incomingMsg.senderRole === 'SHOP' ? 'SHOP' : 'USER',
+                lastMessage: incomingMsg.text,
+                lastTimestamp: incomingMsg.timestamp,
+                unreadCount: isCurrentlyActive ? 0 : 1
+              };
+              updated = [newThread, ...prev];
+            }
+
             localStorage.setItem('tq_chat_threads', JSON.stringify(updated));
             window.dispatchEvent(new Event('tq_chat_unread_updated'));
             return updated;

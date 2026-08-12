@@ -386,6 +386,7 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
 
     existingMessagesMap[threadId] = [...threadMessages, newMsgItem];
     localStorage.setItem('tq_chat_messages_map', JSON.stringify(existingMessagesMap));
+    window.dispatchEvent(new Event('tq_chat_unread_updated'));
 
     // 3. Realtime Broadcast via Supabase WebSocket Channel 'public:messages'
     try {
