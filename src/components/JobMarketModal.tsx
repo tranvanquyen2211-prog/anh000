@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Search, PlusCircle, MessageCircle, Phone, MapPin, ChevronLeft, Building2, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -126,6 +126,99 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
   const [activeChatJob, setActiveChatJob] = useState<JobPosting | null>(null);
   const [chatMessageText, setChatMessageText] = useState('');
 
+  // 🌐 Supabase Realtime WebSocket Connection & Cloud DB Sync for Job Postings across ALL devices
+  useEffect(() => {
+    const fetchCloudJobs = async () => {
+      try {
+        const { data } = await supabase
+          .from('job_postings')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (data && data.length > 0) {
+          const cloudJobs: JobPosting[] = data.map((j: any) => ({
+            id: j.id,
+            title: j.title,
+            shopName: j.shop_name || j.shopName,
+            contactName: j.contact_name || j.contactName,
+            phone: j.phone,
+            salary: j.salary,
+            jobType: j.job_type || j.jobType,
+            category: j.category,
+            location: j.location,
+            mapsUrl: j.maps_url || j.mapsUrl,
+            quantity: j.quantity,
+            description: j.description,
+            createdAt: j.created_at || j.createdAt
+          }));
+
+          setJobs(prev => {
+            const map = new Map<string, JobPosting>();
+            cloudJobs.forEach(cj => map.set(cj.id, cj));
+            prev.forEach(lj => {
+              if (!map.has(lj.id)) map.set(lj.id, lj);
+            });
+            const merged = Array.from(map.values()).sort((a, b) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            localStorage.setItem('tq_job_postings', JSON.stringify(merged));
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.warn('Supabase fetch cloud jobs notice:', err);
+      }
+    };
+
+    fetchCloudJobs();
+
+    // Subscribe to Supabase WebSocket Realtime Channel 'public:job_postings'
+    const jobChannel = supabase
+      .channel('public:job_postings')
+      .on('broadcast', { event: 'new_job_posting' }, (payload) => {
+        if (payload?.payload) {
+          const incomingJob: JobPosting = payload.payload;
+          setJobs(prev => {
+            if (prev.some(j => j.id === incomingJob.id)) return prev;
+            const updated = [incomingJob, ...prev];
+            localStorage.setItem('tq_job_postings', JSON.stringify(updated));
+            return updated;
+          });
+        }
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'job_postings' }, (payload) => {
+        if (payload?.new) {
+          const j = payload.new;
+          const incomingJob: JobPosting = {
+            id: j.id,
+            title: j.title,
+            shopName: j.shop_name || j.shopName,
+            contactName: j.contact_name || j.contactName,
+            phone: j.phone,
+            salary: j.salary,
+            jobType: j.job_type || j.jobType,
+            category: j.category,
+            location: j.location,
+            mapsUrl: j.maps_url || j.mapsUrl,
+            quantity: j.quantity,
+            description: j.description,
+            createdAt: j.created_at || j.createdAt
+          };
+          setJobs(prev => {
+            if (prev.some(x => x.id === incomingJob.id)) return prev;
+            const updated = [incomingJob, ...prev];
+            localStorage.setItem('tq_job_postings', JSON.stringify(updated));
+            return updated;
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(jobChannel);
+    };
+  }, []);
+
   if (!isOpen) return null;
 
   const handleGetCurrentLocation = () => {
@@ -161,7 +254,7 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location + ' ' + job.shopName)}`;
   };
 
-  const handleCreateJobPosting = (e: React.FormEvent) => {
+  const handleCreateJobPosting = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -187,11 +280,46 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
       createdAt: new Date().toISOString()
     };
 
+    // 1. Save to local state & LocalStorage
     const updated = [newJob, ...jobs];
     setJobs(updated);
     localStorage.setItem('tq_job_postings', JSON.stringify(updated));
 
-    addToast('🎉 Đăng bài tuyển người thành công! Người tìm việc có thể mở Google Maps check khoảng cách.', 'success');
+    // 2. Broadcast via Supabase Realtime Channel 'public:job_postings' to ALL devices
+    try {
+      await supabase.channel('public:job_postings').send({
+        type: 'broadcast',
+        event: 'new_job_posting',
+        payload: newJob
+      });
+    } catch (err) {
+      console.warn('Realtime job broadcast notice:', err);
+    }
+
+    // 3. Save to Supabase Cloud DB Table 'job_postings'
+    try {
+      await supabase.from('job_postings').insert([
+        {
+          id: newJob.id,
+          title: newJob.title,
+          shop_name: newJob.shopName,
+          contact_name: newJob.contactName,
+          phone: newJob.phone,
+          salary: newJob.salary,
+          job_type: newJob.jobType,
+          category: newJob.category,
+          location: newJob.location,
+          maps_url: newJob.mapsUrl || null,
+          quantity: newJob.quantity,
+          description: newJob.description,
+          created_at: newJob.createdAt
+        }
+      ]);
+    } catch (err) {
+      console.warn('Supabase DB Insert job notice:', err);
+    }
+
+    addToast('🎉 Đăng bài tuyển người thành công! Bài đăng đã được đồng bộ Realtime sang tất cả thiết bị & tài khoản khác.', 'success');
     
     // Reset inputs & switch to FIND_JOB list view
     setPostTitle('');
@@ -474,10 +602,18 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
                         <h4 className="text-base font-black text-white hover:text-amber-300 transition-colors">
                           {job.title}
                         </h4>
-                        <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mt-1">
-                          <Building2 className="w-3.5 h-3.5 text-amber-400" /> {job.shopName}
+                        <p className="text-xs font-bold text-slate-400 flex items-center gap-1.5 mt-1 flex-wrap">
+                          <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" /> {job.shopName}
                           <span className="text-slate-600">•</span>
                           <span className="text-slate-400 font-normal">Liên hệ: {job.contactName}</span>
+                          <span className="text-slate-600">•</span>
+                          <a
+                            href={`tel:${job.phone.replace(/[^0-9+]/g, '')}`}
+                            className="text-amber-400 hover:text-amber-300 font-mono font-bold flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/30 transition active:scale-95"
+                            title="Bấm để chuyển sang ứng dụng cuộc gọi thoại điện thoại"
+                          >
+                            <Phone className="w-3 h-3 text-amber-400" /> {job.phone}
+                          </a>
                         </p>
                       </div>
 
@@ -526,13 +662,13 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
                           <MessageCircle className="w-4 h-4" /> 💬 Nhắn Tin Với Người Tuyển
                         </button>
 
-                        {/* Direct Call / Contact Button */}
+                        {/* Direct Mobile Phone Dialer Call Button */}
                         <a
-                          href={`tel:${job.phone}`}
-                          className="bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1 transition"
-                          title={`Gọi điện ngay cho ${job.phone}`}
+                          href={`tel:${job.phone.replace(/[^0-9+]/g, '')}`}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md active:scale-95 border border-emerald-400/40"
+                          title={`Bấm để chuyển sang điện thoại gọi ngay số ${job.phone}`}
                         >
-                          <Phone className="w-3.5 h-3.5" /> {job.phone}
+                          <Phone className="w-3.5 h-3.5 text-white animate-bounce" /> 📞 Gọi Điện: {job.phone}
                         </a>
                       </div>
                     </div>
