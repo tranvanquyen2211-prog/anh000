@@ -630,23 +630,93 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   // Module 23 State & Helpers (Tài Khoản Đăng Ký Mới & Trạng Thái Hoạt Động Live)
   const [registrationSearch, setRegistrationSearch] = useState('');
   const [registrationRoleFilter, setRegistrationRoleFilter] = useState<string>('ALL');
+  const [realtimeOnlineKeys, setRealtimeOnlineKeys] = useState<Set<string>>(new Set());
+
+  // Cloud Sync & Supabase Realtime Presence Channel Sync across devices
+  useEffect(() => {
+    const fetchCloudProfiles = async () => {
+      try {
+        const { data: cloudProfiles } = await supabase.from('profiles').select('*');
+        if (cloudProfiles && cloudProfiles.length > 0) {
+          setUsersList(prev => {
+            const map = new Map<string, UserProfile>();
+            prev.forEach(u => map.set(u.id || u.phone || u.email || '', u));
+
+            cloudProfiles.forEach(cp => {
+              const key = cp.id || cp.phone || cp.email;
+              if (key) {
+                const existing = map.get(key);
+                map.set(key, {
+                  id: cp.id || `usr_${Date.now()}`,
+                  email: cp.email || existing?.email || '',
+                  phone: cp.phone || existing?.phone || '',
+                  name: cp.full_name || existing?.name || 'Khách hàng',
+                  role: existing?.role || 'USER',
+                  avatar: cp.avatar || existing?.avatar,
+                  createdAt: cp.created_at || existing?.createdAt || new Date().toISOString(),
+                  lastActiveAt: cp.last_active_at || existing?.lastActiveAt || new Date().toISOString(),
+                  isOnline: cp.is_online || existing?.isOnline || false,
+                  walletBalance: cp.wallet_balance ?? existing?.walletBalance ?? 0,
+                  coins: cp.coins ?? existing?.coins ?? 0
+                });
+              }
+            });
+
+            const updatedList = Array.from(map.values());
+            localStorage.setItem('tq_phone_users', JSON.stringify(updatedList));
+            return updatedList;
+          });
+        }
+      } catch (e) {}
+    };
+
+    fetchCloudProfiles();
+    const interval = setInterval(fetchCloudProfiles, 10000);
+
+    const presenceChannel = supabase.channel('tq_online_presence');
+    presenceChannel.on('presence', { event: 'sync' }, () => {
+      const state = presenceChannel.presenceState();
+      const activeKeys = new Set<string>();
+      Object.values(state).forEach((presences: any) => {
+        presences.forEach((p: any) => {
+          if (p.id) activeKeys.add(p.id);
+          if (p.phone) activeKeys.add(p.phone.replace(/\s+/g, ''));
+          if (p.email) activeKeys.add(p.email.toLowerCase());
+        });
+      });
+      setRealtimeOnlineKeys(activeKeys);
+    });
+
+    presenceChannel.subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(presenceChannel);
+    };
+  }, []);
+
+  const isUserCurrentlyOnline = (u: UserProfile) => {
+    if (u.id && realtimeOnlineKeys.has(u.id)) return true;
+    if (u.phone && realtimeOnlineKeys.has(u.phone.replace(/\s+/g, ''))) return true;
+    if (u.email && realtimeOnlineKeys.has(u.email.toLowerCase())) return true;
+    if (u.isOnline) return true;
+    if (user && (user.id === u.id || (user.phone && user.phone === u.phone) || (user.email && user.email === u.email))) return true;
+    if (u.lastActiveAt) {
+      const diffMs = Date.now() - new Date(u.lastActiveAt).getTime();
+      return diffMs < 5 * 60 * 1000;
+    }
+    return false;
+  };
 
   const getOnlineUserCount = () => {
-    return usersList.filter(u => {
-      if (u.isOnline) return true;
-      if (u.lastActiveAt) {
-        const diffMs = Date.now() - new Date(u.lastActiveAt).getTime();
-        return diffMs < 5 * 60 * 1000;
-      }
-      return false;
-    }).length;
+    return usersList.filter(u => isUserCurrentlyOnline(u)).length;
   };
 
   const formatRelativeLastSeen = (u: UserProfile) => {
-    const isOnline = u.isOnline || (u.lastActiveAt && (Date.now() - new Date(u.lastActiveAt).getTime()) < 5 * 60 * 1000);
+    const isOnline = isUserCurrentlyOnline(u);
     if (isOnline) {
       return (
-        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5 w-fit">
+        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2.5 py-1 rounded-full uppercase flex items-center gap-1.5 w-fit shadow">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
           🟢 Đang hoạt động (Online)
         </span>

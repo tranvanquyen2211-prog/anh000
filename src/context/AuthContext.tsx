@@ -182,6 +182,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [isImpersonating]);
 
+  // Active User Presence Heartbeat & Supabase Realtime Track (Every 20s)
+  useEffect(() => {
+    if (!user) return;
+
+    const sendHeartbeat = async () => {
+      const nowIso = new Date().toISOString();
+      
+      const localAccounts = JSON.parse(localStorage.getItem('tq_phone_users') || '[]');
+      const idx = localAccounts.findIndex((u: any) => 
+        (u.id && u.id === user.id) || 
+        (u.phone && user.phone && u.phone.replace(/\s+/g, '') === user.phone.replace(/\s+/g, '')) ||
+        (u.email && user.email && u.email.toLowerCase() === user.email.toLowerCase())
+      );
+
+      if (idx > -1) {
+        localAccounts[idx].lastActiveAt = nowIso;
+        localAccounts[idx].isOnline = true;
+        localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+      } else {
+        localAccounts.push({
+          id: user.id,
+          phone: user.phone || '',
+          email: user.email || '',
+          name: user.name || '',
+          role: user.role || 'USER',
+          createdAt: user.createdAt || nowIso,
+          lastActiveAt: nowIso,
+          isOnline: true
+        });
+        localStorage.setItem('tq_phone_users', JSON.stringify(localAccounts));
+      }
+
+      try {
+        await supabase.from('profiles').upsert([{
+          id: user.id,
+          phone: user.phone || '',
+          email: user.email || '',
+          full_name: user.name || '',
+          is_online: true,
+          last_active_at: nowIso,
+          updated_at: nowIso
+        }]);
+      } catch (e) {}
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 20000);
+
+    const presenceChannel = supabase.channel('tq_online_presence', {
+      config: { presence: { key: user.id } }
+    });
+
+    presenceChannel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await presenceChannel.track({
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          email: user.email,
+          role: user.role,
+          onlineAt: new Date().toISOString()
+        });
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(presenceChannel);
+    };
+  }, [user]);
+
   // Update Avatar System-wide
   const updateAvatar = async (newAvatarUrl: string): Promise<boolean> => {
     if (!user) {
