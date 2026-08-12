@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Search, PlusCircle, MessageCircle, Phone, MapPin, ChevronLeft, Building2, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { supabase } from '../lib/supabase';
 
 export interface JobPosting {
   id: string;
@@ -14,6 +15,7 @@ export interface JobPosting {
   jobType: 'Full-time' | 'Part-time' | 'Ca xoay' | 'Theo giờ';
   category: 'Bán hàng' | 'Phục vụ / F&B' | 'Giao hàng' | 'Spa / Beauty' | 'Thời trang' | 'Khác';
   location: string;
+  mapsUrl?: string;
   quantity: number;
   description: string;
   createdAt: string;
@@ -114,6 +116,8 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
   const [postJobType, setPostJobType] = useState<JobPosting['jobType']>('Full-time');
   const [postCategory, setPostCategory] = useState<JobPosting['category']>('Bán hàng');
   const [postLocation, setPostLocation] = useState('');
+  const [postMapsUrl, setPostMapsUrl] = useState('');
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [postQuantity, setPostQuantity] = useState<number>(1);
   const [postDescription, setPostDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -123,6 +127,39 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
   const [chatMessageText, setChatMessageText] = useState('');
 
   if (!isOpen) return null;
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      addToast('Trình duyệt không hỗ trợ tự động lấy định vị GPS!', 'error');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    addToast('📍 Đang xác định tọa độ GPS vị trí hiện tại...', 'info');
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const generatedMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+        
+        setPostMapsUrl(generatedMapsUrl);
+        setPostLocation(prev => prev ? `${prev} (📍 GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)})` : `📍 Tọa độ GPS Google Maps: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        setIsGettingLocation(false);
+        addToast('📍 Đã đính kèm định vị Google Maps vị trí hiện tại thành công!', 'success');
+      },
+      (err) => {
+        setIsGettingLocation(false);
+        addToast(`Không thể lấy định vị: ${err.message || 'Vui lòng cho phép quyền vị trí'}`, 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const getGoogleMapsSearchUrl = (job: JobPosting) => {
+    if (job.mapsUrl) return job.mapsUrl;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location + ' ' + job.shopName)}`;
+  };
 
   const handleCreateJobPosting = (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +181,7 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
       jobType: postJobType,
       category: postCategory,
       location: postLocation,
+      mapsUrl: postMapsUrl || undefined,
       quantity: postQuantity,
       description: postDescription,
       createdAt: new Date().toISOString()
@@ -153,28 +191,93 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
     setJobs(updated);
     localStorage.setItem('tq_job_postings', JSON.stringify(updated));
 
-    addToast('🎉 Đăng bài tuyển người làm thành công! Khách hàng có thể tìm và nhắn tin ứng tuyển ngay.', 'success');
+    addToast('🎉 Đăng bài tuyển người thành công! Người tìm việc có thể mở Google Maps check khoảng cách.', 'success');
     
     // Reset inputs & switch to FIND_JOB list view
     setPostTitle('');
     setPostSalary('');
     setPostDescription('');
+    setPostMapsUrl('');
     setIsSubmitting(false);
     setMode('FIND_JOB');
   };
 
   const handleSendApplicantMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeChatJob) return;
+    if (!activeChatJob || !chatMessageText.trim()) return;
 
-    if (onOpenDirectChat) {
-      onOpenDirectChat(activeChatJob.shopName, activeChatJob.phone, activeChatJob.title);
+    const threadId = `thread_job_${activeChatJob.id}`;
+    const timestampStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const fullMessageText = `💼 [Ứng tuyển vị trí: ${activeChatJob.title}]\n${chatMessageText.trim()}`;
+
+    // 1. Synchronize / Create Chat Thread in localStorage
+    const savedThreadsStr = localStorage.getItem('tq_chat_threads');
+    let existingThreads: any[] = savedThreadsStr ? JSON.parse(savedThreadsStr) : [
+      {
+        id: 'thread_1',
+        contactName: 'TQ Rental Studio',
+        contactRole: 'SHOP',
+        lastMessage: 'Dạ shop sẵn size M trang phục cưới ạ, anh/chị cần ship hỏa tốc không ạ?',
+        lastTimestamp: timestampStr,
+        unreadCount: 1
+      }
+    ];
+
+    const threadIndex = existingThreads.findIndex((t: any) => t.id === threadId || t.contactName === activeChatJob.shopName);
+    if (threadIndex >= 0) {
+      existingThreads[threadIndex].lastMessage = fullMessageText;
+      existingThreads[threadIndex].lastTimestamp = timestampStr;
+      const targetThread = existingThreads.splice(threadIndex, 1)[0];
+      existingThreads.unshift(targetThread);
     } else {
-      addToast(`💬 Đã gửi tin nhắn tới người tuyển dụng [${activeChatJob.contactName}] (${activeChatJob.phone}) thành công!`, 'success');
+      const newThread = {
+        id: threadId,
+        contactName: activeChatJob.shopName || activeChatJob.contactName,
+        contactRole: 'SHOP',
+        lastMessage: fullMessageText,
+        lastTimestamp: timestampStr,
+        unreadCount: 0
+      };
+      existingThreads.unshift(newThread);
     }
+    localStorage.setItem('tq_chat_threads', JSON.stringify(existingThreads));
+
+    // 2. Synchronize Chat Messages Map in localStorage
+    const savedMessagesMapStr = localStorage.getItem('tq_chat_messages_map');
+    let existingMessagesMap: Record<string, any[]> = savedMessagesMapStr ? JSON.parse(savedMessagesMapStr) : {};
+    const threadMessages = existingMessagesMap[threadId] || [];
+
+    const newMsgItem = {
+      id: `msg_job_${Date.now()}`,
+      threadId: threadId,
+      senderName: user?.name || 'Khách Hàng (Ứng Viên)',
+      senderRole: 'USER',
+      text: fullMessageText,
+      timestamp: timestampStr
+    };
+
+    existingMessagesMap[threadId] = [...threadMessages, newMsgItem];
+    localStorage.setItem('tq_chat_messages_map', JSON.stringify(existingMessagesMap));
+
+    // 3. Realtime Broadcast via Supabase WebSocket Channel 'public:messages'
+    try {
+      supabase.channel('public:messages').send({
+        type: 'broadcast',
+        event: 'new_chat_message',
+        payload: newMsgItem
+      });
+    } catch (err) {
+      console.warn('Supabase Realtime Broadcast Error:', err);
+    }
+
+    addToast(`💬 Đã gửi & đồng bộ tin nhắn ứng tuyển tới [${activeChatJob.shopName}] vào Hộp Tin Nhắn!`, 'success');
 
     setActiveChatJob(null);
     setChatMessageText('');
+
+    if (onOpenDirectChat) {
+      onOpenDirectChat(activeChatJob.shopName, activeChatJob.phone, activeChatJob.title);
+    }
   };
 
   return (
@@ -398,7 +501,19 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
                         Đăng lúc: {new Date(job.createdAt).toLocaleString('vi-VN')}
                       </span>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Check Google Maps Button */}
+                        <a
+                          href={getGoogleMapsSearchUrl(job)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow"
+                          title="Mở Google Maps để kiểm tra vị trí & khoảng cách xa/gần"
+                        >
+                          <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>🗺️ Check Google Maps</span>
+                        </a>
+
                         {/* Direct Chat with Employer Button */}
                         <button
                           type="button"
@@ -562,19 +677,33 @@ export const JobMarketModal: React.FC<JobMarketModalProps> = ({
                     />
                   </div>
 
-                  {/* Work Address */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Địa Chỉ Làm Việc Chính Thức <span className="text-rose-500">*</span>
-                    </label>
+                  {/* Work Address & GPS Location Picker */}
+                  <div className="sm:col-span-2 space-y-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <label className="block text-xs font-bold text-slate-300">
+                        Địa Chỉ Làm Việc Chính Thức <span className="text-rose-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleGetCurrentLocation}
+                        disabled={isGettingLocation}
+                        className="text-[11px] bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 w-fit"
+                      >
+                        <MapPin className="w-3 h-3 text-cyan-400 animate-pulse" />
+                        {isGettingLocation ? 'Đang lấy tọa độ GPS...' : '📍 Lấy Định Vị Google Maps Vị Trí Hiện Tại'}
+                      </button>
+                    </div>
                     <input
                       type="text"
                       required
-                      placeholder="Số nhà, Tên đường, Quận/Huyện, Tỉnh/TP..."
+                      placeholder="Ghi thủ công (Số nhà, Tên đường...) HOẶC bấm nút trên để tự động đính kèm định vị Google Maps..."
                       value={postLocation}
                       onChange={e => setPostLocation(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-700 text-slate-100 text-xs rounded-xl px-3.5 py-2.5 font-medium focus:outline-none focus:border-amber-400"
                     />
+                    <p className="text-[10px] text-slate-400">
+                      💡 Người tuyển có thể ghi thủ công địa chỉ, hoặc bấm nút <strong className="text-cyan-300">📍 Lấy Định Vị</strong> để tự động lấy tọa độ GPS giúp người tìm việc dễ dàng bấm xem Google Maps để check khoảng cách xa/gần.
+                    </p>
                   </div>
 
                   {/* Job Description & Requirements */}

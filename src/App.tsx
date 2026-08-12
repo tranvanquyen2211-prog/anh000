@@ -919,6 +919,10 @@ function MainApp() {
       <JobMarketModal
         isOpen={isJobMarketModalOpen}
         onClose={() => setIsJobMarketModalOpen(false)}
+        onOpenDirectChat={() => {
+          setIsJobMarketModalOpen(false);
+          setIsChatInboxOpen(true);
+        }}
       />
 
       {/* 🤖 AI TIQI SMART SHOPPING ASSISTANT & AUTOMATED CUSTOMER SUPPORT WIDGET */}
