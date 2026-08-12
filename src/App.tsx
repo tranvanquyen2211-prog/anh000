@@ -38,6 +38,7 @@ import { UserProfileModal } from './components/UserProfileModal';
 import { JobMarketModal } from './components/JobMarketModal';
 import { ShopeeMobileIconGrid } from './components/ShopeeMobileIconGrid';
 import { ShopeeFlashSaleSection } from './components/ShopeeFlashSaleSection';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { Footer } from './components/Footer';
 import { INITIAL_PRODUCTS } from './data/mockProducts';
 import { detectProvinceFromShopInfo } from './data/vietnamLocations';
@@ -532,7 +533,7 @@ function MainApp() {
         onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-6 md:pb-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20 md:pb-8 space-y-8">
         {/* Dynamic Homepage Sections Reordered & Synchronized Realtime */}
         {((theme.homepageSections && theme.homepageSections.length > 0)
           ? theme.homepageSections
@@ -958,6 +959,25 @@ function MainApp() {
         products={products}
         onOpenProductDetail={p => setSelectedProductForDetail(p)}
         onOpenShopStorefront={sName => setSelectedShopNameForStorefront(sName)}
+      />
+
+      {/* 📱 MOBILE BOTTOM NAVIGATION BAR (FIXED BOTTOM AT ALL TIMES) */}
+      <MobileBottomNav
+        onGoHome={() => {
+          setSelectedCategory('ALL');
+          setSearchQuery('');
+          setActiveTab('shop');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onToggleNotifications={handleToggleNotifications}
+        unreadNotificationsCount={unreadNotificationsCount}
+        onOpenUserProfile={() => {
+          if (user) {
+            setIsUserProfileModalOpen(true);
+          } else {
+            setIsAuthOpen(true);
+          }
+        }}
       />
     </div>
   );

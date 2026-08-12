@@ -238,60 +238,62 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* 4 Quick Action Buttons: Tin nhắn, Thông báo, Giỏ hàng, Tôi */}
-          <div className="flex items-center gap-2 text-white shrink-0">
+          {/* Quick Action Buttons Next to Mobile Search Bar: Tin nhắn, Thông báo, Giỏ hàng, Tôi */}
+          <div className="flex items-center gap-1.5 text-white shrink-0">
             
-            {/* 1. Tin nhắn */}
+            {/* 1. Tin nhắn Inbox Quick Button */}
             <button
               onClick={onOpenChatInbox}
-              className="relative p-1.5 hover:bg-white/15 rounded-full transition cursor-pointer flex flex-col items-center"
-              title="Tin nhắn Inbox"
+              className="relative p-2 bg-white/15 hover:bg-white/25 rounded-xl transition cursor-pointer flex items-center justify-center border border-white/20 active:scale-95 shrink-0"
+              title="Mở Hộp Tin nhắn Inbox"
             >
-              <MessageSquare className="w-5.5 h-5.5 text-white" />
-              <span className="absolute -top-1 -right-1 bg-amber-300 text-slate-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-[#0F2C59] shadow-xs">
-                4
-              </span>
+              <MessageSquare className="w-5 h-5 text-white" />
+              {unreadChatCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 text-[9px] font-black min-w-[18px] h-4.5 px-1 rounded-full flex items-center justify-center border border-[#0F2C59] shadow-xs animate-pulse">
+                  {unreadChatCount}
+                </span>
+              )}
             </button>
 
-            {/* 2. Thông báo */}
+            {/* 2. Thông báo Quick Button */}
             <button
               onClick={onToggleNotifications}
-              className="relative p-1.5 hover:bg-white/15 rounded-full transition cursor-pointer flex flex-col items-center"
-              title="Thông báo"
+              className="relative p-2 bg-white/15 hover:bg-white/25 rounded-xl transition cursor-pointer flex items-center justify-center border border-white/20 active:scale-95 shrink-0"
+              title="Thông báo hệ thống"
             >
-              <Bell className="w-5.5 h-5.5 text-white" />
+              <Bell className="w-5 h-5 text-white" />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black px-1 rounded-full border border-[#0F2C59] shadow-xs">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black min-w-[18px] h-4.5 px-1 rounded-full flex items-center justify-center border border-[#0F2C59] shadow-xs">
                   {unreadNotificationsCount}
                 </span>
               )}
             </button>
 
-            {/* 3. Giỏ hàng */}
+            {/* 3. Giỏ hàng Quick Button */}
             <button
               onClick={onOpenCartDrawer}
-              className="relative p-1.5 hover:bg-white/15 rounded-full transition cursor-pointer flex flex-col items-center"
-              title="Giỏ hàng"
+              className="relative p-2 bg-white/15 hover:bg-white/25 rounded-xl transition cursor-pointer flex items-center justify-center border border-white/20 active:scale-95 shrink-0"
+              title="Mở Giỏ hàng"
             >
-              <ShoppingCart className="w-5.5 h-5.5 text-white" />
+              <ShoppingCart className="w-5 h-5 text-white" />
               {totalItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 text-[10px] font-black min-w-[18px] h-4.5 px-1 rounded-full flex items-center justify-center border border-[#0F2C59] shadow-xs">
                   {totalItemsCount}
                 </span>
               )}
             </button>
 
-            {/* 4. Tôi (Person Logo Button) */}
+            {/* 4. Tôi (Tài khoản cá nhân) */}
             <button
               onClick={() => {
                 if (onOpenUserProfileModal) onOpenUserProfileModal();
                 else if (user) onOpenOrderHistory();
                 else onOpenAuthModal();
               }}
-              className="relative px-2.5 py-1 bg-white/15 hover:bg-white/25 rounded-xl transition cursor-pointer flex items-center gap-1.5 border border-white/20 active:scale-95 shrink-0"
+              className="relative px-2.5 py-1.5 bg-white/15 hover:bg-white/25 rounded-xl transition cursor-pointer flex items-center gap-1 border border-white/20 active:scale-95 shrink-0"
               title="Bấm để mở các tính năng tài khoản cá nhân (Tôi)"
             >
-              <User className="w-5 h-5 text-amber-300" />
+              <User className="w-4 h-4 text-amber-300" />
               <span className="text-xs font-black text-white">Tôi</span>
             </button>
           </div>
