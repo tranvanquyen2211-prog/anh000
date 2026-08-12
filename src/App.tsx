@@ -180,6 +180,74 @@ function MainApp() {
   const [selectedShopNameForStorefront, setSelectedShopNameForStorefront] = useState<string | null>(null);
   const [selectedProductForEditSales, setSelectedProductForEditSales] = useState<Product | null>(null);
   const [chatProductContext, setChatProductContext] = useState<Product | null>(null);
+  const [activeChatThreadId, setActiveChatThreadId] = useState<string | null>(null);
+
+  const handleOpenChatWithProduct = (product: Product) => {
+    const cleanShopId = product.shopName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const threadId = `thread_shop_${cleanShopId}`;
+    const timestampStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const inquiryText = `📦 [Hỏi tư vấn sản phẩm: ${product.title}]\n- Giá: ${product.price.toLocaleString('vi-VN')} VNĐ\nXin chào Shop! Cho mình hỏi sản phẩm này còn hàng/size không ạ?`;
+
+    // 1. Save or Update Thread in LocalStorage
+    const savedThreadsStr = localStorage.getItem('tq_chat_threads');
+    let threads: any[] = savedThreadsStr ? JSON.parse(savedThreadsStr) : [];
+
+    const existingIndex = threads.findIndex((t: any) => t.id === threadId || (t.contactName && t.contactName.toLowerCase() === product.shopName.toLowerCase()));
+
+    if (existingIndex >= 0) {
+      threads[existingIndex].lastMessage = inquiryText;
+      threads[existingIndex].lastTimestamp = timestampStr;
+      const targetThread = threads.splice(existingIndex, 1)[0];
+      threads.unshift(targetThread);
+    } else {
+      const newThread = {
+        id: threadId,
+        contactName: product.shopName,
+        contactRole: 'SHOP',
+        lastMessage: inquiryText,
+        lastTimestamp: timestampStr,
+        unreadCount: 0
+      };
+      threads.unshift(newThread);
+    }
+    localStorage.setItem('tq_chat_threads', JSON.stringify(threads));
+
+    // 2. Save Message into LocalStorage
+    const savedMsgsStr = localStorage.getItem('tq_chat_messages_map');
+    let msgsMap: Record<string, any[]> = savedMsgsStr ? JSON.parse(savedMsgsStr) : {};
+    const currentMsgs = msgsMap[threadId] || [];
+
+    const newMsgItem = {
+      id: `msg_prod_${Date.now()}`,
+      threadId: threadId,
+      senderName: user?.name || 'Khách Hàng',
+      senderRole: 'USER',
+      text: inquiryText,
+      timestamp: timestampStr,
+      status: 'read' as const,
+      productContext: product
+    };
+
+    msgsMap[threadId] = [...currentMsgs, newMsgItem];
+    localStorage.setItem('tq_chat_messages_map', JSON.stringify(msgsMap));
+
+    // 3. Dispatch unread update event
+    window.dispatchEvent(new Event('tq_chat_unread_updated'));
+
+    // 4. Realtime broadcast via Supabase
+    try {
+      supabase.channel('public:messages').send({
+        type: 'broadcast',
+        event: 'new_chat_message',
+        payload: newMsgItem
+      });
+    } catch (e) {}
+
+    // 5. Close product detail modal & open Chat Inbox directly tabbed on this shop's thread
+    setSelectedProductForDetail(null);
+    setActiveChatThreadId(threadId);
+    setIsChatInboxOpen(true);
+  };
 
   // 📱 NATIVE MOBILE SWIPE FROM LEFT TO RIGHT TO GO BACK / CLOSE MODAL
   useEffect(() => {
@@ -721,7 +789,7 @@ function MainApp() {
                             <ProductCard
                               key={product.id}
                               product={product}
-                              onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+                              onOpenChatWithProduct={handleOpenChatWithProduct}
                               onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
                               onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
                             />
@@ -776,6 +844,7 @@ function MainApp() {
       <ChatInboxModal
         isOpen={isChatInboxOpen}
         onClose={() => setIsChatInboxOpen(false)}
+        initialActiveThreadId={activeChatThreadId}
         onSelectConversationProduct={(prod) => setSelectedProductForDetail(prod)}
       />
 
@@ -786,7 +855,7 @@ function MainApp() {
         onClose={() => setIsSearchResultsModalOpen(false)}
         onSearchChange={setSearchQuery}
         onOpenProductDetail={(prod) => setSelectedProductForDetail(prod)}
-        onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+        onOpenChatWithProduct={handleOpenChatWithProduct}
         onOpenEditSalesCount={(prod) => setSelectedProductForEditSales(prod)}
       />
 
@@ -806,7 +875,7 @@ function MainApp() {
       <ProductDetailModal
         product={selectedProductForDetail}
         onClose={() => setSelectedProductForDetail(null)}
-        onOpenChatWithProduct={(prod) => setChatProductContext(prod)}
+        onOpenChatWithProduct={handleOpenChatWithProduct}
         onOpenShopStorefront={(sName) => setSelectedShopNameForStorefront(sName)}
         onProceedToCheckout={() => setIsCartOpen(true)}
       />
@@ -816,9 +885,9 @@ function MainApp() {
         onClose={() => setSelectedShopNameForStorefront(null)}
         shopName={selectedShopNameForStorefront || ''}
         products={products}
-        onOpenChatWithShop={(sName) => setChatProductContext({
+        onOpenChatWithShop={(sName) => handleOpenChatWithProduct({
           id: `shop_${Date.now()}`,
-          title: `Hỏi đáp với Gian Hàng ${sName}`,
+          title: `Hỏi đáp trực tiếp với Gian Hàng ${sName}`,
           price: 0,
           shopType: 'RETAIL',
           shopName: sName,

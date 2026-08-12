@@ -37,11 +37,13 @@ interface ChatInboxModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectConversationProduct?: (product: Product) => void;
+  initialActiveThreadId?: string | null;
 }
 
 export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  initialActiveThreadId
 }) => {
   const { user } = useAuth();
   const { addToast } = useToast();
@@ -171,6 +173,9 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
           setThreads(parsed);
           if (parsed.length > 0) {
             setActiveThreadId(prev => {
+              if (initialActiveThreadId && parsed.some(t => t.id === initialActiveThreadId)) {
+                return initialActiveThreadId;
+              }
               if (!prev || !parsed.some(t => t.id === prev)) {
                 return parsed[0].id;
               }
@@ -189,6 +194,9 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
 
     if (isOpen) {
       syncLocalChat();
+      if (initialActiveThreadId) {
+        setActiveThreadId(initialActiveThreadId);
+      }
     }
 
     window.addEventListener('tq_chat_unread_updated', syncLocalChat);
@@ -197,7 +205,7 @@ export const ChatInboxModal: React.FC<ChatInboxModalProps> = ({
       window.removeEventListener('tq_chat_unread_updated', syncLocalChat);
       window.removeEventListener('storage', syncLocalChat);
     };
-  }, [isOpen]);
+  }, [isOpen, initialActiveThreadId]);
 
   // Mark active thread as read whenever modal is open or active thread changes
   useEffect(() => {
